@@ -60,6 +60,8 @@ var PCGGame;
         }
         Play.prototype.create = function () {
             this.stage.backgroundColor = 0x80FF80;
+            Generator.JumpTables.setDebug(true, PCGGame.Global);
+            this.game.add.sprite(0, 0, Generator.JumpTables.debugBitmapData);
         };
         Play.prototype.update = function () {
         };
@@ -89,4 +91,115 @@ var PCGGame;
     }(Phaser.State));
     PCGGame.Preload = Preload;
 })(PCGGame || (PCGGame = {}));
+var Generator;
+(function (Generator) {
+    var Parameters = (function () {
+        function Parameters() {
+        }
+        Parameters.GRID = {
+            HEIGHT: 10,
+            CELL: {
+                SIZE: 64,
+                STEPS: 4
+            }
+        };
+        Parameters.GRAVITY = 2400;
+        Parameters.PLAYER = {
+            BODY: {
+                WIDTH: 30,
+                HEIGHT: 90
+            }
+        };
+        Parameters.JUMP = {
+            HEIGHT: {
+                MIN: Parameters.GRID.CELL.SIZE * 0.75,
+                MAX: Parameters.GRID.CELL.SIZE * 2.90,
+                STEPS: Parameters.GRID.STEPS
+            }
+        };
+        Parameters.VELOCITY = {
+            X: 300
+        };
+        return Parameters;
+    }());
+    Generator.Parameters = Parameters;
+})(Generator || (Generator = {}));
+var Generator;
+(function (Generator) {
+    var JumpTables = (function () {
+        function JumpTables() {
+            this._jumpVelocityImpulseLookup = [];
+            this.calcJumpVelocityImpulses();
+        }
+        Object.defineProperty(JumpTables, "instance", {
+            get: function () {
+                if (JumpTables._instance === null) {
+                    JumpTables._instance = new JumpTables();
+                }
+                return JumpTables._instance;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        JumpTables.prototype.calcJumpVelocityImpulses = function () {
+            var deltaJumHeight = Generator.Parameters.JUMP.HEIGHT.MAX - Generator.Parameters.JUMP.HEIGHT.MIN;
+            this._jumpVelocityImpulseLookup.length = 0;
+            for (var i = 0; i < Generator.Parameters.JUMP.HEIGHT.STEPS; i++) {
+                var h = Generator.Parameters.JUMP.HEIGHT.MIN + (deltaJumHeight / Generator.Parameters.JUMP.HEIGHT.STEPS * i);
+                this._jumpVelocityImpulseLookup.push(-Math.sqrt(2 * h * Generator.Parameters.GRAVITY));
+            }
+        };
+        Object.defineProperty(JumpTables.prototype, "minJumpVelocityImpulse", {
+            get: function () {
+                return this._jumpVelocityImpulseLookup[0];
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(JumpTables.prototype, "maxJumpVelocityImpulse", {
+            get: function () {
+                return this._jumpVelocityImpulseLookup[Generator.Parameters.JUMP.HEIGHT.STEPS - 1];
+            },
+            enumerable: true,
+            configurable: true
+        });
+        JumpTables.createDebugBitmap = function () {
+            var gameConf = JumpTables._gameConfig;
+            var bitMapData = new Phaser.BitmapData(gameConf.game, 'DebugGrid', gameConf.SCREEN.WIDTH, gameConf.SCREEN.HEIGHT);
+            bitMapData.fill(200, 200, 200);
+            for (var i = 0; i < gameConf.SCREEN.HEIGHT; i += Generator.Parameters.GRID.CELL.SIZE) {
+                bitMapData.line(0, i + 0.5, gameConf.SCREEN.WIDTH - 1, i + 0.5);
+            }
+            for (var j = 0; j < gameConf.SCREEN.WIDTH; j += Generator.Parameters.GRID.CELL.SIZE) {
+                bitMapData.line(j + 0.5, 0, j + 0.5, gameConf.SCREEN.HEIGHT - 1);
+                bitMapData.text((j / Generator.Parameters.GRID.CELL.SIZE).toString(), j + 20, 20, '16px Courier', '#00ff00');
+            }
+            JumpTables._debugBitMapData = bitMapData;
+        };
+        JumpTables.setDebug = function (isDebugOn, gameConfig) {
+            if (!JumpTables._instance) {
+                this.instance;
+            }
+            JumpTables._debug = isDebugOn;
+            if (typeof gameConfig !== 'undefined') {
+                JumpTables._gameConfig = gameConfig;
+            }
+            if (!isDebugOn || !gameConfig) {
+                return;
+            }
+            JumpTables.createDebugBitmap();
+        };
+        Object.defineProperty(JumpTables, "debugBitmapData", {
+            get: function () {
+                return JumpTables._debugBitMapData;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        JumpTables._instance = null;
+        JumpTables._debug = false;
+        return JumpTables;
+    }());
+    Generator.JumpTables = JumpTables;
+})(Generator || (Generator = {}));
 //# sourceMappingURL=app.js.map
