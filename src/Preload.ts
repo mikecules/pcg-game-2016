@@ -8,6 +8,8 @@ namespace PCGGame {
 
         public preload() {
 
+            this.load.image('gridTiles', 'assets/grid-tiles.png');
+
         }
 
         public update() {
