@@ -46,6 +46,10 @@ namespace PCGGame {
             this._state = generateStateEnum.PROCESS_BLOCK;
         }
 
+        public get wallBlocks() : Phaser.Group {
+            return this._walls;
+        }
+
 
         public generate(leftTile: number): void {
             // remove tiles too far to left
