@@ -19,13 +19,6 @@ namespace Generator {
             }
         };
 
-        public static JUMP : any = {
-            HEIGHT : {
-                MIN: Parameters.GRID.CELL.SIZE * 0.75,
-                MAX: Parameters.GRID.CELL.SIZE * 2.90,
-                STEPS: Parameters.GRID.CELL.STEPS
-            }
-        };
 
         public static VELOCITY : any = {
             X: 300

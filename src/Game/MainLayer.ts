@@ -21,8 +21,11 @@ namespace PCGGame {
 
         public constructor(game: Phaser.Game, parent: PIXI.DisplayObjectContainer) {
             super(game, parent);
+
+            let randomGenerator = game.rnd;
+
             // platforms generator
-            this._generator = new Generator.Generator(game.rnd);
+            this._generator = new Generator.Generator(randomGenerator);
             // pool of walls
             this._wallsPool = new Helper.Pool<Phaser.Sprite>(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE / 2, function () { // add empty sprite with body
                 let sprite = new Phaser.Sprite(game, 0, 0, 'Block');
@@ -39,7 +42,7 @@ namespace PCGGame {
             this._walls = new Phaser.Group(game, this);
 
             // set initial tile for generating
-            this._block = this._generator.addBlock(0, 5, 10);
+            this._block = this._generator.addBlock(0, this.game.rnd.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), randomGenerator.integerInRange(1, 3));
             this._state = generateStateEnum.PROCESS_BLOCK;
         }
 

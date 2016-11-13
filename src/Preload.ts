@@ -9,6 +9,7 @@ namespace PCGGame {
         public preload() {
 
             this.load.image('gridTiles', 'assets/grid-tiles.png');
+            this.load.image(Player.ID, 'assets/ship.png');
 
         }
 

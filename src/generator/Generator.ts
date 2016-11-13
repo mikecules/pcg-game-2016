@@ -4,13 +4,13 @@ namespace Generator {
         private _randomGenerator: Phaser.RandomDataGenerator;
         private _blockPool : Helper.Pool<Block>;
         private _lastGeneratedBlock : Block;
-        private _jumpTables: JumpTables;
+        //private _jumpTables: JumpTables;
 
         constructor(randomGenerator: Phaser.RandomDataGenerator) {
             this._randomGenerator = randomGenerator;
 
             // reference to jump tables
-            this._jumpTables = JumpTables.instance;
+            //this._jumpTables = JumpTables.instance;
 
             // pool of block
             this._blockPool = new Helper.Pool<Block>(Block, 16);
@@ -47,12 +47,13 @@ namespace Generator {
 
             let deltaGridY = lowerBlockBound - upperBlockBound;
 
-console.log(lastPosition);
+
             // Y POSITION
             // how high can jump max
-            let minY = this._jumpTables.maxOffsetY();
+            let minY = -5;//0; //this._jumpTables.maxOffsetY();
             // how deep can fall max
             let maxY = lowerBlockBound - upperBlockBound;
+
 
             // clear last y from upper bound, so it starts from 0
             let currentY = lastPosition.y - upperBlockBound;
@@ -76,16 +77,19 @@ console.log(lastPosition);
             block.position.y = newY + upperBlockBound;
 
             // offset of new piece relative to last position (end position of last piece)
-            block.offset.y = block.position.y - lastPosition.y;
+            //block.offset.y = block.position.y - lastPosition.y;
 
 
             // X POSITION
-            let minX = this._jumpTables.minOffsetX(block.offset.y);
-            let maxX = this._jumpTables.maxOffsetX(block.offset.y);
+            //let minX = this._jumpTables.minOffsetX(block.offset.y);
+            //let maxX = this._jumpTables.maxOffsetX(block.offset.y);
+
+            //console.log('Min Max : ', minY, minX, maxX);
 
 
             // position of next tile in x direction
-            let shiftX = this._randomGenerator.integerInRange(minX, maxX);
+            //let shiftX = this._randomGenerator.integerInRange(minX, maxX);
+            let shiftX = this._randomGenerator.integerInRange(1, 5);
 
             // new absolute x position
             block.position.x = lastPosition.x + shiftX;
@@ -94,7 +98,7 @@ console.log(lastPosition);
             block.offset.x = shiftX;
 
             // LENGTH
-            block.length = this._randomGenerator.integerInRange(1, 5);
+            block.length = this._randomGenerator.integerInRange(1, 1);
 
             // RESULT
             this._lastGeneratedBlock = block;
