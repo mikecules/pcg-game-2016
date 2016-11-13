@@ -8,3 +8,7 @@ main {
     margin: 0 0;
     padding: 0 0;
 }
+
+canvas {
+    margin: 0 auto;
+}
