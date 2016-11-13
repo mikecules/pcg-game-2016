@@ -25,11 +25,6 @@ namespace PCGGame {
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
 
-
-            //Generator.JumpTables.setDebug(true, PCGGame.Global);
-            //this.game.add.sprite(0, 0, Generator.JumpTables.debugBitmapData);
-            //Generator.JumpTables.instance;
-            console.log('test!')
             this._player = new Player(this.game);
 
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT)/2);
@@ -55,6 +50,12 @@ namespace PCGGame {
 
 
             this._cursors = this.game.input.keyboard.createCursorKeys();
+
+            // You can handle mouse input by registering a callback as well
+            // The following registers a callback that will be called each time the mouse is moved
+            this.game.input.addMoveCallback((pointer:Phaser.Pointer,x:number,y:number) => {
+                this._player.position.y = y;
+            }, this);
 
 
         }
@@ -94,10 +95,10 @@ namespace PCGGame {
 
 
             if (this._cursors.left.isDown) {
-                playerBody.velocity.x = Math.max(playerBody.velocity.x - 5, Generator.Parameters.VELOCITY.X);
+                this._player.slowDown();
             }
             else if (this._cursors.right.isDown) {
-                playerBody.velocity.x =  Math.max(playerBody.velocity.x + 5, Generator.Parameters.VELOCITY.X);
+                this._player.speedUp();
             }
 
             if (this._cursors.up.isDown) {

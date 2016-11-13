@@ -60,6 +60,7 @@ var PCGGame;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
+    var Parameters = Generator.Parameters;
     ;
     var MainLayer = (function (_super) {
         __extends(MainLayer, _super);
@@ -134,7 +135,7 @@ var PCGGame;
             leftTile *= Generator.Parameters.GRID.CELL.SIZE;
             for (var i = this._walls.length - 1; i >= 0; i--) {
                 var wall = this._walls.getChildAt(i);
-                if (wall.x - leftTile <= -64) {
+                if (wall.x - leftTile <= -Parameters.GRID.CELL.SIZE) {
                     this._walls.remove(wall);
                     wall.parent = null;
                     this._wallsPool.destroyItem(wall);
@@ -211,10 +212,21 @@ var PCGGame;
             // enable physics for player
             game.physics.arcade.enable(this, false);
             // allow gravity
-            var body = this.body;
-            body.allowGravity = false;
+            this._body = this.body;
+            this._body.allowGravity = false;
         }
+        Player.prototype.speedUp = function () {
+            var playerBody = this._body;
+            playerBody.velocity.x = Math.max(playerBody.velocity.x + Player.VELOCITY_INC, Generator.Parameters.VELOCITY.X);
+        };
+        Player.prototype.slowDown = function () {
+            var playerBody = this._body;
+            playerBody.velocity.x = Math.max(playerBody.velocity.x - Player.VELOCITY_INC, Generator.Parameters.VELOCITY.X);
+        };
+        Player.prototype.fire = function () {
+        };
         Player.ID = 'Player';
+        Player.VELOCITY_INC = 5;
         return Player;
     }(Phaser.Sprite));
     PCGGame.Player = Player;
@@ -431,10 +443,6 @@ var PCGGame;
             var _this = this;
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
-            //Generator.JumpTables.setDebug(true, PCGGame.Global);
-            //this.game.add.sprite(0, 0, Generator.JumpTables.debugBitmapData);
-            //Generator.JumpTables.instance;
-            console.log('test!');
             this._player = new PCGGame.Player(this.game);
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT) / 2);
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
@@ -449,6 +457,11 @@ var PCGGame;
                 console.log('Mouse Fire Key Up!');
             }, this);
             this._cursors = this.game.input.keyboard.createCursorKeys();
+            // You can handle mouse input by registering a callback as well
+            // The following registers a callback that will be called each time the mouse is moved
+            this.game.input.addMoveCallback(function (pointer, x, y) {
+                _this._player.position.y = y;
+            }, this);
         };
         Play.prototype.render = function () {
             this._mainLayer.render();
@@ -472,10 +485,10 @@ var PCGGame;
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
             if (this._cursors.left.isDown) {
-                playerBody.velocity.x = Math.max(playerBody.velocity.x - 5, Generator.Parameters.VELOCITY.X);
+                this._player.slowDown();
             }
             else if (this._cursors.right.isDown) {
-                playerBody.velocity.x = Math.max(playerBody.velocity.x + 5, Generator.Parameters.VELOCITY.X);
+                this._player.speedUp();
             }
             if (this._cursors.up.isDown) {
                 this._player.position.y = Math.max(playerBody.halfHeight, this._player.position.y - 5);

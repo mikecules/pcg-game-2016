@@ -91,7 +91,7 @@ namespace PCGGame {
             leftTile *= Generator.Parameters.GRID.CELL.SIZE;
             for (let i = this._walls.length - 1; i >= 0; i--) {
                 let wall = <Phaser.Sprite>this._walls.getChildAt(i);
-                if (wall.x - leftTile <= -64) {
+                if (wall.x - leftTile <= -Parameters.GRID.CELL.SIZE) {
                     this._walls.remove(wall);
                     wall.parent = null;
                     this._wallsPool.destroyItem(wall);
