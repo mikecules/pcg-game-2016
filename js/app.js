@@ -14,22 +14,95 @@ var PCGGame;
 window.onload = function () {
     PCGGame.Global.game = new PCGGame.Game();
 };
-var Generator;
-(function (Generator) {
-    var Block = (function () {
-        function Block() {
-            this.position = new Phaser.Point(0, 0);
-            this.offset = new Phaser.Point(0, 0);
-        }
-        return Block;
-    }());
-    Generator.Block = Block;
-})(Generator || (Generator = {}));
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
+var PCGGame;
+(function (PCGGame) {
+    var BackgroundLayer = (function (_super) {
+        __extends(BackgroundLayer, _super);
+        function BackgroundLayer(game, parent) {
+            _super.call(this, game, parent);
+            this._starWidth = 0;
+            this._nextFarthestStarX = 0;
+            this._nextClosestStarX = 0;
+            this._prevX = -1;
+            this._starWidth = this.game.cache.getImage(BackgroundLayer.STAR_ID).width;
+            this._fartherStars = new Phaser.Group(game, this);
+            this._fartherStars.createMultiple(Math.round(BackgroundLayer.MAX_STARS * 3), BackgroundLayer.STAR_ID, 0, true);
+            this._closerStars = new Phaser.Group(game, this);
+            this._closerStars.createMultiple(BackgroundLayer.MAX_STARS, BackgroundLayer.STAR_ID, 0, true);
+            this._closerStars.forEach(function (star) {
+                star.scale = new Phaser.Point(1.5, 1.5);
+            }, this);
+        }
+        BackgroundLayer.prototype.render = function (x) {
+            if (this._prevX < x) {
+                this._manageStars(x * 0.5);
+            }
+            this._prevX = x;
+        };
+        BackgroundLayer.prototype._manageStars = function (x) {
+            this._closerStars.x = x;
+            this._fartherStars.x = x;
+            this._closerStars.forEachExists(function (star) {
+                star.x--;
+                if (star.x < (x - this._starWidth)) {
+                    star.exists = false;
+                }
+            }, this);
+            this._fartherStars.forEachExists(function (star) {
+                if (star.x < (x - this._starWidth)) {
+                    star.exists = false;
+                }
+            }, this);
+            var screenX = x + this.game.width;
+            while (this._nextFarthestStarX < screenX) {
+                var starX = this._nextFarthestStarX;
+                this._nextFarthestStarX += this.game.rnd.integerInRange(BackgroundLayer.STAR_DIST_MIN, BackgroundLayer.STAR_DIST_MAX);
+                var star = this._fartherStars.getFirstExists(false);
+                if (star === null) {
+                    break;
+                }
+                star.x = starX;
+                star.y = this.game.rnd.integerInRange(0, this.game.height);
+                star.exists = true;
+            }
+            while (this._nextClosestStarX < screenX) {
+                var starX = this._nextClosestStarX;
+                this._nextClosestStarX += this.game.rnd.integerInRange(BackgroundLayer.STAR_DIST_MIN, BackgroundLayer.STAR_DIST_MAX);
+                var star = this._closerStars.getFirstExists(false);
+                if (star === null) {
+                    break;
+                }
+                star.x = starX;
+                star.y = this.game.rnd.integerInRange(0, this.game.height);
+                star.exists = true;
+            }
+        };
+        BackgroundLayer.MAX_STARS = 25;
+        BackgroundLayer.STAR_DIST_MIN = 0;
+        BackgroundLayer.STAR_DIST_MAX = 25;
+        BackgroundLayer.STAR_ID = 'stars';
+        return BackgroundLayer;
+    }(Phaser.Group));
+    PCGGame.BackgroundLayer = BackgroundLayer;
+})(PCGGame || (PCGGame = {}));
+var Generator;
+(function (Generator) {
+    ;
+    var Block = (function () {
+        function Block() {
+            this.position = new Phaser.Point(0, 0);
+            this.offset = new Phaser.Point(0, 0);
+            this.type = 0;
+        }
+        return Block;
+    }());
+    Generator.Block = Block;
+})(Generator || (Generator = {}));
 var PCGGame;
 (function (PCGGame) {
     var Boot = (function (_super) {
@@ -43,6 +116,15 @@ var PCGGame;
         return Boot;
     }(Phaser.State));
     PCGGame.Boot = Boot;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var ExperientialGameManager = (function () {
+        function ExperientialGameManager() {
+        }
+        return ExperientialGameManager;
+    }());
+    PCGGame.ExperientialGameManager = ExperientialGameManager;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
@@ -63,6 +145,9 @@ var Generator;
 (function (Generator_1) {
     var Generator = (function () {
         function Generator(randomGenerator) {
+            this._blocksQueue = new Array(Generator_1.Parameters.GRID.CELL.SIZE);
+            this._blocksQueueTop = 0;
+            this._hlpPoint = new Phaser.Point();
             this._randomGenerator = randomGenerator;
             this._blockPool = new Helper.Pool(Generator_1.Block, 16);
         }
@@ -71,6 +156,27 @@ var Generator;
             if (block === null) {
                 console.error('Block generation failed - game is busted :(');
             }
+            return block;
+        };
+        Object.defineProperty(Generator.prototype, "hasBlocks", {
+            get: function () {
+                return this._blocksQueueTop > 0;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Generator.prototype.addBlockToQueue = function (block) {
+            this._blocksQueue[this._blocksQueueTop++] = block;
+        };
+        Generator.prototype.getBlockFromQueue = function () {
+            if (this._blocksQueueTop === 0) {
+                return null;
+            }
+            var block = this._blocksQueue[0];
+            for (var i = 0; i < this._blocksQueueTop - 1; i++) {
+                this._blocksQueue[i] = this._blocksQueue[i + 1];
+            }
+            this._blocksQueue[--this._blocksQueueTop] = null;
             return block;
         };
         Generator.prototype.destroyBlock = function (block) {
@@ -83,9 +189,49 @@ var Generator;
             block.position.set(x, y);
             block.offset.set(offsetX, offsetY);
             block.length = length;
+            this.addBlockToQueue(block);
             return block;
         };
-        Generator.prototype.generate = function (lastPosition) {
+        Generator.prototype.generateBlocksPattern = function (lastTile, experientialGameManager) {
+            var oldQueueTop = this._blocksQueueTop;
+            var hlpPos = this._hlpPoint;
+            hlpPos.copyFrom(lastTile);
+            var length = null;
+            if (this._randomGenerator.integerInRange(0, 99) < Generator_1.Parameters.PLATFORM_BLOCKS.NEW_PATTERN_COMPOSITION_PERCENTAGE) {
+                length = this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            }
+            var baseBlockCount = Generator_1.Parameters.PLATFORM_BLOCKS.NEW_PATTERN_REPEAT_LENGTH;
+            for (var i = 0; i < baseBlockCount; i++) {
+                var block = this._generate(hlpPos, length);
+                hlpPos.copyFrom(block.position);
+                hlpPos.x += block.length - 1;
+                this.addBlockToQueue(block);
+            }
+            var repeat = 1;
+            for (var i = 0; i < repeat; i++) {
+                for (var p = 0; p < baseBlockCount; p++) {
+                    var templateBlock = this._blocksQueue[oldQueueTop + p];
+                    var block = this._generate(hlpPos, length, templateBlock.offset.x, templateBlock.offset.y, experientialGameManager);
+                    hlpPos.copyFrom(block.position);
+                    hlpPos.x += block.length - 1;
+                    this.addBlockToQueue(block);
+                }
+            }
+        };
+        Generator.prototype.generateBlocksRandomly = function (lastTile, experientialGameManager) {
+            var block = this._generate(lastTile);
+            this.addBlockToQueue(block);
+        };
+        Generator.prototype.generateBlocks = function (lastTile, experientialGameManger) {
+            var probability = this._randomGenerator.integerInRange(0, 99);
+            if (probability < Generator_1.Parameters.GENERATE_BLOCK_THRESHOLD) {
+                this.generateBlocksRandomly(lastTile, experientialGameManger);
+            }
+            else {
+                this.generateBlocksPattern(lastTile, experientialGameManger);
+            }
+        };
+        Generator.prototype._generate = function (lastPosition, length, offsetX, offsetY, experientialGameManger) {
             var block = this._createBlock();
             var upperBlockBound = 0;
             var lowerBlockBound = 768 / Generator_1.Parameters.GRID.CELL.SIZE;
@@ -93,15 +239,21 @@ var Generator;
             var minY = -5;
             var maxY = lowerBlockBound - upperBlockBound;
             var currentY = lastPosition.y - upperBlockBound;
-            var shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
-            shiftY -= currentY;
-            shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
+            var shiftY = 0;
+            if (typeof offsetY === 'undefined') {
+                shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
+                shiftY -= currentY;
+                shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
+            }
+            else {
+                shiftY = offsetY;
+            }
             var newY = Phaser.Math.clamp(currentY + shiftY, 0, deltaGridY);
             block.position.y = newY + upperBlockBound;
-            var shiftX = this._randomGenerator.integerInRange(1, 5);
+            var shiftX = offsetX || this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_DISTANCE, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_DISTANCE);
             block.position.x = lastPosition.x + shiftX;
             block.offset.x = shiftX;
-            block.length = this._randomGenerator.integerInRange(1, 5);
+            block.length = length || this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
             this._lastGeneratedBlock = block;
             return block;
         };
@@ -135,10 +287,9 @@ var PCGGame;
             var _this = this;
             _super.call(this, game, parent);
             this._lastTile = new Phaser.Point(0, 0);
-            this._block = null;
             this._randomGenerator = game.rnd;
             this._generator = new Generator.Generator(this._randomGenerator);
-            this._wallsPool = new Helper.Pool(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE, function () {
+            this._wallSpritePool = new Helper.Pool(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE / 2, function () {
                 var sprite = new Phaser.Sprite(game, 0, 0, 'BlockTextures', 0);
                 _this._changeSpriteBlockTexture(sprite);
                 game.physics.enable(sprite, Phaser.Physics.ARCADE);
@@ -150,7 +301,7 @@ var PCGGame;
                 return sprite;
             });
             this._walls = new Phaser.Group(game, this);
-            this._block = this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
+            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
             this._state = 0;
         }
         MainLayer.prototype.render = function () {
@@ -168,19 +319,25 @@ var PCGGame;
             while (this._lastTile.x < leftTile + width) {
                 switch (this._state) {
                     case 0:
-                        this._lastTile.copyFrom(this._block.position);
-                        var length_1 = this._block.length;
+                        if (!this._generator.hasBlocks) {
+                            console.error("Blocks queue is empty!");
+                        }
+                        var block = this._generator.getBlockFromQueue();
+                        this._lastTile.copyFrom(block.position);
+                        var length_1 = block.length;
                         while (length_1 > 0) {
-                            this._addBlock(this._lastTile.x, this._lastTile.y);
+                            this._addSpriteBlock(this._lastTile.x, this._lastTile.y);
                             if ((--length_1) > 0) {
                                 ++this._lastTile.x;
                             }
                         }
-                        this._generator.destroyBlock(this._block);
-                        this._state = 1;
+                        this._generator.destroyBlock(block);
+                        if (!this._generator.hasBlocks) {
+                            this._state = 1;
+                        }
                         break;
                     case 1:
-                        this._block = this._generator.generate(this._lastTile);
+                        this._generator.generateBlocks(this._lastTile);
                         this._state = 0;
                         break;
                 }
@@ -190,23 +347,22 @@ var PCGGame;
             leftTile *= Generator.Parameters.GRID.CELL.SIZE;
             for (var i = this._walls.length - 1; i >= 0; i--) {
                 var wall = this._walls.getChildAt(i);
-                if (wall.x - leftTile <= -Generator.Parameters.GRID.CELL.SIZE) {
+                if ((wall.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
                     this._walls.remove(wall);
                     wall.parent = null;
-                    this._wallsPool.destroyItem(wall);
+                    this._wallSpritePool.destroyItem(wall);
                 }
             }
         };
         MainLayer.prototype._changeSpriteBlockTexture = function (sprite) {
             sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
         };
-        MainLayer.prototype._addBlock = function (x, y) {
-            var sprite = this._wallsPool.createItem();
+        MainLayer.prototype._addSpriteBlock = function (x, y) {
+            var sprite = this._wallSpritePool.createItem();
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
             sprite.exists = true;
             sprite.visible = true;
             this._changeSpriteBlockTexture(sprite);
-            console.log(sprite.frame);
             if (sprite.parent === null) {
                 this._walls.add(sprite);
             }
@@ -268,12 +424,20 @@ var Generator;
             HEIGHT: 32,
             FRAMES: 10
         };
-        Parameters.GRAVITY = 2400;
         Parameters.PLAYER = {
             BODY: {
                 WIDTH: 32,
                 HEIGHT: 32
             }
+        };
+        Parameters.GENERATE_BLOCK_THRESHOLD = 50;
+        Parameters.PLATFORM_BLOCKS = {
+            MIN_LENGTH: 1,
+            MAX_LENGTH: 5,
+            MIN_DISTANCE: 1,
+            MAX_DISTANCE: 10,
+            NEW_PATTERN_REPEAT_LENGTH: 2,
+            NEW_PATTERN_COMPOSITION_PERCENTAGE: 80
         };
         Parameters.VELOCITY = {
             X: 300
@@ -299,10 +463,12 @@ var PCGGame;
         }
         Play.prototype.create = function () {
             var _this = this;
+            this.game.time.advancedTiming = true;
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
             this._player = new PCGGame.Player(this.game);
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT) / 2);
+            this._backgroundLayer = new PCGGame.BackgroundLayer(this.game, this.world);
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
             this.world.add(this._player);
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
@@ -327,8 +493,10 @@ var PCGGame;
                 return;
             }
             this.updatePhysics();
+            this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
             this.camera.x = this._player.x - Generator.Parameters.GRID.CELL.SIZE * 1.5;
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
+            this._backgroundLayer.render(this.camera.x);
         };
         Play.prototype.updatePhysics = function () {
             var playerBody = this._player.body;
@@ -458,6 +626,7 @@ var PCGGame;
         Preload.prototype.preload = function () {
             this.load.spritesheet('BlockTextures', 'assets/grid-tiles.png', Generator.Parameters.SPRITE.WIDTH, Generator.Parameters.SPRITE.HEIGHT, Generator.Parameters.SPRITE.FRAMES);
             this.load.image(PCGGame.Player.ID, 'assets/ship.png');
+            this.load.image(PCGGame.BackgroundLayer.STAR_ID, 'assets/star.png');
         };
         Preload.prototype.update = function () {
             if (this._isGameReady === false) {
