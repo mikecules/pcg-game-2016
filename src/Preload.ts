@@ -10,6 +10,7 @@ namespace PCGGame {
 
             this.load.spritesheet('BlockTextures', 'assets/grid-tiles.png', Generator.Parameters.SPRITE.WIDTH, Generator.Parameters.SPRITE.HEIGHT, Generator.Parameters.SPRITE.FRAMES);
             this.load.image(Player.ID, 'assets/ship.png');
+            this.load.image(BackgroundLayer.STAR_ID, 'assets/star.png');
 
         }
 

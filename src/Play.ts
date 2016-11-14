@@ -2,6 +2,7 @@ namespace PCGGame {
     export class Play extends Phaser.State {
 
         private _mainLayer: MainLayer;
+        private _backgroundLayer: BackgroundLayer;
         private _player : Player;
 
 
@@ -22,6 +23,7 @@ namespace PCGGame {
 
 
         public create() {
+            this.game.time.advancedTiming = true;
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
 
@@ -29,7 +31,10 @@ namespace PCGGame {
 
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT)/2);
 
+            this._backgroundLayer = new BackgroundLayer(this.game, this.world);
             this._mainLayer = new MainLayer(this.game, this.world);
+
+
             this.world.add(this._player);
 
 
@@ -72,9 +77,16 @@ namespace PCGGame {
 
             this.updatePhysics();
 
+            this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
+            //console.log((this.game.time.fps.toString() || '--') + 'fps');
+
             this.camera.x = this._player.x - Generator.Parameters.GRID.CELL.SIZE * 1.5;
 
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
+
+            this._backgroundLayer.render(this.camera.x);
+
+            //this.game.debug.bodyInfo(this._player, 32, 32);
         }
 
         public updatePhysics() {
@@ -93,6 +105,7 @@ namespace PCGGame {
             }
 
 
+            //console.log(playerBody.velocity.x );
 
             if (this._cursors.left.isDown) {
                 this._player.slowDown();

@@ -16,13 +16,24 @@ namespace Generator {
             FRAMES: 10
         };
 
-        public static GRAVITY : number = 2400;
-
         public static PLAYER : any = {
             BODY: {
                 WIDTH: 32,
                 HEIGHT: 32
             }
+        };
+
+
+        // probability to generate random piece in percent
+        public static GENERATE_BLOCK_THRESHOLD = 50;
+
+        public static PLATFORM_BLOCKS : any = {
+            MIN_LENGTH: 1,
+            MAX_LENGTH: 5,
+            MIN_DISTANCE: 1,
+            MAX_DISTANCE: 10,
+            NEW_PATTERN_REPEAT_LENGTH: 2,
+            NEW_PATTERN_COMPOSITION_PERCENTAGE: 80
         };
 
 
