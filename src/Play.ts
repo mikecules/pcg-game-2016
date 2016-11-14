@@ -4,6 +4,7 @@ namespace PCGGame {
         private _mainLayer: MainLayer;
         private _backgroundLayer: BackgroundLayer;
         private _player : Player;
+        private _animation : Animation;
 
 
         private _gameState : any = {
@@ -27,9 +28,13 @@ namespace PCGGame {
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
 
+
+            this._animation = Animation.instance(this.game, this.world);
+
             this._player = new Player(this.game);
 
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT)/2);
+
 
             this._backgroundLayer = new BackgroundLayer(this.game, this.world);
             this._mainLayer = new MainLayer(this.game, this.world);
@@ -40,7 +45,16 @@ namespace PCGGame {
 
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 
+            this._fireKey.onDown.add(() => {
+                this._keysPressed.fire = true;
+                console.log('Space Fire Key Down!');
+            }, this);
 
+
+            this._fireKey.onUp.add(() => {
+                this._keysPressed.fire = false;
+                console.log('Space Fire Key Up!');
+            }, this);
 
 
             this.game.input.onDown.add(() => {
@@ -89,9 +103,27 @@ namespace PCGGame {
             //this.game.debug.bodyInfo(this._player, 32, 32);
         }
 
+        public wallBulletCollisionHandler(bullet, wall) {
+
+            bullet.kill();
+            //wall.kill();
+        }
+
+        public mobBulletCollisionHandler(bullet, mob) {
+
+            bullet.kill();
+            mob.kill();
+        }
+
+
+
         public updatePhysics() {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
             let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks);
+
+
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
 
 
             if (wallBlockCollision) {
@@ -106,6 +138,11 @@ namespace PCGGame {
 
 
             //console.log(playerBody.velocity.x );
+
+
+            if (this._keysPressed.fire) {
+                this._player.fire();
+            }
 
             if (this._cursors.left.isDown) {
                 this._player.slowDown();

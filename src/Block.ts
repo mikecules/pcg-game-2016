@@ -1,6 +1,6 @@
 namespace Generator {
 
-    const enum blockTypeEnum {UNKNOWN_TYPE, PLATFORM_TYPE, MOB_METEOR, MOB_INVADER, MOB_NOTCH};
+    export const enum blockTypeEnum {UNKNOWN_TYPE = 0, PLATFORM_TYPE, MOB_METEOR, MOB_INVADER, MOB_NOTCH};
 
     export class Block {
 

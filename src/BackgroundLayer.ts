@@ -34,7 +34,7 @@ namespace PCGGame {
 
 
             this._closerStars.forEach(function (star: Phaser.Sprite) {
-                star.scale = new Phaser.Point(1.5, 1.5);
+                star.scale = new Phaser.Point(1.1, 1.1);
             }, this);
 
 
@@ -57,7 +57,7 @@ namespace PCGGame {
             this._fartherStars.x = x;
 
             // remove old
-            this._closerStars.forEachExists(function (star: Phaser.Sprite) {
+            this._closerStars.forEachExists((star: Phaser.Sprite) => {
 
                 star.x--;
 
@@ -67,7 +67,7 @@ namespace PCGGame {
             }, this);
 
 
-            this._fartherStars.forEachExists(function (star: Phaser.Sprite) {
+            this._fartherStars.forEachExists((star: Phaser.Sprite) => {
 
                 if (star.x < (x - this._starWidth)) {
                     star.exists = false;

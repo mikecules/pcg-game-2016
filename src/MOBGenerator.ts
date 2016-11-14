@@ -1,6 +1,5 @@
 namespace Generator {
-
-    export class Generator {
+    export class MOBGenerator {
         private _randomGenerator: Phaser.RandomDataGenerator;
         private _blockPool : Helper.Pool<Block>;
         private _lastGeneratedBlock : Block;
@@ -8,7 +7,6 @@ namespace Generator {
 
         private _blocksQueue: Generator.Block[] = new Array(Parameters.GRID.CELL.SIZE);
         private _blocksQueueTop: number = 0;
-        private _hlpPoint: Phaser.Point = new Phaser.Point();
 
         constructor(randomGenerator: Phaser.RandomDataGenerator) {
             this._randomGenerator = randomGenerator;
@@ -63,11 +61,12 @@ namespace Generator {
             this._blockPool.destroyItem(block);
         }
 
-        public addBlock(x: number, y: number, length: number, offsetX: number = 0, offsetY: number = 0) : Block {
+        public addMob(x: number, y: number, offsetX: number = 0, offsetY: number = 0) : Block {
             let block = this._createBlock();
             block.position.set(x, y);
             block.offset.set(offsetX, offsetY);
-            block.length = length;
+            block.length = 1;
+
 
             this.addBlockToQueue(block);
 
@@ -75,86 +74,18 @@ namespace Generator {
         }
 
 
-        private generateBlocksPattern(lastTile: Phaser.Point, experientialGameManager: PCGGame.ExperientialGameManager): void {
-            // save index of first new piece
-            let oldQueueTop = this._blocksQueueTop;
 
-
-            // where to start generating
-            let hlpPos = this._hlpPoint;
-            hlpPos.copyFrom(lastTile);
-
-
-            // same length for all blocks?
-            let length : any = null;
-
-            if (this._randomGenerator.integerInRange(0, 99) < Parameters.PLATFORM_BLOCKS.NEW_PATTERN_COMPOSITION_PERCENTAGE) {
-                length = this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
-            }
-
-
-            // how many pieces to repeat in pattern
-            let baseBlockCount = Parameters.PLATFORM_BLOCKS.NEW_PATTERN_REPEAT_LENGTH;
-
-            for (let i = 0; i < baseBlockCount; i++) {
-                let block = this._generate(hlpPos, length);
-
-                hlpPos.copyFrom(block.position);
-
-                // get last tile of piece
-                hlpPos.x += block.length - 1;
-
-                // add to queue
-                this.addBlockToQueue(block);
-            }
-
-
-            // repeat pattern X times
-            let repeat = 1;
-
-            for (let i = 0; i < repeat; i++) {
-
-                // repeat all pieces in pattern
-                for (let p = 0; p < baseBlockCount; p++) {
-                    // get first piece in pattern to repeat as template
-                    let templateBlock = this._blocksQueue[oldQueueTop + p];
-
-                    // replicate it
-                    let block = this._generate(hlpPos, length,
-                        templateBlock.offset.x, templateBlock.offset.y, experientialGameManager);
-
-                    hlpPos.copyFrom(block.position);
-                    hlpPos.x += block.length - 1;
-
-                    // add to stack
-                    this.addBlockToQueue(block);
-                }
-            }
-        }
-
-
-        private generateBlocksRandomly(lastTile: Phaser.Point, experientialGameManager: PCGGame.ExperientialGameManager): void {
+        public generateMOBs(lastTile: Phaser.Point , experientialGameManger?: PCGGame.ExperientialGameManager): void {
             let block = this._generate(lastTile);
 
             // add to queue
             this.addBlockToQueue(block);
         }
 
-        public generateBlocks(lastTile: Phaser.Point , experientialGameManger?: PCGGame.ExperientialGameManager): void {
-            let probability = this._randomGenerator.integerInRange(0, 99);
-
-            if (probability < Parameters.GENERATE_BLOCK_THRESHOLD) {
-                this.generateBlocksRandomly(lastTile, experientialGameManger);
-            }
-            else {
-                this.generateBlocksPattern(lastTile, experientialGameManger);
-            }
-        }
-
         private _generate(lastPosition: Phaser.Point,
                           length?: number, offsetX?: number, offsetY?: number, experientialGameManger?: PCGGame.ExperientialGameManager): Block {
             let block = this._createBlock();
-            block.type = blockTypeEnum.PLATFORM_TYPE;
+            block.type = this._randomGenerator.integerInRange(blockTypeEnum.MOB_METEOR, blockTypeEnum.MOB_NOTCH);
 
             let upperBlockBound = 0;
             let lowerBlockBound = 768 / Parameters.GRID.CELL.SIZE;
@@ -212,7 +143,7 @@ namespace Generator {
             block.offset.x = shiftX;
 
             // LENGTH
-            block.length = length || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            block.length = 1;
 
             // RESULT
             this._lastGeneratedBlock = block;

@@ -9,7 +9,13 @@ namespace PCGGame {
         public preload() {
 
             this.load.spritesheet('BlockTextures', 'assets/grid-tiles.png', Generator.Parameters.SPRITE.WIDTH, Generator.Parameters.SPRITE.HEIGHT, Generator.Parameters.SPRITE.FRAMES);
+            this.load.spritesheet(Animation.EXPLODE_ID, 'assets/explode.png', 128, 128, 16);
+            this.load.spritesheet(Notch.ID, 'assets/tutor-anim.png', 128, 128, 16);
+            this.load.spritesheet(Invader.ID, 'assets/invader32x32x4.png', 32, 32, 4);
+
             this.load.image(Player.ID, 'assets/ship.png');
+            this.load.image(Player.BULLET_ID, 'assets/player-bullet.png');
+            this.load.image(Meteor.ID, 'assets/meteor.png');
             this.load.image(BackgroundLayer.STAR_ID, 'assets/star.png');
 
         }
