@@ -245,15 +245,12 @@ namespace PCGGame {
             switch (mobType) {
                 case blockTypeEnum.MOB_NOTCH:
                     sprite = new Notch(this._game);
-                    sprite.loadTexture(Notch.ID);
                     break;
                 case  blockTypeEnum.MOB_INVADER:
                     sprite = new Invader(this._game);
-                    sprite.loadTexture(Invader.ID);
                     break;
                 default:
                     sprite = new Meteor(this._game);
-                    sprite.loadTexture(Meteor.ID);
                     break;
             }
 

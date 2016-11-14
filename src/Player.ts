@@ -22,6 +22,8 @@ namespace PCGGame {
             // center the sprite vertically
             this.anchor.y = 0.5;
 
+            this.scale.set(1.2);
+
 
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
 
@@ -54,6 +56,10 @@ namespace PCGGame {
             this._body.allowGravity = false;
 
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
+
+
+
+
         }
 
         private _updateBulletSpeed(speed? : number) {
@@ -94,6 +100,16 @@ namespace PCGGame {
             }
 
             this._isDead = true;
+
+            this.loadTexture(Animation.EXPLODE_ID);
+            this.animations.add(Animation.EXPLODE_ID, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
+
+            this.play(Animation.EXPLODE_ID, false);
+
+            this.animations.currentAnim.onComplete.add(() => {
+                this._isDead = false;
+                this.loadTexture(Player.ID)
+            }, this);
 
             let playerBody = this._body;
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);

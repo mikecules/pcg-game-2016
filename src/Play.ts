@@ -125,11 +125,15 @@ namespace PCGGame {
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
 
-
             if (wallBlockCollision) {
                 this._player.die();
                 return;
             }
+
+
+
+
+            this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(); }, this);
 
 
             if (playerBody.velocity.x < 1)  {
