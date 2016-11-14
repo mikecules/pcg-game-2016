@@ -19,8 +19,6 @@ namespace Generator {
         private _createBlock() : Block {
             let block = this._blockPool.createItem();
 
-            console.log(block.position.x);
-
             if (block === null) {
                 console.error('Block generation failed - game is busted :(');
             }
@@ -49,9 +47,9 @@ namespace Generator {
 
 
             // Y POSITION
-            // how high can jump max
-            let minY = -5;//0; //this._jumpTables.maxOffsetY();
-            // how deep can fall max
+            let minY = -5;
+
+
             let maxY = lowerBlockBound - upperBlockBound;
 
 
@@ -76,19 +74,8 @@ namespace Generator {
             // shift by upper bound to get right y level on screen
             block.position.y = newY + upperBlockBound;
 
-            // offset of new piece relative to last position (end position of last piece)
-            //block.offset.y = block.position.y - lastPosition.y;
-
-
-            // X POSITION
-            //let minX = this._jumpTables.minOffsetX(block.offset.y);
-            //let maxX = this._jumpTables.maxOffsetX(block.offset.y);
-
-            //console.log('Min Max : ', minY, minX, maxX);
-
 
             // position of next tile in x direction
-            //let shiftX = this._randomGenerator.integerInRange(minX, maxX);
             let shiftX = this._randomGenerator.integerInRange(1, 5);
 
             // new absolute x position
@@ -98,7 +85,7 @@ namespace Generator {
             block.offset.x = shiftX;
 
             // LENGTH
-            block.length = this._randomGenerator.integerInRange(1, 1);
+            block.length = this._randomGenerator.integerInRange(1, 5);
 
             // RESULT
             this._lastGeneratedBlock = block;

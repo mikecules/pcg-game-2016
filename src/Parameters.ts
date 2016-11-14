@@ -10,6 +10,12 @@ namespace Generator {
             MAX_CELL: 20
         };
 
+        public static SPRITE : any = {
+            WIDTH: 32,
+            HEIGHT: 32,
+            FRAMES: 10
+        };
+
         public static GRAVITY : number = 2400;
 
         public static PLAYER : any = {

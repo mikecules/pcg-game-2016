@@ -82,8 +82,8 @@ namespace PCGGame {
             let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks);
 
 
-            if (wallBlockCollision && playerBody.touching.any) {
-                playerBody.velocity.set(0, 0);
+            if (wallBlockCollision) {
+                this._player.die();
                 return;
             }
 
@@ -110,7 +110,7 @@ namespace PCGGame {
 
 
 
-            console.log(wallBlockCollision);
+            //console.log(wallBlockCollision);
         }
     }
 }

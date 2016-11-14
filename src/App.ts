@@ -11,6 +11,6 @@ namespace PCGGame {
 
 }
 
-window.onload = function() {
+window.onload = () => {
     PCGGame.Global.game = new PCGGame.Game();
-}
+};

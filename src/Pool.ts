@@ -15,7 +15,7 @@ namespace Helper {
             for (let i = 0; i < count; i++) {
                 // store into stack of free items
                 this._pool.push(this.newItem());
-                this._itemCount++
+                this._itemCount++;
             }
         }
 

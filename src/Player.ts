@@ -44,6 +44,12 @@ namespace PCGGame {
         public fire() : void {
 
         }
+
+        public die() : void {
+            let playerBody = this._body;
+
+            playerBody.velocity.set(0, 0);
+        }
     }
 
 }

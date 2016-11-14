@@ -8,7 +8,7 @@ namespace PCGGame {
 
         public preload() {
 
-            this.load.image('gridTiles', 'assets/grid-tiles.png');
+            this.load.spritesheet('BlockTextures', 'assets/grid-tiles.png', Generator.Parameters.SPRITE.WIDTH, Generator.Parameters.SPRITE.HEIGHT, Generator.Parameters.SPRITE.FRAMES);
             this.load.image(Player.ID, 'assets/ship.png');
 
         }
