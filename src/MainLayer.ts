@@ -1,5 +1,6 @@
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
     const enum generateStateEnum { PROCESS_BLOCK, GENERATE_BLOCK };
 
     export class MainLayer extends Phaser.Group {
@@ -14,12 +15,13 @@ namespace PCGGame {
         private _platformGenerationState: generateStateEnum;
         private _mobsGenerationState: generateStateEnum;
         private _randomGenerator: Phaser.RandomDataGenerator;
+        private _game : Phaser.Game;
 
 
         public render(): void {
-            this._mobs.forEachExists(function (sprite: Phaser.Sprite) {
+            /* this._mobs.forEachExists(function (sprite: Phaser.Sprite) {
                 this.game.debug.body(sprite);
-            }, this);
+            }, this); */
 
             /*let a : Phaser.Sprite = <Phaser.Sprite>this._walls.getAt(0);
             if (a) {
@@ -31,6 +33,7 @@ namespace PCGGame {
         public constructor(game: Phaser.Game, parent: PIXI.DisplayObjectContainer) {
             super(game, parent);
 
+            this._game = game;
             this._randomGenerator = game.rnd;
 
             // platforms generator
@@ -233,11 +236,31 @@ namespace PCGGame {
         }
 
         private _addMobSprite (x: number, y: number, mobType: number): void {
-            let sprite = this._MOBSpritePool.createItem();
+
+
+            let oldSprite : Phaser.Sprite = this._MOBSpritePool.createItem();
+            let sprite : any = null;
+
+
+            switch (mobType) {
+                case blockTypeEnum.MOB_NOTCH:
+                    sprite = new Notch(this._game);
+                    sprite.loadTexture(Notch.ID);
+                    break;
+                case  blockTypeEnum.MOB_INVADER:
+                    sprite = new Invader(this._game);
+                    sprite.loadTexture(Invader.ID);
+                    break;
+                default:
+                    sprite = new Meteor(this._game);
+                    sprite.loadTexture(Meteor.ID);
+                    break;
+            }
+
+
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
             sprite.exists = true;
             sprite.visible = true;
-
 
 
             // add into mobs group

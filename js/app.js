@@ -405,6 +405,7 @@ var PCGGame;
             _super.call(this, game, parent);
             this._lastTile = new Phaser.Point(0, 0);
             this._lastMOB = new Phaser.Point(0, 0);
+            this._game = game;
             this._randomGenerator = game.rnd;
             this._generator = new Generator.Generator(this._randomGenerator);
             this._MOBgenerator = new Generator.MOBGenerator(this._randomGenerator);
@@ -437,9 +438,6 @@ var PCGGame;
             this._mobsGenerationState = 0;
         }
         MainLayer.prototype.render = function () {
-            this._mobs.forEachExists(function (sprite) {
-                this.game.debug.body(sprite);
-            }, this);
         };
         Object.defineProperty(MainLayer.prototype, "wallBlocks", {
             get: function () {
@@ -548,7 +546,22 @@ var PCGGame;
             }
         };
         MainLayer.prototype._addMobSprite = function (x, y, mobType) {
-            var sprite = this._MOBSpritePool.createItem();
+            var oldSprite = this._MOBSpritePool.createItem();
+            var sprite = null;
+            switch (mobType) {
+                case 4:
+                    sprite = new PCGGame.Notch(this._game);
+                    sprite.loadTexture(PCGGame.Notch.ID);
+                    break;
+                case 3:
+                    sprite = new PCGGame.Invader(this._game);
+                    sprite.loadTexture(PCGGame.Invader.ID);
+                    break;
+                default:
+                    sprite = new PCGGame.Meteor(this._game);
+                    sprite.loadTexture(PCGGame.Meteor.ID);
+                    break;
+            }
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
             sprite.exists = true;
             sprite.visible = true;
