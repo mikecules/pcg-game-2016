@@ -35,7 +35,7 @@ namespace PCGGame {
             // center the sprite vertically
             this.anchor.y = 0.5;
 
-            this.scale.set(1.2);
+            this.scale.set(1.5);
 
 
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);

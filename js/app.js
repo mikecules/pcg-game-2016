@@ -824,7 +824,7 @@ var PCGGame;
             this._maxX = 0;
             this.anchor.x = 0.5;
             this.anchor.y = 0.5;
-            this.scale.set(1.2);
+            this.scale.set(1.5);
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
             this._weapon.bulletKillDistance = this.game.width * 4;
@@ -980,6 +980,9 @@ var PCGGame;
         __extends(Play, _super);
         function Play() {
             _super.apply(this, arguments);
+            this._gameScore = 0;
+            this._playerLives = 3;
+            this._playLivesFirstX = 0;
             this._gameState = {
                 end: false,
                 paused: false
@@ -989,12 +992,62 @@ var PCGGame;
             };
             this._cursors = null;
         }
+        Object.defineProperty(Play.prototype, "incScore", {
+            set: function (score) {
+                this._gameScore += score;
+                this._gameScoreText.text = "Score: " + this._gameScore;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Play.prototype.setPlayerLives = function (incDec) {
+            this._playerLives += incDec;
+            if (incDec < 0) {
+                while ((incDec++) < 0) {
+                    var live = this._playerLivesGroup.getFirstAlive();
+                    if (live) {
+                        live.kill();
+                    }
+                }
+            }
+            else if (incDec > 0) {
+                for (var i = 0; i < incDec; i++) {
+                    this._playLivesFirstX -= Generator.Parameters.GRID.CELL.SIZE + (5);
+                    console.log(this._playLivesFirstX);
+                    var ship = this._playerLivesGroup.create(this._playLivesFirstX, Generator.Parameters.GRID.CELL.SIZE, PCGGame.Player.ID);
+                    ship.anchor.setTo(0.5, 0.5);
+                    ship.angle = 90;
+                    ship.alpha = 0.8;
+                }
+            }
+            if (this._playerLives <= 0) {
+            }
+        };
+        Play.prototype._setUpGameHUD = function () {
+            var scoreString = 'Score: ';
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '32px Arial', fill: '#fff' });
+            this._playerLivesGroup = this.game.add.group();
+            for (var i = 0; i < this._playerLives; i++) {
+                var ship = this._playerLivesGroup.create(this.game.world.width - 100 + (Generator.Parameters.GRID.CELL.SIZE * i), Generator.Parameters.GRID.CELL.SIZE, PCGGame.Player.ID);
+                if (!this._playLivesFirstX) {
+                    this._playLivesFirstX = this.game.world.width - 100;
+                }
+                ship.x += i > 0 ? (5 * i) : 0;
+                ship.anchor.setTo(0.5, 0.5);
+                ship.angle = 90;
+                ship.alpha = 0.8;
+            }
+            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, ' ', { font: '84px Arial', fill: '#fff' });
+            this._gameGameStateText.anchor.setTo(0.5, 0.5);
+            this._gameGameStateText.visible = false;
+        };
         Play.prototype.create = function () {
             var _this = this;
             this.game.time.advancedTiming = true;
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
             PCGGame.SpriteSingletonFactory.instance(this.game);
+            this._setUpGameHUD();
             this._player = new PCGGame.Player(this.game);
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT) / 2);
             this._backgroundLayer = new PCGGame.BackgroundLayer(this.game, this.world);
@@ -1036,8 +1089,9 @@ var PCGGame;
             if (this._gameState.end || this._gameState.paused) {
                 return;
             }
-            this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X;
+            this._gameScoreText.x = this.camera.x + 10;
+            this._playerLivesGroup.x = this.camera.x + 10;
             this.updatePhysics();
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
             this._backgroundLayer.render(this.camera.x);
@@ -1049,6 +1103,7 @@ var PCGGame;
             if (mob.died) {
                 return;
             }
+            this.incScore = 10;
             bullet.kill();
             mob.die(this._player);
         };

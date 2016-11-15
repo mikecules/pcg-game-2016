@@ -4,6 +4,12 @@ namespace PCGGame {
         private _mainLayer: MainLayer;
         private _backgroundLayer: BackgroundLayer;
         private _player : Player;
+        private _gameScore : number = 0;
+        private _gameScoreText : Phaser.Text;
+        private _gameGameStateText : Phaser.Text;
+        private _playerLives : number = 3;
+        private _playLivesFirstX : number = 0;
+        private _playerLivesGroup : Phaser.Group;
 
 
         private _gameState : any = {
@@ -20,6 +26,72 @@ namespace PCGGame {
         private _cursors : Phaser.CursorKeys = null;
 
 
+        public set incScore(score : number) {
+            this._gameScore += score;
+            this._gameScoreText.text = `Score: ${this._gameScore}`;
+        }
+
+        public setPlayerLives(incDec : number) {
+            this._playerLives += incDec;
+
+            if (incDec < 0) {
+
+                while ((incDec++) < 0) {
+                    let live = this._playerLivesGroup.getFirstAlive();
+
+                    if (live) {
+                        live.kill();
+                    }
+                }
+
+            }
+            else if (incDec > 0) {
+
+                for (let i = 0; i < incDec; i++) {
+                    this._playLivesFirstX -= Generator.Parameters.GRID.CELL.SIZE + (5);
+                    console.log(this._playLivesFirstX);
+                    let ship = this._playerLivesGroup.create(this._playLivesFirstX,  Generator.Parameters.GRID.CELL.SIZE, Player.ID);
+                    ship.anchor.setTo(0.5, 0.5);
+                    ship.angle = 90;
+                    ship.alpha = 0.8;
+                }
+
+            }
+
+            if (this._playerLives <= 0) {
+                // Game over
+            }
+
+        }
+
+
+        private _setUpGameHUD() {
+            //  The score
+            let scoreString = 'Score: ';
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '32px Arial', fill: '#fff' });
+
+            //  Lives
+            this._playerLivesGroup = this.game.add.group();
+
+            for (let i = 0; i < this._playerLives; i++) {
+                let ship = this._playerLivesGroup.create(this.game.world.width - 100 + (Generator.Parameters.GRID.CELL.SIZE * i), Generator.Parameters.GRID.CELL.SIZE, Player.ID);
+
+                if (! this._playLivesFirstX) {
+                    this._playLivesFirstX = this.game.world.width - 100;
+                }
+
+                ship.x += i > 0 ? (5 * i) : 0;
+                ship.anchor.setTo(0.5, 0.5);
+                ship.angle = 90;
+                ship.alpha = 0.8;
+            }
+
+            //  Text
+            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY,' ', { font: '84px Arial', fill: '#fff' });
+            this._gameGameStateText.anchor.setTo(0.5, 0.5);
+            this._gameGameStateText.visible = false;
+
+        }
 
 
         public create() {
@@ -28,6 +100,8 @@ namespace PCGGame {
             this.camera.bounds = null;
 
             PCGGame.SpriteSingletonFactory.instance(this.game);
+
+            this._setUpGameHUD();
 
             this._player = new Player(this.game);
 
@@ -100,10 +174,12 @@ namespace PCGGame {
 
 
 
-            this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
+            //this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
             //console.log((this.game.time.fps.toString() || '--') + 'fps');
 
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X; //this._player.horizontalX - Generator.Parameters.GRID.CELL.SIZE * 1.5;
+            this._gameScoreText.x = this.camera.x + 10;
+            this._playerLivesGroup.x = this.camera.x + 10;
 
             this.updatePhysics();
 
@@ -125,6 +201,8 @@ namespace PCGGame {
             if (mob.died) {
                 return;
             }
+
+            this.incScore = 10;
 
             bullet.kill();
             mob.die(this._player);
