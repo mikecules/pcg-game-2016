@@ -6,6 +6,7 @@ namespace PCGGame {
         public static BULLET_ID : string = 'Player.Bullet';
         public static VELOCITY_INC : number = 5;
         public static NUM_BULLETS : number = 100;
+        public playerEvents : Phaser.Signal;
 
 
         public _minX : number = 0;
@@ -36,6 +37,8 @@ namespace PCGGame {
             this.anchor.y = 0.5;
 
             this.scale.set(1.5);
+
+            this.playerKilled = new Phaser.Signal();
 
 
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
@@ -128,6 +131,9 @@ namespace PCGGame {
 
             this.animations.currentAnim.onComplete.add(() => {
                 this.reset();
+                this.playerEvents.dispatch({
+                    event: 'killed'
+                });
             }, this);
 
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);

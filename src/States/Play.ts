@@ -105,6 +105,12 @@ namespace PCGGame {
 
             this._player = new Player(this.game);
 
+            this._player.playerEvents.add((o : any) => {
+                console.log(o);
+                this.setPlayerLives(-1);
+                // TODO: FIRE SIGNAL OF PLAYER DEATH/LOOT GRAB
+            });
+
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT)/2);
 
 
@@ -206,6 +212,7 @@ namespace PCGGame {
 
             bullet.kill();
             mob.die(this._player);
+            // TODO: FIRE SIGNAL OF MOB DEATH
         }
 
         public wallPlayerCollisionHandler(player : Player, wall : Phaser.Sprite) {
@@ -228,6 +235,7 @@ namespace PCGGame {
             if (! mob.died) {
                 player.takeDamage(mob.getDamageCost());
                 mob.die(player);
+                // TODO: FIRE SIGNAL OF MOB DEATH
             }
             else {
 

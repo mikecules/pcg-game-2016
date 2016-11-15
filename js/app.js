@@ -825,6 +825,7 @@ var PCGGame;
             this.anchor.x = 0.5;
             this.anchor.y = 0.5;
             this.scale.set(1.5);
+            this.playerKilled = new Phaser.Signal();
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
             this._weapon.bulletKillDistance = this.game.width * 4;
@@ -894,6 +895,9 @@ var PCGGame;
             this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
             this.animations.currentAnim.onComplete.add(function () {
                 _this.reset();
+                _this.playerEvents.dispatch({
+                    event: 'killed'
+                });
             }, this);
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
         };
@@ -1049,6 +1053,10 @@ var PCGGame;
             PCGGame.SpriteSingletonFactory.instance(this.game);
             this._setUpGameHUD();
             this._player = new PCGGame.Player(this.game);
+            this._player.playerEvents.add(function (o) {
+                console.log(o);
+                _this.setPlayerLives(-1);
+            });
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT) / 2);
             this._backgroundLayer = new PCGGame.BackgroundLayer(this.game, this.world);
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
