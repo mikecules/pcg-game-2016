@@ -22,7 +22,7 @@ namespace PCGGame {
             sprite.spriteFactoryParent = this;
 
             this._game.physics.enable(sprite, Phaser.Physics.ARCADE);
-            console.log('Sprite created: ', sprite);
+            //console.log('Sprite created: ', sprite);
 
             let body = <Phaser.Physics.Arcade.Body>sprite.body;
 
@@ -31,7 +31,7 @@ namespace PCGGame {
             body.moves = true;
             body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
 
-            console.log(sprite);
+            //console.log(sprite);
 
             return sprite;
         }

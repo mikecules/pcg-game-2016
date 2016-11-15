@@ -7,12 +7,27 @@ namespace PCGGame {
         public static VELOCITY_INC : number = 5;
         public static NUM_BULLETS : number = 100;
 
+
+        public _minX : number = 0;
+        public _maxX : number = 0;
         private _body : Phaser.Physics.Arcade.Body;
+
+
+        public set minX(n : number) {
+            this._minX = n;
+            this.x = Math.max(this.position.x, this._minX);
+            this._body.velocity.y = 0;
+        }
+
+        public set maxX(n : number) {
+            this._maxX = n;
+            this.x = Math.min(this.position.x, this._maxX);
+        }
 
 
         public constructor(game : Phaser.Game) {
 
-            super(game, 0, 0, Player.ID);
+            super(game, game.width/4, game.height/2, Player.ID);
 
             // center the sprite horizontally
             this.anchor.x = 0.5;
@@ -67,18 +82,20 @@ namespace PCGGame {
         }
 
 
-        public speedUp() : void {
-            let playerBody = this._body;
+        public moveRight() : void {
+            this.x += Player.VELOCITY_INC;
 
-            playerBody.velocity.x =  Math.max(playerBody.velocity.x + Player.VELOCITY_INC, Generator.Parameters.VELOCITY.X);
+            this.x = Math.min(this.x, this._maxX);
+
             this._updateBulletSpeed();
         }
 
 
-        public slowDown() : void {
-            let playerBody = this._body;
+        public moveLeft() : void {
 
-            playerBody.velocity.x = Math.max(playerBody.velocity.x - Player.VELOCITY_INC, Generator.Parameters.VELOCITY.X);
+            this.x -= Player.VELOCITY_INC;
+            this.x = Math.max(this.x, this._minX);
+
             this._updateBulletSpeed();
         }
 
@@ -105,19 +122,38 @@ namespace PCGGame {
             this.play(Animation.EXPLODE_ID, 30, false);
 
             this.animations.currentAnim.onComplete.add(() => {
-                this._isDead = false;
-                this.loadTexture(this._id)
+                this.reset();
             }, this);
 
-            let playerBody = this._body;
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
-            playerBody.velocity.set(0, 0);
+        }
 
+        public reset() : Player {
+            super.reset();
+            let playerBody = this._body;
+            playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
+            return this;
         }
 
         public get bullets() : Phaser.Group {
             return this._weapon.bullets;
         }
+
+        public takeDamage(damage : number) {
+            console.log(this.health, damage);
+
+            if (this.health - damage <= 0) {
+                this.die();
+                return;
+            }
+
+            this.health -= damage;
+            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
+
+
+
+        }
+
     }
 
 }

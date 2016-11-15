@@ -87,8 +87,8 @@ namespace Generator {
             let block = this._createBlock();
             block.type = this._randomGenerator.integerInRange(blockTypeEnum.MOB_METEOR, blockTypeEnum.MOB_NOTCH);
 
-            let upperBlockBound = 0;
-            let lowerBlockBound = 768 / Parameters.GRID.CELL.SIZE;
+            let upperBlockBound = 1;
+            let lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT -  Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;
 
             let deltaGridY = lowerBlockBound - upperBlockBound;
 

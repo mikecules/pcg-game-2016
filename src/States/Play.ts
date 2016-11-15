@@ -27,7 +27,7 @@ namespace PCGGame {
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
 
-            PCGGame.SpriteSingletonFactory.instance(this.game)
+            PCGGame.SpriteSingletonFactory.instance(this.game);
 
             this._player = new Player(this.game);
 
@@ -87,12 +87,14 @@ namespace PCGGame {
                 return;
             }
 
-            this.updatePhysics();
+
 
             this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
             //console.log((this.game.time.fps.toString() || '--') + 'fps');
 
-            this.camera.x = this._player.x - Generator.Parameters.GRID.CELL.SIZE * 1.5;
+            this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X; //this._player.horizontalX - Generator.Parameters.GRID.CELL.SIZE * 1.5;
+
+            this.updatePhysics();
 
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
 
@@ -136,26 +138,31 @@ namespace PCGGame {
 
         public updatePhysics() {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
-            let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
-            let mobCollision = this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
+
+            if (! this._player.isInvincible) {
+                let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
+                let mobCollision = this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
 
 
-            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
-            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
+                this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
+                this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
 
-            if (wallBlockCollision || mobCollision) {
-                this._player.die();
-                return;
+                if (wallBlockCollision || mobCollision) {
+                    this._player.takeDamage(10);
+                }
             }
 
 
-            this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(); }, this);
+            this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(this._player); }, this);
 
 
             if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X)  {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
 
+            this._player.minX = this.game.camera.x + Generator.Parameters.GRID.CELL.SIZE;
+
+            this._player.maxX = this.game.camera.x + this.game.width - this._player.width/2;
 
 
             // /console.log(playerBody.velocity.x ,Generator.Parameters.VELOCITY.X);
@@ -166,10 +173,10 @@ namespace PCGGame {
             }
 
             if (this._cursors.left.isDown) {
-                this._player.slowDown();
+                this._player.moveLeft();
             }
             else if (this._cursors.right.isDown) {
-                this._player.speedUp();
+                this._player.moveRight();
             }
 
             if (this._cursors.up.isDown) {

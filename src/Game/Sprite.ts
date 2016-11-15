@@ -2,22 +2,25 @@ namespace PCGGame {
     export class Sprite extends Phaser.Sprite {
 
         public spriteFactoryParent : SpriteSingletonFactory = null;
+        public isInvincible : boolean = false;
 
         protected _id : string = null;
         protected _isDead : boolean = false;
         protected _weapon : Phaser.Weapon;
+        protected _hasLoot : boolean = false;
 
 
         public constructor(game : Phaser.Game, x?: number, y?: number, id? : string) {
             super(game, x, y, id);
             this._id = id;
+            this.health = 100;
         }
 
-        public render() {
+        public render(player? : Player) {
             console.log('Base Sprite class die.');
         }
 
-        public fire() {
+        public fire(player? : Player) {
             console.log('Base class fire.');
         }
 
@@ -38,6 +41,7 @@ namespace PCGGame {
 
             this.animations.currentAnim.onComplete.add(() => {
                 this.exists = false;
+                setTimeout(this.kill, 1000);
             }, this);
         }
 
@@ -53,8 +57,33 @@ namespace PCGGame {
             this._isDead = false;
             this.exists = true;
             this.visible = true;
+            this._hasLoot = false;
+            this.health = 100;
             this.loadTexture(this._id);
             return this;
+        }
+
+
+        public tweenSpriteTint(obj : Phaser.Sprite, startColor : number, endColor : number, time : number = 250, callback : Function = null) {
+            if (obj) {
+
+                let colorBlend = { step: 0 };
+                let colorTween = this.game.add.tween(colorBlend).to({ step: 100 }, time);
+
+                colorTween.onUpdateCallback(() => {
+                    obj.tint = Phaser.Color.interpolateColor(startColor, endColor, 100, colorBlend.step);
+                });
+
+                obj.tint = startColor;
+
+                if (callback) {
+                    colorTween.onComplete.add(() => {
+                        callback();
+                    });
+                }
+
+                colorTween.start();
+            }
         }
     }
 }
