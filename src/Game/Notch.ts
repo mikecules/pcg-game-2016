@@ -31,6 +31,11 @@ namespace PCGGame {
         }
 
         public render() {
+
+            if (this.died) {
+                return;
+            }
+
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.velocity.x = -10;
         }

@@ -26,20 +26,30 @@ var PCGGame;
         function Sprite(game, x, y, id) {
             _super.call(this, game, x, y, id);
             this.spriteFactoryParent = null;
-            this.isInvincible = false;
+            this._isInvincible = false;
             this._id = null;
             this._isDead = false;
-            this._hasLoot = false;
+            this._loot = null;
             this._id = id;
             this.health = 100;
         }
+        Object.defineProperty(Sprite.prototype, "isInvincible", {
+            get: function () {
+                return this._isInvincible;
+            },
+            set: function (isInvincibleFlag) {
+                this._isInvincible = isInvincibleFlag;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Sprite.prototype.render = function (player) {
             console.log('Base Sprite class die.');
         };
         Sprite.prototype.fire = function (player) {
             console.log('Base class fire.');
         };
-        Sprite.prototype.die = function () {
+        Sprite.prototype.die = function (player) {
             var _this = this;
             if (this._isDead) {
                 return;
@@ -48,10 +58,10 @@ var PCGGame;
             this._isDead = true;
             this.loadTexture(PCGGame.Animation.EXPLODE_ID);
             this.animations.add(PCGGame.Animation.EXPLODE_ID, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
+            this._generateLoot();
             this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
             this.animations.currentAnim.onComplete.add(function () {
-                _this.exists = false;
-                setTimeout(_this.kill, 1000);
+                _this._convertMobToLoot(player);
             }, this);
         };
         Object.defineProperty(Sprite.prototype, "died", {
@@ -61,15 +71,38 @@ var PCGGame;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Sprite.prototype, "hasLoot", {
+            get: function () {
+                return this._loot !== null;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Sprite.prototype.getLoot = function () {
+            return this._loot;
+        };
+        Sprite.prototype._generateLoot = function () {
             console.log('Base Sprite get loot!');
+            this._loot = new PCGGame.Loot();
+            this._loot.type = this.game.rnd.integerInRange(1, 5);
+        };
+        Sprite.prototype._convertMobToLoot = function (player) {
+            this.loadTexture(Sprite.LOOT_ID);
+            this.game.physics.arcade.moveToObject(this, player, 1000, 3500);
+            this.alpha = 1;
+            this.tint = this._loot.spriteTint;
+        };
+        Sprite.prototype.getDamageCost = function () {
+            return 10;
         };
         Sprite.prototype.reset = function () {
             this._isDead = false;
             this.exists = true;
             this.visible = true;
-            this._hasLoot = false;
+            this._loot = null;
             this.health = 100;
+            this.alpha = 1;
+            this.tint = 0xffffff;
             this.loadTexture(this._id);
             return this;
         };
@@ -91,6 +124,7 @@ var PCGGame;
                 colorTween.start();
             }
         };
+        Sprite.LOOT_ID = 'mob.loot';
         return Sprite;
     }(Phaser.Sprite));
     PCGGame.Sprite = Sprite;
@@ -134,12 +168,15 @@ var PCGGame;
             this.play(Invader.ID);
         }
         Invader.prototype.render = function (player) {
+            var _this = this;
+            if (this.died) {
+                return;
+            }
             var body = this.body;
             body.velocity.x = -150;
             if (this._weapon.bullets.countLiving()) {
-                var bulletDamage_1 = 10;
                 this.game.physics.arcade.collide(player, this._weapon.bullets, function (player, bullet) {
-                    player.takeDamage(bulletDamage_1);
+                    player.takeDamage(_this.getDamageCost());
                     bullet.kill();
                 });
             }
@@ -179,9 +216,11 @@ var PCGGame;
             body.allowGravity = false;
         }
         Meteor.prototype.render = function () {
-            var body = this.body;
-            body.velocity.x = this._velocityX;
-            body.velocity.y = this._velocityY;
+            if (!this.died) {
+                var body = this.body;
+                body.velocity.x = this._velocityX;
+                body.velocity.y = this._velocityY;
+            }
         };
         Meteor.ID = 'Meteor';
         return Meteor;
@@ -204,6 +243,9 @@ var PCGGame;
             this.play(Notch.ID);
         }
         Notch.prototype.render = function () {
+            if (this.died) {
+                return;
+            }
             var body = this.body;
             body.velocity.x = -10;
         };
@@ -702,7 +744,7 @@ var PCGGame;
                     sprite = spriteFactory.getNotchMob();
                     break;
                 case 3:
-                    sprite = spriteFactory.getInvaderMob();
+                    sprite = spriteFactory.getMeteorMob();
                     break;
                 default:
                     sprite = spriteFactory.getMeteorMob();
@@ -830,6 +872,10 @@ var PCGGame;
         Player.prototype.fire = function () {
             this._weapon.fire();
         };
+        Player.prototype.takeLoot = function (loot) {
+            console.log('Got loot! ', loot, loot.spriteTint);
+            this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
+        };
         Object.defineProperty(Player.prototype, "died", {
             get: function () {
                 return this._isDead;
@@ -864,7 +910,40 @@ var PCGGame;
             enumerable: true,
             configurable: true
         });
+        Player.prototype._toggleInvincibilityTween = function (shouldReverse) {
+            var _this = this;
+            if (!this._isInvincible) {
+                return;
+            }
+            var reverse = shouldReverse === true ? true : false;
+            if (reverse === true) {
+                this.tweenSpriteTint(this, 0xffffff, 0x333333, 1000, function () {
+                    _this._toggleInvincibilityTween(!reverse);
+                });
+            }
+            else {
+                this.tweenSpriteTint(this, 0x333333, 0xffffff, 1000, function () {
+                    _this._toggleInvincibilityTween(!reverse);
+                });
+            }
+        };
+        Object.defineProperty(Player.prototype, "isInvincible", {
+            get: function () {
+                return this._isInvincible;
+            },
+            set: function (isInvincibleFlag) {
+                if (isInvincibleFlag !== this._isInvincible) {
+                    this._isInvincible = isInvincibleFlag;
+                }
+                this._toggleInvincibilityTween();
+            },
+            enumerable: true,
+            configurable: true
+        });
         Player.prototype.takeDamage = function (damage) {
+            if (this._isInvincible) {
+                return;
+            }
             console.log(this.health, damage);
             if (this.health - damage <= 0) {
                 this.die();
@@ -939,8 +1018,15 @@ var PCGGame;
                 console.log('Mouse Fire Key Up!');
             }, this);
             this._cursors = this.game.input.keyboard.createCursorKeys();
+            var lastX = null;
             this.game.input.addMoveCallback(function (pointer, x, y) {
+                if (lastX === null) {
+                    lastX = x;
+                }
+                var dx = x - lastX;
                 _this._player.position.y = y;
+                _this._player.position.x += dx;
+                lastX = x;
             }, this);
         };
         Play.prototype.render = function () {
@@ -964,27 +1050,35 @@ var PCGGame;
                 return;
             }
             bullet.kill();
-            mob.die();
+            mob.die(this._player);
         };
         Play.prototype.wallPlayerCollisionHandler = function (player, wall) {
-            wall.kill();
+            player.takeDamage(10);
+            player.isInvincible = true;
+            setTimeout(function () {
+                player.isInvincible = false;
+            }, 2000);
         };
         Play.prototype.mobPlayerCollisionHandler = function (player, mob) {
             if (!mob.died) {
-                mob.die();
+                player.takeDamage(mob.getDamageCost());
+                mob.die(player);
+            }
+            else {
+                if (mob.hasLoot) {
+                    player.takeLoot(mob.getLoot());
+                }
+                mob.kill();
             }
         };
         Play.prototype.updatePhysics = function () {
             var _this = this;
             var playerBody = this._player.body;
             if (!this._player.isInvincible) {
-                var wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
-                var mobCollision = this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
+                this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
+                this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
                 this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
                 this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
-                if (wallBlockCollision || mobCollision) {
-                    this._player.takeDamage(10);
-                }
             }
             this._mainLayer.mobs.forEachExists(function (mob) { mob.render(_this._player); }, this);
             if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X) {
@@ -1028,6 +1122,7 @@ var PCGGame;
             this.load.spritesheet(PCGGame.Notch.ID, 'assets/tutor-anim.png', 32, 32, 6);
             this.load.spritesheet(PCGGame.Invader.ID, 'assets/invader32x32x4.png', 32, 32, 4);
             this.load.image(PCGGame.Player.ID, 'assets/ship.png');
+            this.load.image(PCGGame.Sprite.LOOT_ID, 'assets/star-particle.png');
             this.load.image(PCGGame.Invader.BULLET_ID, 'assets/enemy-bullet.png');
             this.load.image(PCGGame.Player.BULLET_ID, 'assets/player-bullet.png');
             this.load.image(PCGGame.Meteor.ID, 'assets/meteor.png');
@@ -1107,5 +1202,56 @@ var PCGGame;
         return ExperientialGameManager;
     }());
     PCGGame.ExperientialGameManager = ExperientialGameManager;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    ;
+    var Loot = (function () {
+        function Loot() {
+            this._type = 1;
+            this._tint = 0x9975B9;
+            this.value = 0;
+            this.points = 0;
+        }
+        Object.defineProperty(Loot.prototype, "type", {
+            get: function () {
+                return this._type;
+            },
+            set: function (type) {
+                this._type = type;
+                this._calcLootTint();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loot.prototype, "spriteTint", {
+            get: function () {
+                return this._tint;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Loot.prototype._calcLootTint = function () {
+            var tint = 0x9975B9;
+            switch (this._type) {
+                case 2:
+                    tint = 0x00ff00;
+                    break;
+                case 3:
+                    tint = 0x0000ff;
+                    break;
+                case 4:
+                    tint = 0xff0000;
+                    break;
+                case 5:
+                    break;
+                default:
+                    break;
+            }
+            this._tint = tint;
+        };
+        return Loot;
+    }());
+    PCGGame.Loot = Loot;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

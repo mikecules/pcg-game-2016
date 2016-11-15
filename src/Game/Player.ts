@@ -103,6 +103,11 @@ namespace PCGGame {
             this._weapon.fire();
         }
 
+        public takeLoot(loot: Loot) {
+            console.log('Got loot! ', loot, loot.spriteTint);
+            this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
+        }
+
         public get died() : boolean {
             return this._isDead;
         }
@@ -139,7 +144,46 @@ namespace PCGGame {
             return this._weapon.bullets;
         }
 
+        private _toggleInvincibilityTween(shouldReverse? : boolean) {
+
+            if (! this._isInvincible) {
+                return;
+            }
+
+            let reverse = shouldReverse === true ? true : false;
+
+            if (reverse === true) {
+                this.tweenSpriteTint(this, 0xffffff, 0x333333, 1000, () => {
+                    this._toggleInvincibilityTween(! reverse);
+                });
+            }
+            else {
+                this.tweenSpriteTint(this, 0x333333, 0xffffff, 1000, () => {
+                    this._toggleInvincibilityTween(! reverse);
+                });
+            }
+        }
+
+
+        public get isInvincible() : boolean {
+            return this._isInvincible;
+        }
+
+
+        public set isInvincible(isInvincibleFlag : boolean) {
+            if (isInvincibleFlag !== this._isInvincible) {
+                this._isInvincible = isInvincibleFlag;
+            }
+
+            this._toggleInvincibilityTween();
+        }
+
         public takeDamage(damage : number) {
+
+            if (this._isInvincible) {
+                return;
+            }
+
             console.log(this.health, damage);
 
             if (this.health - damage <= 0) {
@@ -149,8 +193,6 @@ namespace PCGGame {
 
             this.health -= damage;
             this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
-
-
 
         }
 

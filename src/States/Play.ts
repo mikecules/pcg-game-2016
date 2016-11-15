@@ -70,8 +70,19 @@ namespace PCGGame {
 
             // You can handle mouse input by registering a callback as well
             // The following registers a callback that will be called each time the mouse is moved
+            var lastX : any = null;
+
             this.game.input.addMoveCallback((pointer:Phaser.Pointer,x:number,y:number) => {
+
+                if (lastX === null) {
+                    lastX = x;
+                }
+
+                let dx = x - lastX;
                 this._player.position.y = y;
+                this._player.position.x += dx;
+
+                lastX = x;
             }, this);
 
 
@@ -116,21 +127,37 @@ namespace PCGGame {
             }
 
             bullet.kill();
-            mob.die();
+            mob.die(this._player);
         }
 
-        public wallPlayerCollisionHandler(player : Sprite, wall : Phaser.Sprite) {
+        public wallPlayerCollisionHandler(player : Player, wall : Phaser.Sprite) {
+
+            player.takeDamage(10);
+
+            player.isInvincible = true;
+            setTimeout(() => {
+                player.isInvincible = false;
+            }, 2000);
 
             //player.kill();
-            wall.kill();
+            //wall.kill();
         }
 
-        public mobPlayerCollisionHandler(player : Sprite, mob : Sprite) {
+        public mobPlayerCollisionHandler(player : Player, mob : Sprite) {
 
             //player.kill();
 
             if (! mob.died) {
-                mob.die();
+                player.takeDamage(mob.getDamageCost());
+                mob.die(player);
+            }
+            else {
+
+                if (mob.hasLoot) {
+                    player.takeLoot(mob.getLoot());
+                }
+
+                mob.kill();
             }
 
         }
@@ -140,18 +167,16 @@ namespace PCGGame {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
 
             if (! this._player.isInvincible) {
-                let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
-                let mobCollision = this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
+                this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
+                this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
 
 
                 this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
                 this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
 
-                if (wallBlockCollision || mobCollision) {
-                    this._player.takeDamage(10);
-                }
             }
 
+            //console.log('Invicibility: ', this._player.isInvincible);
 
             this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(this._player); }, this);
 

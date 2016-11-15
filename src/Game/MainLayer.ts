@@ -238,7 +238,7 @@ namespace PCGGame {
                     sprite = spriteFactory.getNotchMob();
                     break;
                 case  blockTypeEnum.MOB_INVADER:
-                    sprite = spriteFactory.getInvaderMob();
+                    sprite = spriteFactory.getMeteorMob();//spriteFactory.getInvaderMob();
                     break;
                 default:
                     sprite = spriteFactory.getMeteorMob();

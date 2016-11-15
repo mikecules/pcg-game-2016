@@ -1,19 +1,29 @@
 namespace PCGGame {
     export class Sprite extends Phaser.Sprite {
 
-        public spriteFactoryParent : SpriteSingletonFactory = null;
-        public isInvincible : boolean = false;
+        public static LOOT_ID : string = 'mob.loot';
 
+        public spriteFactoryParent : SpriteSingletonFactory = null;
+
+        protected _isInvincible : boolean = false;
         protected _id : string = null;
         protected _isDead : boolean = false;
         protected _weapon : Phaser.Weapon;
-        protected _hasLoot : boolean = false;
+        protected _loot : Loot = null;
 
 
         public constructor(game : Phaser.Game, x?: number, y?: number, id? : string) {
             super(game, x, y, id);
             this._id = id;
             this.health = 100;
+        }
+
+        public get isInvincible() : boolean {
+            return this._isInvincible;
+        }
+
+        public set isInvincible(isInvincibleFlag : boolean) {
+            this._isInvincible = isInvincibleFlag;
         }
 
         public render(player? : Player) {
@@ -24,7 +34,7 @@ namespace PCGGame {
             console.log('Base class fire.');
         }
 
-        public die() {
+        public die(player : Player) {
 
             if (this._isDead) {
                 return;
@@ -37,11 +47,18 @@ namespace PCGGame {
             this.loadTexture(Animation.EXPLODE_ID);
             this.animations.add(Animation.EXPLODE_ID, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
 
+            this._generateLoot();
             this.play(Animation.EXPLODE_ID, 30, false);
 
             this.animations.currentAnim.onComplete.add(() => {
-                this.exists = false;
-                setTimeout(this.kill, 1000);
+                this._convertMobToLoot(player);
+
+               /*
+                    this.exists = false;
+                    setTimeout(this.kill, 1000);
+                */
+
+
             }, this);
         }
 
@@ -49,16 +66,39 @@ namespace PCGGame {
             return this._isDead;
         }
 
-        public getLoot() {
+        public get hasLoot() : boolean {
+            return this._loot !== null;
+        }
+
+        public getLoot() : Loot {
+            return this._loot;
+        }
+
+        protected _generateLoot() {
             console.log('Base Sprite get loot!');
+            this._loot = new Loot();
+            this._loot.type = this.game.rnd.integerInRange(lootTypeEnum.DEFAULT, lootTypeEnum.NEW_LIFE);
+        }
+
+        protected _convertMobToLoot(player: Player) {
+            this.loadTexture(Sprite.LOOT_ID);
+            this.game.physics.arcade.moveToObject(this, player, 1000, 3500);
+            this.alpha = 1;
+            this.tint = this._loot.spriteTint;
+        }
+
+        public getDamageCost() : number {
+            return 10;
         }
 
         public reset() : Sprite {
             this._isDead = false;
             this.exists = true;
             this.visible = true;
-            this._hasLoot = false;
+            this._loot = null;
             this.health = 100;
+            this.alpha = 1;
+            this.tint = 0xffffff;
             this.loadTexture(this._id);
             return this;
         }

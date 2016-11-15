@@ -55,14 +55,19 @@ namespace PCGGame {
         }
 
         public render(player:Player) {
+
+            if (this.died) {
+                return;
+            }
+
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.velocity.x = -150;
 
 
             if (this._weapon.bullets.countLiving()) {
-                let bulletDamage = 10;
+
                 this.game.physics.arcade.collide(player, this._weapon.bullets, (player : Player, bullet : Phaser.Sprite) => {
-                    player.takeDamage(bulletDamage);
+                    player.takeDamage(this.getDamageCost());
                     bullet.kill();
                 } );
             }
