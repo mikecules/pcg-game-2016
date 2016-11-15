@@ -1,6 +1,6 @@
 namespace PCGGame {
 
-    export class Player extends Phaser.Sprite {
+    export class Player extends Sprite {
 
         public static ID : string = 'Player';
         public static BULLET_ID : string = 'Player.Bullet';
@@ -8,8 +8,6 @@ namespace PCGGame {
         public static NUM_BULLETS : number = 100;
 
         private _body : Phaser.Physics.Arcade.Body;
-        private _weapon : Phaser.Weapon;
-        private _isDead : boolean = false;
 
 
         public constructor(game : Phaser.Game) {
@@ -86,7 +84,6 @@ namespace PCGGame {
 
         public fire() : void {
             this._weapon.fire();
-
         }
 
         public get died() : boolean {
@@ -94,6 +91,7 @@ namespace PCGGame {
         }
 
         public die() : void {
+
 
             if (this.died) {
                 return;
@@ -104,11 +102,11 @@ namespace PCGGame {
             this.loadTexture(Animation.EXPLODE_ID);
             this.animations.add(Animation.EXPLODE_ID, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
 
-            this.play(Animation.EXPLODE_ID, false);
+            this.play(Animation.EXPLODE_ID, 30, false);
 
             this.animations.currentAnim.onComplete.add(() => {
                 this._isDead = false;
-                this.loadTexture(Player.ID)
+                this.loadTexture(this._id)
             }, this);
 
             let playerBody = this._body;

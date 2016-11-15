@@ -28,8 +28,7 @@ namespace PCGGame {
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
 
-
-            this._animation = Animation.instance(this.game, this.world);
+            PCGGame.SpriteSingletonFactory.instance(this.game)
 
             this._player = new Player(this.game);
 
@@ -109,28 +108,46 @@ namespace PCGGame {
             //wall.kill();
         }
 
-        public mobBulletCollisionHandler(bullet, mob) {
+        public mobBulletCollisionHandler(bullet : Phaser.Sprite, mob : Sprite) {
+
+            if (mob.died) {
+                return;
+            }
 
             bullet.kill();
-            mob.kill();
+            mob.die();
         }
 
+        public wallPlayerCollisionHandler(player : Sprite, wall : Phaser.Sprite) {
+
+            //player.kill();
+            wall.kill();
+        }
+
+        public mobPlayerCollisionHandler(player : Sprite, mob : Sprite) {
+
+            //player.kill();
+
+            if (! mob.died) {
+                mob.die();
+            }
+
+        }
 
 
         public updatePhysics() {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
-            let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks);
+            let wallBlockCollision = this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
+            let mobCollision = this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
 
 
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
 
-            if (wallBlockCollision) {
+            if (wallBlockCollision || mobCollision) {
                 this._player.die();
                 return;
             }
-
-
 
 
             this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(); }, this);

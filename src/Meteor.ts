@@ -1,6 +1,8 @@
+/// <reference path="Sprite.ts" />
+
 namespace PCGGame {
 
-    export class Meteor extends Phaser.Sprite {
+    export class Meteor extends Sprite {
 
         public static ID : string = 'Meteor';
 

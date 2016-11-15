@@ -1,3 +1,8 @@
+/// <reference path="Sprite.ts" />
+/// <reference path="../lib/phaser.d.ts" />
+/// <reference path="../lib/pixi.d.ts" />
+/// <reference path="../lib/p2.d.ts" />
+
 namespace PCGGame {
     export class Game extends Phaser.Game {
 

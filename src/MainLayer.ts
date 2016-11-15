@@ -7,7 +7,7 @@ namespace PCGGame {
         private _generator: Generator.Generator;
         private _MOBgenerator: Generator.MOBGenerator;
         private _wallSpritePool: Helper.Pool<Phaser.Sprite>;
-        private _MOBSpritePool: Helper.Pool<Phaser.Sprite>;
+        private _MOBSpritePool: Helper.Pool<SpriteSingletonFactory>;
         private _mobs : Phaser.Group;
         private _walls: Phaser.Group;
         private _lastTile: Phaser.Point = new Phaser.Point(0, 0);
@@ -40,17 +40,8 @@ namespace PCGGame {
             this._generator = new Generator.Generator(this._randomGenerator);
             this._MOBgenerator = new Generator.MOBGenerator(this._randomGenerator);
 
-            this._MOBSpritePool = new Helper.Pool<Phaser.Sprite>(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE / 2,  ()  => { // add empty sprite with body
-
-                let sprite = new Phaser.Sprite(game, 0, 0);
-
-                game.physics.enable(sprite, Phaser.Physics.ARCADE);
-                let body = <Phaser.Physics.Arcade.Body>sprite.body;
-                body.allowGravity = false;
-                body.immovable = false;
-                body.moves = true;
-                body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
-                return sprite;
+            this._MOBSpritePool = new Helper.Pool<SpriteSingletonFactory>(SpriteSingletonFactory, Generator.Parameters.GRID.CELL.SIZE,  ()  => { // add empty sprite with body
+                return new SpriteSingletonFactory(game);
             });
 
             // pool of walls
@@ -115,7 +106,7 @@ namespace PCGGame {
 
                         // process piece
                         while (length > 0) {
-                            this._addSpriteBlock(this._lastTile.x, this._lastTile.y);
+                            this._addBlockSprite(this._lastTile.x, this._lastTile.y);
 
                             if ((--length) > 0) {
                                 ++this._lastTile.x;
@@ -191,12 +182,12 @@ namespace PCGGame {
 
             for (let i = this._mobs.length - 1; i >= 0; i--) {
 
-                let wall = <Phaser.Sprite>this._mobs.getChildAt(i);
+                let mob = <Sprite>this._mobs.getChildAt(i);
 
-                if ((wall.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
-                    this._mobs.remove(wall);
-                    wall.parent = null;
-                    this._MOBSpritePool.destroyItem(wall);
+                if ((mob.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
+                    this._mobs.remove(mob);
+                    mob.parent = null;
+                    this._MOBSpritePool.destroyItem(mob.spriteFactoryParent);
                 }
             }
         }
@@ -220,7 +211,7 @@ namespace PCGGame {
             sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
         }
 
-        private _addSpriteBlock(x: number, y: number): void {
+        private _addBlockSprite(x: number, y: number): void {
             // sprite  get from pool
             let sprite = this._wallSpritePool.createItem();
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
@@ -238,26 +229,25 @@ namespace PCGGame {
         private _addMobSprite (x: number, y: number, mobType: number): void {
 
 
-            let oldSprite : Phaser.Sprite = this._MOBSpritePool.createItem();
+            let spriteFactory : SpriteSingletonFactory = this._MOBSpritePool.createItem();
             let sprite : any = null;
 
 
             switch (mobType) {
                 case blockTypeEnum.MOB_NOTCH:
-                    sprite = new Notch(this._game);
+                    sprite = spriteFactory.getNotchMob();
                     break;
                 case  blockTypeEnum.MOB_INVADER:
-                    sprite = new Invader(this._game);
+                    sprite = spriteFactory.getInvaderMob();
                     break;
                 default:
-                    sprite = new Meteor(this._game);
+                    sprite = spriteFactory.getMeteorMob();
                     break;
             }
 
 
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
-            sprite.exists = true;
-            sprite.visible = true;
+            sprite.reset();
 
 
             // add into mobs group

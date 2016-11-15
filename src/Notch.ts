@@ -1,6 +1,8 @@
+/// <reference path="Sprite.ts" />
+
 namespace PCGGame {
 
-    export class Notch extends Phaser.Sprite {
+    export class Notch extends Sprite {
 
         public static ID : string = 'Notch';
 

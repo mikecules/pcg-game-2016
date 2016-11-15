@@ -1,6 +1,7 @@
+/// <reference path="Sprite.ts" />
 namespace PCGGame {
 
-    export class Invader extends Phaser.Sprite {
+    export class Invader extends Sprite {
 
         public static ID : string = 'Invader';
 
@@ -32,6 +33,7 @@ namespace PCGGame {
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.velocity.x = -150;
         }
+
     }
 
 }
