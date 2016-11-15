@@ -4,7 +4,6 @@ namespace PCGGame {
         private _mainLayer: MainLayer;
         private _backgroundLayer: BackgroundLayer;
         private _player : Player;
-        private _animation : Animation;
 
 
         private _gameState : any = {
@@ -102,7 +101,7 @@ namespace PCGGame {
             //this.game.debug.bodyInfo(this._player, 32, 32);
         }
 
-        public wallBulletCollisionHandler(bullet, wall) {
+        public wallBulletCollisionHandler(bullet : Phaser.Sprite, wall : Phaser.Sprite) {
 
             bullet.kill();
             //wall.kill();
