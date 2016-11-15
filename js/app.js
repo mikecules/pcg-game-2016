@@ -903,7 +903,7 @@ var PCGGame;
                 return;
             }
             this._mainLayer.mobs.forEachExists(function (mob) { mob.render(); }, this);
-            if (playerBody.velocity.x < 1) {
+            if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X) {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
             if (this._keysPressed.fire) {

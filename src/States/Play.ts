@@ -152,12 +152,13 @@ namespace PCGGame {
             this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(); }, this);
 
 
-            if (playerBody.velocity.x < 1)  {
+            if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X)  {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
 
 
-            //console.log(playerBody.velocity.x );
+
+            // /console.log(playerBody.velocity.x ,Generator.Parameters.VELOCITY.X);
 
 
             if (this._keysPressed.fire) {
