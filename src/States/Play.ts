@@ -10,6 +10,9 @@ namespace PCGGame {
         private _playerLives : number = 3;
         private _playLivesFirstX : number = 0;
         private _playerLivesGroup : Phaser.Group;
+        private _playerHealthGroup : Phaser.Group;
+        private _healthBarSpriteBG : Phaser.Sprite = null;
+        private _healthBarSprite : Phaser.Sprite = null;
 
 
         private _gameState : any = {
@@ -64,6 +67,81 @@ namespace PCGGame {
 
         }
 
+        private _updateHealthBar() {
+            // just a property we can tween so the bar has a progress to show
+            let health : number = this._player.health;
+            let barWidth : number = 1024 / 2;
+            let barHeight = 20;
+
+
+            if ( this._healthBarSprite === null) {
+                // create a plain black rectangle to use as the background of a health meter
+                let meterBackgroundBitmap = this.game.add.bitmapData(barWidth, barHeight);
+                meterBackgroundBitmap.ctx.beginPath();
+                meterBackgroundBitmap.ctx.rect(0, 0, meterBackgroundBitmap.width, meterBackgroundBitmap.height);
+                meterBackgroundBitmap.ctx.fillStyle = '#440000';
+                meterBackgroundBitmap.ctx.fill();
+
+                this._playerHealthGroup = this.game.add.group();
+
+                // create a Sprite using the background bitmap data
+                this._healthBarSpriteBG = this.game.add.sprite(50, this.game.height - 39, meterBackgroundBitmap);
+                this._healthBarSpriteBG.alpha = 0.5;
+                this._playerHealthGroup.add(this._healthBarSpriteBG);
+
+                // create a red rectangle to use as the health meter itself
+                var healthBitmap = this.game.add.bitmapData(barWidth - 6, barHeight - 6);
+                healthBitmap.ctx.beginPath();
+                healthBitmap.ctx.rect(0, 0, healthBitmap.width, healthBitmap.height);
+                healthBitmap.ctx.fillStyle = '#000';
+                healthBitmap.ctx.fill();
+
+
+                // create the health Sprite using the red rectangle bitmap data
+                this._healthBarSprite = this.game.add.sprite(53, this.game.height - 36, healthBitmap);
+                this._healthBarSprite.alpha = 0.7;
+                this._playerHealthGroup.add(this._healthBarSprite);
+
+                let shieldSprite =  this.game.add.sprite(32, this.game.height - 50, 'Shield');
+                shieldSprite.alpha = 1;
+                this._playerHealthGroup.add(shieldSprite);
+
+                //game.add.tween(this).to({barProgress: 0}, 2000, null, true, 0, Infinity);
+            }
+
+
+
+            this._healthBarSprite.key.context.clearRect(0, 0, this._healthBarSprite.width, this._healthBarSprite.height);
+
+
+            // some simple colour changing to make it look like a health bar
+             if (health < 30) {
+                this._healthBarSprite.key.context.fillStyle = '#f00';
+             }
+             else if (health < 64) {
+                this._healthBarSprite.key.context.fillStyle = '#ff0';
+             }
+             else {
+                this._healthBarSprite.key.context.fillStyle = '#0f0';
+             }
+
+
+            var m = health / 100;
+            var bw = ((barWidth - 6) * m);
+
+
+
+            console.log('HEALTH BAR: ', bw);
+            // draw the bar
+
+            this._healthBarSprite.key.context.fillRect(0, 0, bw, barHeight - 6);
+
+            // important - without this line, the context will never be updated on the GPU when using webGL
+            this._healthBarSprite.key.dirty = true;
+
+
+        }
+
 
         private _setUpGameHUD() {
             //  The score
@@ -101,13 +179,24 @@ namespace PCGGame {
 
             PCGGame.SpriteSingletonFactory.instance(this.game);
 
-            this._setUpGameHUD();
 
             this._player = new Player(this.game);
 
-            this._player.playerEvents.add((o : any) => {
-                console.log(o);
-                this.setPlayerLives(-1);
+            this._player.playerEvents.add((e : GameEvent) => {
+                switch(e.type) {
+                    case gameEventTypeEnum.MOB_KILLED:
+                        this.setPlayerLives(-1);
+                        this._updateHealthBar();
+                        break;
+                    case gameEventTypeEnum.MOB_TOOK_DAMAGE:
+                        this._updateHealthBar();
+                        break;
+                    default:
+                        break;
+                }
+                
+                console.log(e);
+
                 // TODO: FIRE SIGNAL OF PLAYER DEATH/LOOT GRAB
             });
 
@@ -119,6 +208,10 @@ namespace PCGGame {
 
 
             this.world.add(this._player);
+
+            this._setUpGameHUD();
+            this._updateHealthBar();
+
 
 
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
@@ -186,6 +279,7 @@ namespace PCGGame {
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X; //this._player.horizontalX - Generator.Parameters.GRID.CELL.SIZE * 1.5;
             this._gameScoreText.x = this.camera.x + 10;
             this._playerLivesGroup.x = this.camera.x + 10;
+            this._playerHealthGroup.x = this.camera.x + 10;
 
             this.updatePhysics();
 

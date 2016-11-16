@@ -744,7 +744,7 @@ var PCGGame;
                     sprite = spriteFactory.getNotchMob();
                     break;
                 case 3:
-                    sprite = spriteFactory.getMeteorMob();
+                    sprite = spriteFactory.getInvaderMob();
                     break;
                 default:
                     sprite = spriteFactory.getMeteorMob();
@@ -825,7 +825,7 @@ var PCGGame;
             this.anchor.x = 0.5;
             this.anchor.y = 0.5;
             this.scale.set(1.5);
-            this.playerKilled = new Phaser.Signal();
+            this.playerEvents = new Phaser.Signal();
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
             this._weapon.bulletKillDistance = this.game.width * 4;
@@ -895,9 +895,7 @@ var PCGGame;
             this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
             this.animations.currentAnim.onComplete.add(function () {
                 _this.reset();
-                _this.playerEvents.dispatch({
-                    event: 'killed'
-                });
+                _this.playerEvents.dispatch(new PCGGame.GameEvent(1, _this));
             }, this);
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
         };
@@ -949,11 +947,12 @@ var PCGGame;
                 return;
             }
             console.log(this.health, damage);
-            if (this.health - damage <= 0) {
+            this.health -= damage;
+            this.playerEvents.dispatch(new PCGGame.GameEvent(2, this));
+            if (this.health <= 0) {
                 this.die();
                 return;
             }
-            this.health -= damage;
             this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
         };
         Player.ID = 'Player';
@@ -987,6 +986,8 @@ var PCGGame;
             this._gameScore = 0;
             this._playerLives = 3;
             this._playLivesFirstX = 0;
+            this._healthBarSpriteBG = null;
+            this._healthBarSprite = null;
             this._gameState = {
                 end: false,
                 paused: false
@@ -1027,6 +1028,48 @@ var PCGGame;
             if (this._playerLives <= 0) {
             }
         };
+        Play.prototype._updateHealthBar = function () {
+            var health = this._player.health;
+            var barWidth = 1024 / 2;
+            var barHeight = 20;
+            if (this._healthBarSprite === null) {
+                var meterBackgroundBitmap = this.game.add.bitmapData(barWidth, barHeight);
+                meterBackgroundBitmap.ctx.beginPath();
+                meterBackgroundBitmap.ctx.rect(0, 0, meterBackgroundBitmap.width, meterBackgroundBitmap.height);
+                meterBackgroundBitmap.ctx.fillStyle = '#440000';
+                meterBackgroundBitmap.ctx.fill();
+                this._playerHealthGroup = this.game.add.group();
+                this._healthBarSpriteBG = this.game.add.sprite(50, this.game.height - 39, meterBackgroundBitmap);
+                this._healthBarSpriteBG.alpha = 0.5;
+                this._playerHealthGroup.add(this._healthBarSpriteBG);
+                var healthBitmap = this.game.add.bitmapData(barWidth - 6, barHeight - 6);
+                healthBitmap.ctx.beginPath();
+                healthBitmap.ctx.rect(0, 0, healthBitmap.width, healthBitmap.height);
+                healthBitmap.ctx.fillStyle = '#000';
+                healthBitmap.ctx.fill();
+                this._healthBarSprite = this.game.add.sprite(53, this.game.height - 36, healthBitmap);
+                this._healthBarSprite.alpha = 0.7;
+                this._playerHealthGroup.add(this._healthBarSprite);
+                var shieldSprite = this.game.add.sprite(32, this.game.height - 50, 'Shield');
+                shieldSprite.alpha = 1;
+                this._playerHealthGroup.add(shieldSprite);
+            }
+            this._healthBarSprite.key.context.clearRect(0, 0, this._healthBarSprite.width, this._healthBarSprite.height);
+            if (health < 30) {
+                this._healthBarSprite.key.context.fillStyle = '#f00';
+            }
+            else if (health < 64) {
+                this._healthBarSprite.key.context.fillStyle = '#ff0';
+            }
+            else {
+                this._healthBarSprite.key.context.fillStyle = '#0f0';
+            }
+            var m = health / 100;
+            var bw = ((barWidth - 6) * m);
+            console.log('HEALTH BAR: ', bw);
+            this._healthBarSprite.key.context.fillRect(0, 0, bw, barHeight - 6);
+            this._healthBarSprite.key.dirty = true;
+        };
         Play.prototype._setUpGameHUD = function () {
             var scoreString = 'Score: ';
             this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '32px Arial', fill: '#fff' });
@@ -1051,16 +1094,27 @@ var PCGGame;
             this.stage.backgroundColor = 0x000000;
             this.camera.bounds = null;
             PCGGame.SpriteSingletonFactory.instance(this.game);
-            this._setUpGameHUD();
             this._player = new PCGGame.Player(this.game);
-            this._player.playerEvents.add(function (o) {
-                console.log(o);
-                _this.setPlayerLives(-1);
+            this._player.playerEvents.add(function (e) {
+                switch (e.type) {
+                    case 1:
+                        _this.setPlayerLives(-1);
+                        _this._updateHealthBar();
+                        break;
+                    case 2:
+                        _this._updateHealthBar();
+                        break;
+                    default:
+                        break;
+                }
+                console.log(e);
             });
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT) / 2);
             this._backgroundLayer = new PCGGame.BackgroundLayer(this.game, this.world);
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
             this.world.add(this._player);
+            this._setUpGameHUD();
+            this._updateHealthBar();
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._fireKey.onDown.add(function () {
                 _this._keysPressed.fire = true;
@@ -1100,6 +1154,7 @@ var PCGGame;
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X;
             this._gameScoreText.x = this.camera.x + 10;
             this._playerLivesGroup.x = this.camera.x + 10;
+            this._playerHealthGroup.x = this.camera.x + 10;
             this.updatePhysics();
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
             this._backgroundLayer.render(this.camera.x);
@@ -1185,6 +1240,7 @@ var PCGGame;
             this.load.spritesheet(PCGGame.Notch.ID, 'assets/tutor-anim.png', 32, 32, 6);
             this.load.spritesheet(PCGGame.Invader.ID, 'assets/invader32x32x4.png', 32, 32, 4);
             this.load.image(PCGGame.Player.ID, 'assets/ship.png');
+            this.load.image('Shield', 'assets/shield.png');
             this.load.image(PCGGame.Sprite.LOOT_ID, 'assets/star-particle.png');
             this.load.image(PCGGame.Invader.BULLET_ID, 'assets/enemy-bullet.png');
             this.load.image(PCGGame.Player.BULLET_ID, 'assets/player-bullet.png');
@@ -1316,5 +1372,17 @@ var PCGGame;
         return Loot;
     }());
     PCGGame.Loot = Loot;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    ;
+    var GameEvent = (function () {
+        function GameEvent(type, payload) {
+            this.type = type;
+            this.payload = payload;
+        }
+        return GameEvent;
+    }());
+    PCGGame.GameEvent = GameEvent;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

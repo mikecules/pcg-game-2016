@@ -38,7 +38,7 @@ namespace PCGGame {
 
             this.scale.set(1.5);
 
-            this.playerKilled = new Phaser.Signal();
+            this.playerEvents = new Phaser.Signal();
 
 
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
@@ -131,9 +131,7 @@ namespace PCGGame {
 
             this.animations.currentAnim.onComplete.add(() => {
                 this.reset();
-                this.playerEvents.dispatch({
-                    event: 'killed'
-                });
+                this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_KILLED, this));
             }, this);
 
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
@@ -191,13 +189,15 @@ namespace PCGGame {
             }
 
             console.log(this.health, damage);
+            this.health -= damage;
 
-            if (this.health - damage <= 0) {
+            this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_TOOK_DAMAGE, this));
+
+            if (this.health <= 0) {
                 this.die();
                 return;
             }
 
-            this.health -= damage;
             this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
 
         }

@@ -14,6 +14,7 @@ namespace PCGGame {
             this.load.spritesheet(Invader.ID, 'assets/invader32x32x4.png', 32, 32, 4);
 
             this.load.image(Player.ID, 'assets/ship.png');
+            this.load.image('Shield', 'assets/shield.png');
             this.load.image(Sprite.LOOT_ID, 'assets/star-particle.png');
             this.load.image(Invader.BULLET_ID, 'assets/enemy-bullet.png');
             this.load.image(Player.BULLET_ID, 'assets/player-bullet.png');
