@@ -26,12 +26,9 @@ namespace PCGGame {
 
             body.allowGravity = false;
 
-            this.animations.add(Notch.ID, [ 0, 1, 2, 3, 4, 5], 20, true);
-            this.play(Notch.ID);
         }
 
         public render() {
-            this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
 
             if (this.died) {
                 return;
@@ -39,6 +36,13 @@ namespace PCGGame {
 
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.velocity.x = -10;
+        }
+
+        public reset() {
+            super.reset();
+            this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
+            this.animations.add(Notch.ID, [ 0, 1, 2, 3, 4, 5], 20, true);
+            this.play(Notch.ID);
         }
     }
 

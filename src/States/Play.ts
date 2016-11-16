@@ -219,9 +219,25 @@ namespace PCGGame {
                         this._updateHealthBar(this._player.health);
                         break;
                     case gameEventTypeEnum.MOB_RECIEVED_LOOT:
-                        //this.setPlayerLives(1);
-                        //this._updateHealthBar(this._player.health);
-                        //this.incScore()
+
+                        let loot : Loot = <Loot> e.payload;
+
+                        console.log(e.payload);
+
+                        switch(loot.type) {
+                            case lootTypeEnum.SHIELD:
+                                this._updateHealthBar(this._player.health);
+                                break;
+                            case lootTypeEnum.WEAPON:
+
+                                break;
+                            case lootTypeEnum.NEW_LIFE:
+                                this.setPlayerLives(1);
+                                break;
+                            default:
+                                this.incScore = loot.value * 100;
+                                break;
+                        }
                         break;
                     default:
                         break;
@@ -295,11 +311,13 @@ namespace PCGGame {
 
         public startPlayerAttack(shouldStartAttacking : boolean) {
 
-            if (this._gameState.end) {
-                this._startNewGame();
-            }
-            else if (this._gameState.paused) {
-                this._gameState.paused = false;
+            if (shouldStartAttacking) {
+                if (this._gameState.end) {
+                    this._startNewGame();
+                }
+                else if (this._gameState.paused) {
+                    this._gameState.paused = false;
+                }
             }
 
             this._keysPressed.fire = shouldStartAttacking;
@@ -359,21 +377,21 @@ namespace PCGGame {
         public wallPlayerCollisionHandler(player : Player, wall : Phaser.Sprite) {
 
             player.takeDamage(10);
-
             Play.setInvincible(player);
 
-            //player.kill();
             //wall.kill();
         }
 
         public mobPlayerCollisionHandler(player : Player, mob : Sprite) {
 
-            //player.kill();
+
+            if (! mob.canCollide) {
+                return;
+            }
 
             if (! mob.died) {
                 player.takeDamage(mob.getDamageCost());
                 mob.die(player);
-                // TODO: FIRE SIGNAL OF MOB DEATH
             }
             else {
 

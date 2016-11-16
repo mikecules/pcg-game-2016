@@ -176,12 +176,11 @@ var PCGGame;
         };
         Sprite.prototype._generateLoot = function () {
             console.log('Base Sprite get loot!');
-            this._loot = new PCGGame.Loot();
-            this._loot.type = this.game.rnd.integerInRange(1, 5);
+            this._loot = new PCGGame.Loot(this.game.rnd);
         };
         Sprite.prototype._convertMobToLoot = function (player) {
             this.loadTexture(Sprite.LOOT_ID);
-            this.game.physics.arcade.moveToObject(this, player, 1000, 3500);
+            this.game.physics.arcade.moveToObject(this, player, 1000, 800);
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
         };
@@ -189,6 +188,7 @@ var PCGGame;
             return 10;
         };
         Sprite.prototype.reset = function () {
+            _super.prototype.reset.call(this, 0, 0);
             this._isDead = false;
             this._loot = null;
             this.health = 100;
@@ -269,12 +269,9 @@ var PCGGame;
             this._weapon.fireRate = 1500;
             this._weapon.bulletSpeedVariance = 0;
             this._weapon.trackSprite(this, 16, 0);
-            this.animations.add(Invader.ID, [0, 1, 2, 3], 20, true);
-            this.play(Invader.ID);
         }
         Invader.prototype.render = function (player) {
             var _this = this;
-            this.dangerLevel = 2;
             if (this.died) {
                 return;
             }
@@ -299,6 +296,12 @@ var PCGGame;
                 _this.game.physics.arcade.moveToObject(bullet, player, 1500, 500);
             }, this);
         };
+        Invader.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            this.dangerLevel = 2;
+            this.animations.add(Invader.ID, [0, 1, 2, 3], 20, true);
+            this.play(Invader.ID);
+        };
         Invader.ID = 'Invader';
         Invader.BULLET_ID = 'Invader.Bullets';
         Invader.NUM_BULLETS = 20;
@@ -310,12 +313,35 @@ var PCGGame;
 (function (PCGGame) {
     ;
     var Loot = (function () {
-        function Loot() {
+        function Loot(randomGen) {
             this._type = 1;
             this._tint = 0x9975B9;
-            this.value = 0;
-            this.points = 0;
+            this._typeProbabilitiesUpperBoundary = {};
+            this._typeProbabilities = {};
+            this._randomGenerator = null;
+            this.value = 5;
+            this._typeProbabilities[1] = 33;
+            this._typeProbabilities[2] = 32;
+            this._typeProbabilities[3] = 32;
+            this._typeProbabilities[4] = 3;
+            this._randomGenerator = randomGen;
+            this._calcProbabilityBoundaries();
+            this._type = this._calcType();
+            this._calcLootTint();
         }
+        Loot.prototype._calcProbabilityBoundaries = function () {
+            var lastLootType = null;
+            for (var lootType in this._typeProbabilities) {
+                if (lastLootType === null) {
+                    this._typeProbabilitiesUpperBoundary[lootType] = this._typeProbabilities[lootType];
+                }
+                else {
+                    this._typeProbabilitiesUpperBoundary[lootType] = this._typeProbabilitiesUpperBoundary[lastLootType] + this._typeProbabilities[lootType];
+                }
+                lastLootType = lootType;
+            }
+            console.log(this._typeProbabilitiesUpperBoundary);
+        };
         Object.defineProperty(Loot.prototype, "type", {
             get: function () {
                 return this._type;
@@ -334,19 +360,29 @@ var PCGGame;
             enumerable: true,
             configurable: true
         });
+        Loot.prototype._calcType = function () {
+            var p = this._randomGenerator.integerInRange(0, 100);
+            var type = 1;
+            for (var i = 1; i <= 4; i++) {
+                if (p <= this._typeProbabilitiesUpperBoundary[i]) {
+                    type = i;
+                    break;
+                }
+            }
+            console.log('TYPE CHOSEN:', type);
+            return type;
+        };
         Loot.prototype._calcLootTint = function () {
             var tint = 0x9975B9;
             switch (this._type) {
                 case 2:
-                    tint = 0x00ff00;
-                    break;
-                case 3:
                     tint = 0x0000ff;
                     break;
-                case 4:
+                case 3:
                     tint = 0xff0000;
                     break;
-                case 5:
+                case 4:
+                    tint = 0x00ff00;
                     break;
                 default:
                     break;
@@ -514,8 +550,9 @@ var PCGGame;
                     sprite = spriteFactory.getMeteorMob();
                     break;
             }
-            sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
             sprite.reset();
+            sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
+            console.log(sprite.parent);
             if (sprite.parent === null) {
                 this._mobs.add(sprite);
             }
@@ -540,12 +577,16 @@ var PCGGame;
             body.allowGravity = false;
         }
         Meteor.prototype.render = function () {
-            this.dangerLevel = 1;
-            if (!this.died) {
-                var body = this.body;
-                body.velocity.x = this._velocityX;
-                body.velocity.y = this._velocityY;
+            if (this.died) {
+                return;
             }
+            var body = this.body;
+            body.velocity.x = this._velocityX;
+            body.velocity.y = this._velocityY;
+        };
+        Meteor.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            this.dangerLevel = 1;
         };
         Meteor.ID = 'Meteor';
         return Meteor;
@@ -564,16 +605,19 @@ var PCGGame;
             game.physics.arcade.enable(this, false);
             var body = this.body;
             body.allowGravity = false;
-            this.animations.add(Notch.ID, [0, 1, 2, 3, 4, 5], 20, true);
-            this.play(Notch.ID);
         }
         Notch.prototype.render = function () {
-            this.dangerLevel = 0;
             if (this.died) {
                 return;
             }
             var body = this.body;
             body.velocity.x = -10;
+        };
+        Notch.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            this.dangerLevel = 0;
+            this.animations.add(Notch.ID, [0, 1, 2, 3, 4, 5], 20, true);
+            this.play(Notch.ID);
         };
         Notch.ID = 'Notch';
         return Notch;
@@ -598,8 +642,8 @@ var PCGGame;
             this._weapon.bulletKillDistance = this.game.width * 4;
             this._weapon.bulletAngleOffset = 0;
             this._weapon.fireAngle = Phaser.ANGLE_RIGHT;
-            this._weapon.fireRate = 80;
-            this._weapon.bulletSpeedVariance = 10;
+            this._weapon.fireRate = Player.WEAPON_STATS.fireRate;
+            this._weapon.bulletSpeedVariance = Player.WEAPON_STATS.variance;
             this._weapon.trackSprite(this, 16, 0);
             game.physics.arcade.enable(this, false);
             this._body = this.body;
@@ -642,8 +686,25 @@ var PCGGame;
         };
         Player.prototype.takeLoot = function (loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
+            switch (loot.type) {
+                case 3:
+                    this.health += loot.value * 2;
+                    break;
+                case 2:
+                    this.upgradeWeapon(loot.value);
+                    break;
+                case 4:
+                    this.playerLives++;
+                    break;
+                default:
+                    break;
+            }
             this.playerEvents.dispatch(new PCGGame.GameEvent(4, loot));
             this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
+        };
+        Player.prototype.upgradeWeapon = function (inc) {
+            this._weapon.fireRate = Math.max(this._weapon.fireRate - inc, Player.MAX_WEAPON_STATS.fireRate);
+            this._weapon.bulletSpeedVariance = Math.max(this._weapon.bulletSpeedVariance + 1, Player.MAX_WEAPON_STATS.variance);
         };
         Object.defineProperty(Player.prototype, "died", {
             get: function () {
@@ -741,8 +802,16 @@ var PCGGame;
         Player.ID = 'Player';
         Player.BULLET_ID = 'Player.Bullet';
         Player.VELOCITY_INC = 5;
-        Player.NUM_BULLETS = 100;
+        Player.NUM_BULLETS = 150;
         Player.PLAYER_LIVES = 4;
+        Player.WEAPON_STATS = {
+            fireRate: 200,
+            variance: 0
+        };
+        Player.MAX_WEAPON_STATS = {
+            fireRate: 40,
+            variance: 10
+        };
         return Player;
     }(PCGGame.Sprite));
     PCGGame.Player = Player;
@@ -1011,6 +1080,7 @@ var Generator;
             block.offset.x = shiftX;
             block.length = 1;
             this._lastGeneratedBlock = block;
+            console.log('MIKE!!! ', block);
             return block;
         };
         return MOBGenerator;
@@ -1277,6 +1347,21 @@ var PCGGame;
                         _this._updateHealthBar(_this._player.health);
                         break;
                     case 4:
+                        var loot = e.payload;
+                        console.log(e.payload);
+                        switch (loot.type) {
+                            case 3:
+                                _this._updateHealthBar(_this._player.health);
+                                break;
+                            case 2:
+                                break;
+                            case 4:
+                                _this.setPlayerLives(1);
+                                break;
+                            default:
+                                _this.incScore = loot.value * 100;
+                                break;
+                        }
                         break;
                     default:
                         break;
@@ -1319,11 +1404,13 @@ var PCGGame;
             }, this);
         };
         Play.prototype.startPlayerAttack = function (shouldStartAttacking) {
-            if (this._gameState.end) {
-                this._startNewGame();
-            }
-            else if (this._gameState.paused) {
-                this._gameState.paused = false;
+            if (shouldStartAttacking) {
+                if (this._gameState.end) {
+                    this._startNewGame();
+                }
+                else if (this._gameState.paused) {
+                    this._gameState.paused = false;
+                }
             }
             this._keysPressed.fire = shouldStartAttacking;
         };
@@ -1358,6 +1445,9 @@ var PCGGame;
             Play.setInvincible(player);
         };
         Play.prototype.mobPlayerCollisionHandler = function (player, mob) {
+            if (!mob.canCollide) {
+                return;
+            }
             if (!mob.died) {
                 player.takeDamage(mob.getDamageCost());
                 mob.die(player);

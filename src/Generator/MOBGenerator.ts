@@ -148,6 +148,7 @@ namespace Generator {
             // RESULT
             this._lastGeneratedBlock = block;
 
+            console.log('MIKE!!! ', block)
 
             return block;
         }

@@ -31,13 +31,20 @@ namespace PCGGame {
         }
 
         public render() {
-            this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
 
-            if (! this.died) {
-               let body: Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
-               body.velocity.x = this._velocityX;
-               body.velocity.y = this._velocityY;
+            if (this.died) {
+                return;
             }
+
+           let body: Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
+           body.velocity.x = this._velocityX;
+           body.velocity.y = this._velocityY;
+
+        }
+
+        public reset() {
+            super.reset();
+            this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
         }
     }
 

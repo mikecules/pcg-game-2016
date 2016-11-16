@@ -49,14 +49,9 @@ namespace PCGGame {
 
             this._weapon.trackSprite(this, 16, 0);
 
-
-            this.animations.add(Invader.ID, [ 0, 1, 2, 3 ], 20, true);
-            this.play(Invader.ID);
         }
 
         public render(player:Player) {
-
-            this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;
 
             if (this.died) {
                 return;
@@ -92,6 +87,13 @@ namespace PCGGame {
 
             }, this);
 
+        }
+
+        public reset() {
+            super.reset();
+            this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;
+            this.animations.add(Invader.ID, [ 0, 1, 2, 3 ], 20, true);
+            this.play(Invader.ID);
         }
 
     }

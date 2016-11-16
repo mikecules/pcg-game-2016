@@ -5,8 +5,21 @@ namespace PCGGame {
         public static ID : string = 'Player';
         public static BULLET_ID : string = 'Player.Bullet';
         public static VELOCITY_INC : number = 5;
-        public static NUM_BULLETS : number = 100;
+        public static NUM_BULLETS : number = 150;
         public static PLAYER_LIVES : number = 4;
+
+        public static WEAPON_STATS : any = {
+            fireRate: 200,
+            variance: 0
+        };
+
+        public static MAX_WEAPON_STATS : any = {
+            fireRate: 40,
+            variance: 10
+        };
+
+
+
         public playerEvents : Phaser.Signal;
         public playerLives : number = Player.PLAYER_LIVES;
 
@@ -56,11 +69,11 @@ namespace PCGGame {
 
 
 
-            //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
-            this._weapon.fireRate = 80;
+            //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 80ms
+            this._weapon.fireRate = Player.WEAPON_STATS.fireRate; //80;
 
             //  Add a variance to the bullet speed by +- this value
-            this._weapon.bulletSpeedVariance = 10;
+            this._weapon.bulletSpeedVariance = Player.WEAPON_STATS.variance; //10;
 
             this._weapon.trackSprite(this, 16, 0);
 
@@ -111,9 +124,30 @@ namespace PCGGame {
         public takeLoot(loot: Loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
 
+            switch(loot.type) {
+                case lootTypeEnum.SHIELD:
+                    this.health += loot.value * 2;
+                    break;
+                case lootTypeEnum.WEAPON:
+                    this.upgradeWeapon(loot.value);
+                    break;
+                case lootTypeEnum.NEW_LIFE:
+                    this.playerLives++;
+                    break;
+                default:
+                    break;
+            }
+
             this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_RECIEVED_LOOT, loot));
 
             this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
+        }
+
+        public upgradeWeapon(inc : number) {
+            this._weapon.fireRate = Math.max(this._weapon.fireRate - inc, Player.MAX_WEAPON_STATS.fireRate); // 80;
+
+            //  Add a variance to the bullet speed by +- this value
+            this._weapon.bulletSpeedVariance = Math.max(this._weapon.bulletSpeedVariance + 1, Player.MAX_WEAPON_STATS.variance);
         }
 
         public get died() : boolean {

@@ -57,13 +57,6 @@ namespace PCGGame {
 
             this.animations.currentAnim.onComplete.add(() => {
                 this._convertMobToLoot(player);
-
-               /*
-                    this.exists = false;
-                    setTimeout(this.kill, 1000);
-                */
-
-
             }, this);
         }
 
@@ -81,13 +74,12 @@ namespace PCGGame {
 
         protected _generateLoot() {
             console.log('Base Sprite get loot!');
-            this._loot = new Loot();
-            this._loot.type = this.game.rnd.integerInRange(lootTypeEnum.DEFAULT, lootTypeEnum.NEW_LIFE);
+            this._loot = new Loot(this.game.rnd);
         }
 
         protected _convertMobToLoot(player: Player) {
             this.loadTexture(Sprite.LOOT_ID);
-            this.game.physics.arcade.moveToObject(this, player, 1000, 3500);
+            this.game.physics.arcade.moveToObject(this, player, 1000, 800);
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
         }
@@ -97,7 +89,7 @@ namespace PCGGame {
         }
 
         public reset() : Sprite {
-            //super.reset(0, 0);
+            super.reset(0, 0);
             this._isDead = false;
             this._loot = null;
             this.health = 100;
