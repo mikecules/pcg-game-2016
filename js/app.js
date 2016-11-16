@@ -1318,12 +1318,24 @@ var PCGGame;
         };
         Play.prototype._setUpGameHUD = function () {
             var scoreString = 'Score: ';
-            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px Arial', fill: '#fff' });
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px opensans', fill: '#fff' });
             this._playerLivesGroup = this.game.add.group();
             this.setPlayerLives(0);
-            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, Play.GAME_INTRO_TEXT, { font: '32px Arial', fill: '#fff' });
+            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, Play.GAME_INTRO_TEXT, { font: '32px opensans', fill: '#fff' });
             this._gameGameStateText.anchor.setTo(0.5, 0.5);
             this._gameGameStateText.visible = true;
+            this._gameGamePowerUpText = this.game.add.text(this.game.width - 100, this.game.height - 32, Play.POWER_UP_MESSAGE.WEAPON, { font: '24px opensans', fill: '#00ff00' });
+            this._gameGamePowerUpText.anchor.setTo(0.5, 0.5);
+            this._gameGamePowerUpText.alpha = 0;
+        };
+        Play.prototype._updatePowerUpText = function (type, colour) {
+            var _this = this;
+            this._gameGamePowerUpText.text = type;
+            this._gameGamePowerUpText.addColor(colour, 0);
+            var tween = this.game.add.tween(this._gameGamePowerUpText).to({ alpha: 1 }, 300, 'Linear', true);
+            tween.onComplete.add(function () {
+                _this.game.add.tween(_this._gameGamePowerUpText).to({ alpha: 0 }, 2000, 'Linear', true);
+            });
         };
         Play.prototype.create = function () {
             var _this = this;
@@ -1350,11 +1362,14 @@ var PCGGame;
                         switch (loot.type) {
                             case 3:
                                 _this._updateShieldBar(_this._player.health);
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#ff0000');
                                 break;
                             case 2:
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.WEAPON, '#0000ff');
                                 break;
                             case 4:
                                 _this.setPlayerLives(1);
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.LIFE, '#00ff00');
                                 break;
                             default:
                                 _this.incScore = loot.value * 100;
@@ -1425,6 +1440,7 @@ var PCGGame;
             this._playerLivesGroup.x = x;
             this._playerHealthGroup.x = x;
             this._gameGameStateText.x = this.game.width / 2 + x;
+            this._gameGamePowerUpText.x = x + this.game.width - 200;
             this.updatePhysics();
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE, this._gameState);
             this._backgroundLayer.render(this.camera.x);
@@ -1449,7 +1465,9 @@ var PCGGame;
                 return;
             }
             if (!mob.died) {
-                player.takeDamage(mob.getDamageCost());
+                if (!player.isInvincible) {
+                    player.takeDamage(mob.getDamageCost());
+                }
                 mob.die(player);
             }
             else {
@@ -1464,8 +1482,8 @@ var PCGGame;
             var playerBody = this._player.body;
             if (!this._player.isInvincible && !this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
-                this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
             }
+            this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
             this._mainLayer.mobs.forEachExists(function (mob) { mob.render(_this._player); }, this);
@@ -1494,6 +1512,12 @@ var PCGGame;
         Play.GAME_OVER_TEXT = 'Game Over...\n\nPress fire button to restart.';
         Play.SHIELD_ID = 'Shield';
         Play.START_GAME_INVINCIBILITY_TIME = 10000;
+        Play.POWER_UP_MESSAGE = {
+            LIFE: 'Extra Life Gained!',
+            SHIELD: 'Shield Levels Up!',
+            WEAPON: 'Weapon Power Upgraded!'
+        };
+        Play.EXPERIENTIAL_PROMPT = 'Press C to configure your game!';
         return Play;
     }(Phaser.State));
     PCGGame.Play = Play;
