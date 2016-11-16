@@ -56,6 +56,8 @@ namespace PCGGame {
 
         public render(player:Player) {
 
+            this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;
+
             if (this.died) {
                 return;
             }

@@ -1,9 +1,14 @@
 namespace PCGGame {
+
+    export const enum spriteDangerLevelEnum {NO_DANGER, LOW_DANGER, MEDIUM_DANGER}
+
     export class Sprite extends Phaser.Sprite {
 
         public static LOOT_ID : string = 'mob.loot';
 
         public spriteFactoryParent : SpriteSingletonFactory = null;
+        public canCollide : boolean = true;
+        public dangerLevel : number = spriteDangerLevelEnum.NO_DANGER;
 
         protected _isInvincible : boolean = false;
         protected _id : string = null;
@@ -92,13 +97,14 @@ namespace PCGGame {
         }
 
         public reset() : Sprite {
+            //super.reset(0, 0);
             this._isDead = false;
-            this.exists = true;
-            this.visible = true;
             this._loot = null;
             this.health = 100;
             this.alpha = 1;
             this.tint = 0xffffff;
+            this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
+            this.canCollide = true;
             this.loadTexture(this._id);
             return this;
         }

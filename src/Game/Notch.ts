@@ -31,6 +31,7 @@ namespace PCGGame {
         }
 
         public render() {
+            this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
 
             if (this.died) {
                 return;

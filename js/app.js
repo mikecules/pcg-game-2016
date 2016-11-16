@@ -14,6 +14,25 @@ var PCGGame;
 window.onload = function () {
     PCGGame.Global.game = new PCGGame.Game();
 };
+var PCGGame;
+(function (PCGGame) {
+    var ExperientialGameManager = (function () {
+        function ExperientialGameManager() {
+        }
+        return ExperientialGameManager;
+    }());
+    PCGGame.ExperientialGameManager = ExperientialGameManager;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var Animation = (function () {
+        function Animation() {
+        }
+        Animation.EXPLODE_ID = 'explode';
+        return Animation;
+    }());
+    PCGGame.Animation = Animation;
+})(PCGGame || (PCGGame = {}));
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -21,11 +40,85 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var PCGGame;
 (function (PCGGame) {
+    var BackgroundLayer = (function (_super) {
+        __extends(BackgroundLayer, _super);
+        function BackgroundLayer(game, parent) {
+            _super.call(this, game, parent);
+            this._starWidth = 0;
+            this._nextFarthestStarX = 0;
+            this._nextClosestStarX = 0;
+            this._prevX = -1;
+            this._starWidth = this.game.cache.getImage(BackgroundLayer.STAR_ID).width;
+            this._fartherStars = new Phaser.Group(game, this);
+            this._fartherStars.createMultiple(Math.round(BackgroundLayer.MAX_STARS * 3), BackgroundLayer.STAR_ID, 0, true);
+            this._closerStars = new Phaser.Group(game, this);
+            this._closerStars.createMultiple(BackgroundLayer.MAX_STARS, BackgroundLayer.STAR_ID, 0, true);
+            this._closerStars.forEach(function (star) {
+                star.scale = new Phaser.Point(1.1, 1.1);
+            }, this);
+        }
+        BackgroundLayer.prototype.render = function (x) {
+            if (this._prevX < x) {
+                this._manageStars(x * 0.5);
+            }
+            this._prevX = x;
+        };
+        BackgroundLayer.prototype._manageStars = function (x) {
+            var _this = this;
+            this._closerStars.x = x;
+            this._fartherStars.x = x;
+            this._closerStars.forEachExists(function (star) {
+                star.x--;
+                if (star.x < (x - _this._starWidth)) {
+                    star.exists = false;
+                }
+            }, this);
+            this._fartherStars.forEachExists(function (star) {
+                if (star.x < (x - _this._starWidth)) {
+                    star.exists = false;
+                }
+            }, this);
+            var screenX = x + this.game.width;
+            while (this._nextFarthestStarX < screenX) {
+                var starX = this._nextFarthestStarX;
+                this._nextFarthestStarX += this.game.rnd.integerInRange(BackgroundLayer.STAR_DIST_MIN, BackgroundLayer.STAR_DIST_MAX);
+                var star = this._fartherStars.getFirstExists(false);
+                if (star === null) {
+                    break;
+                }
+                star.x = starX;
+                star.y = this.game.rnd.integerInRange(0, this.game.height);
+                star.exists = true;
+            }
+            while (this._nextClosestStarX < screenX) {
+                var starX = this._nextClosestStarX;
+                this._nextClosestStarX += this.game.rnd.integerInRange(BackgroundLayer.STAR_DIST_MIN, BackgroundLayer.STAR_DIST_MAX);
+                var star = this._closerStars.getFirstExists(false);
+                if (star === null) {
+                    break;
+                }
+                star.x = starX;
+                star.y = this.game.rnd.integerInRange(0, this.game.height);
+                star.exists = true;
+            }
+        };
+        BackgroundLayer.MAX_STARS = 25;
+        BackgroundLayer.STAR_DIST_MIN = 0;
+        BackgroundLayer.STAR_DIST_MAX = 25;
+        BackgroundLayer.STAR_ID = 'stars';
+        return BackgroundLayer;
+    }(Phaser.Group));
+    PCGGame.BackgroundLayer = BackgroundLayer;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
     var Sprite = (function (_super) {
         __extends(Sprite, _super);
         function Sprite(game, x, y, id) {
             _super.call(this, game, x, y, id);
             this.spriteFactoryParent = null;
+            this.canCollide = true;
+            this.dangerLevel = 0;
             this._isInvincible = false;
             this._id = null;
             this._isDead = false;
@@ -97,12 +190,12 @@ var PCGGame;
         };
         Sprite.prototype.reset = function () {
             this._isDead = false;
-            this.exists = true;
-            this.visible = true;
             this._loot = null;
             this.health = 100;
             this.alpha = 1;
             this.tint = 0xffffff;
+            this.dangerLevel = 0;
+            this.canCollide = true;
             this.loadTexture(this._id);
             return this;
         };
@@ -146,6 +239,18 @@ var PCGGame;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
+    ;
+    var GameEvent = (function () {
+        function GameEvent(type, payload) {
+            this.type = type;
+            this.payload = payload;
+        }
+        return GameEvent;
+    }());
+    PCGGame.GameEvent = GameEvent;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
     var Invader = (function (_super) {
         __extends(Invader, _super);
         function Invader(game) {
@@ -169,6 +274,7 @@ var PCGGame;
         }
         Invader.prototype.render = function (player) {
             var _this = this;
+            this.dangerLevel = 2;
             if (this.died) {
                 return;
             }
@@ -202,6 +308,224 @@ var PCGGame;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
+    ;
+    var Loot = (function () {
+        function Loot() {
+            this._type = 1;
+            this._tint = 0x9975B9;
+            this.value = 0;
+            this.points = 0;
+        }
+        Object.defineProperty(Loot.prototype, "type", {
+            get: function () {
+                return this._type;
+            },
+            set: function (type) {
+                this._type = type;
+                this._calcLootTint();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loot.prototype, "spriteTint", {
+            get: function () {
+                return this._tint;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Loot.prototype._calcLootTint = function () {
+            var tint = 0x9975B9;
+            switch (this._type) {
+                case 2:
+                    tint = 0x00ff00;
+                    break;
+                case 3:
+                    tint = 0x0000ff;
+                    break;
+                case 4:
+                    tint = 0xff0000;
+                    break;
+                case 5:
+                    break;
+                default:
+                    break;
+            }
+            this._tint = tint;
+        };
+        return Loot;
+    }());
+    PCGGame.Loot = Loot;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    ;
+    var MainLayer = (function (_super) {
+        __extends(MainLayer, _super);
+        function MainLayer(game, parent) {
+            var _this = this;
+            _super.call(this, game, parent);
+            this._lastTile = new Phaser.Point(0, 0);
+            this._lastMOB = new Phaser.Point(0, 0);
+            this._game = game;
+            this._randomGenerator = game.rnd;
+            this._generator = new Generator.Generator(this._randomGenerator);
+            this._MOBgenerator = new Generator.MOBGenerator(this._randomGenerator);
+            this._MOBSpritePool = new Helper.Pool(PCGGame.SpriteSingletonFactory, Generator.Parameters.GRID.CELL.SIZE, function () {
+                return new PCGGame.SpriteSingletonFactory(game);
+            });
+            this._wallSpritePool = new Helper.Pool(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE / 2, function () {
+                var sprite = new Phaser.Sprite(game, 0, 0, 'BlockTextures', 0);
+                _this._changeSpriteBlockTexture(sprite);
+                game.physics.enable(sprite, Phaser.Physics.ARCADE);
+                var body = sprite.body;
+                body.allowGravity = false;
+                body.immovable = true;
+                body.moves = false;
+                body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+                return sprite;
+            });
+            this._walls = new Phaser.Group(game, this);
+            this._mobs = new Phaser.Group(game, this);
+            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
+            this._MOBgenerator.addMob(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
+            this._platformGenerationState = 0;
+            this._mobsGenerationState = 0;
+        }
+        MainLayer.prototype.render = function () {
+        };
+        Object.defineProperty(MainLayer.prototype, "wallBlocks", {
+            get: function () {
+                return this._walls;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(MainLayer.prototype, "mobs", {
+            get: function () {
+                return this._mobs;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        MainLayer.prototype.generate = function (leftTile) {
+            this._cleanTiles(leftTile);
+            this._cleanMOBS(leftTile);
+            var width = Math.ceil(this.game.width / Generator.Parameters.GRID.CELL.SIZE);
+            while (this._lastTile.x < leftTile + width) {
+                switch (this._platformGenerationState) {
+                    case 0:
+                        if (!this._generator.hasBlocks) {
+                            console.error("Blocks queue is empty!");
+                        }
+                        var block = this._generator.getBlockFromQueue();
+                        this._lastTile.copyFrom(block.position);
+                        var length_1 = block.length;
+                        while (length_1 > 0) {
+                            this._addBlockSprite(this._lastTile.x, this._lastTile.y);
+                            if ((--length_1) > 0) {
+                                ++this._lastTile.x;
+                            }
+                        }
+                        this._generator.destroyBlock(block);
+                        if (!this._generator.hasBlocks) {
+                            this._platformGenerationState = 1;
+                        }
+                        break;
+                    case 1:
+                        this._generator.generateBlocks(this._lastTile);
+                        this._platformGenerationState = 0;
+                        break;
+                }
+            }
+            while (this._lastMOB.x < leftTile + width) {
+                switch (this._mobsGenerationState) {
+                    case 0:
+                        if (!this._MOBgenerator.hasBlocks) {
+                            console.error("Mob Blocks queue is empty!");
+                        }
+                        var block = this._MOBgenerator.getBlockFromQueue();
+                        this._lastMOB.copyFrom(block.position);
+                        var length_2 = block.length;
+                        while (length_2 > 0) {
+                            this._addMobSprite(this._lastMOB.x, this._lastMOB.y, block.type);
+                            if ((--length_2) > 0) {
+                                ++this._lastMOB.x;
+                            }
+                        }
+                        this._MOBgenerator.destroyBlock(block);
+                        if (!this._MOBgenerator.hasBlocks) {
+                            this._mobsGenerationState = 1;
+                        }
+                        break;
+                    case 1:
+                        this._MOBgenerator.generateMOBs(this._lastMOB);
+                        this._mobsGenerationState = 0;
+                        break;
+                }
+            }
+        };
+        MainLayer.prototype._cleanMOBS = function (leftTile) {
+            leftTile *= Generator.Parameters.GRID.CELL.SIZE;
+            for (var i = this._mobs.length - 1; i >= 0; i--) {
+                var mob = this._mobs.getChildAt(i);
+                if ((mob.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
+                    this._mobs.remove(mob);
+                    mob.parent = null;
+                    this._MOBSpritePool.destroyItem(mob.spriteFactoryParent);
+                }
+            }
+        };
+        MainLayer.prototype._cleanTiles = function (leftTile) {
+            leftTile *= Generator.Parameters.GRID.CELL.SIZE;
+            for (var i = this._walls.length - 1; i >= 0; i--) {
+                var wall = this._walls.getChildAt(i);
+                if ((wall.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
+                    this._walls.remove(wall);
+                    wall.parent = null;
+                    this._wallSpritePool.destroyItem(wall);
+                }
+            }
+        };
+        MainLayer.prototype._changeSpriteBlockTexture = function (sprite) {
+            sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
+        };
+        MainLayer.prototype._addBlockSprite = function (x, y) {
+            var sprite = this._wallSpritePool.createItem();
+            sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
+            sprite.exists = true;
+            sprite.visible = true;
+            this._changeSpriteBlockTexture(sprite);
+            if (sprite.parent === null) {
+                this._walls.add(sprite);
+            }
+        };
+        MainLayer.prototype._addMobSprite = function (x, y, mobType) {
+            var spriteFactory = this._MOBSpritePool.createItem();
+            var sprite = null;
+            switch (mobType) {
+                case 4:
+                    sprite = spriteFactory.getNotchMob();
+                    break;
+                case 3:
+                    sprite = spriteFactory.getInvaderMob();
+                    break;
+                default:
+                    sprite = spriteFactory.getMeteorMob();
+                    break;
+            }
+            sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
+            sprite.reset();
+            if (sprite.parent === null) {
+                this._mobs.add(sprite);
+            }
+        };
+        return MainLayer;
+    }(Phaser.Group));
+    PCGGame.MainLayer = MainLayer;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
     var Meteor = (function (_super) {
         __extends(Meteor, _super);
         function Meteor(game) {
@@ -216,6 +540,7 @@ var PCGGame;
             body.allowGravity = false;
         }
         Meteor.prototype.render = function () {
+            this.dangerLevel = 1;
             if (!this.died) {
                 var body = this.body;
                 body.velocity.x = this._velocityX;
@@ -243,6 +568,7 @@ var PCGGame;
             this.play(Notch.ID);
         }
         Notch.prototype.render = function () {
+            this.dangerLevel = 0;
             if (this.died) {
                 return;
             }
@@ -253,6 +579,172 @@ var PCGGame;
         return Notch;
     }(PCGGame.Sprite));
     PCGGame.Notch = Notch;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var Player = (function (_super) {
+        __extends(Player, _super);
+        function Player(game) {
+            _super.call(this, game, game.width / 4, game.height / 2, Player.ID);
+            this.playerLives = Player.PLAYER_LIVES;
+            this._minX = 0;
+            this._maxX = 0;
+            this.anchor.x = 0.5;
+            this.anchor.y = 0.5;
+            this.scale.set(1.5);
+            this.playerEvents = new Phaser.Signal();
+            this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
+            this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
+            this._weapon.bulletKillDistance = this.game.width * 4;
+            this._weapon.bulletAngleOffset = 0;
+            this._weapon.fireAngle = Phaser.ANGLE_RIGHT;
+            this._weapon.fireRate = 80;
+            this._weapon.bulletSpeedVariance = 10;
+            this._weapon.trackSprite(this, 16, 0);
+            game.physics.arcade.enable(this, false);
+            this._body = this.body;
+            this._body.allowGravity = false;
+            this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
+        }
+        Object.defineProperty(Player.prototype, "minX", {
+            set: function (n) {
+                this._minX = n;
+                this.x = Math.max(this.position.x, this._minX);
+                this._body.velocity.y = 0;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Player.prototype, "maxX", {
+            set: function (n) {
+                this._maxX = n;
+                this.x = Math.min(this.position.x, this._maxX);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Player.prototype._updateBulletSpeed = function (speed) {
+            var playerBody = this._body;
+            this._weapon.bulletSpeed = (speed || playerBody.velocity.x) + 200;
+        };
+        Player.prototype.moveRight = function () {
+            this.x += Player.VELOCITY_INC;
+            this.x = Math.min(this.x, this._maxX);
+            this._updateBulletSpeed();
+        };
+        Player.prototype.moveLeft = function () {
+            this.x -= Player.VELOCITY_INC;
+            this.x = Math.max(this.x, this._minX);
+            this._updateBulletSpeed();
+        };
+        Player.prototype.fire = function () {
+            this._weapon.fire();
+        };
+        Player.prototype.takeLoot = function (loot) {
+            console.log('Got loot! ', loot, loot.spriteTint);
+            this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
+        };
+        Object.defineProperty(Player.prototype, "died", {
+            get: function () {
+                return this._isDead;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Player.prototype.die = function () {
+            var _this = this;
+            if (this.died) {
+                return;
+            }
+            this._isDead = true;
+            this.loadTexture(PCGGame.Animation.EXPLODE_ID);
+            this.animations.add(PCGGame.Animation.EXPLODE_ID, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
+            this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
+            this.playerLives--;
+            this.animations.currentAnim.onComplete.add(function () {
+                _this.playerEvents.dispatch(new PCGGame.GameEvent(1, _this));
+                if (_this.playerLives > 0) {
+                    _this.reset();
+                    _this.playerEvents.dispatch(new PCGGame.GameEvent(3, _this));
+                }
+                else {
+                    _this._body.velocity.x = 0;
+                    _this._body.velocity.y = 0;
+                    _this.visible = false;
+                }
+            }, this);
+            this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
+        };
+        Player.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            var playerBody = this._body;
+            this.playerLives = Player.PLAYER_LIVES;
+            this.visible = true;
+            playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
+            return this;
+        };
+        Object.defineProperty(Player.prototype, "bullets", {
+            get: function () {
+                return this._weapon.bullets;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Player.prototype._toggleInvincibilityTween = function (shouldReverse) {
+            var _this = this;
+            var startTint = 0xffffff;
+            var endTint = 0x333333;
+            if (!this._isInvincible) {
+                this.tint = startTint;
+                return;
+            }
+            var reverse = shouldReverse === true ? true : false;
+            if (reverse === true) {
+                this.tweenSpriteTint(this, startTint, endTint, 1000, function () {
+                    _this._toggleInvincibilityTween(!reverse);
+                });
+            }
+            else {
+                this.tweenSpriteTint(this, endTint, startTint, 1000, function () {
+                    _this._toggleInvincibilityTween(!reverse);
+                });
+            }
+        };
+        Object.defineProperty(Player.prototype, "isInvincible", {
+            get: function () {
+                return this._isInvincible;
+            },
+            set: function (isInvincibleFlag) {
+                if (isInvincibleFlag !== this._isInvincible) {
+                    this._isInvincible = isInvincibleFlag;
+                }
+                this._toggleInvincibilityTween();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Player.prototype.takeDamage = function (damage) {
+            if (this._isInvincible) {
+                return;
+            }
+            console.log(this.health, damage);
+            this.health -= damage;
+            this.playerEvents.dispatch(new PCGGame.GameEvent(2, this));
+            if (this.health <= 0) {
+                this.die();
+                this.health = 1;
+                return;
+            }
+            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
+        };
+        Player.ID = 'Player';
+        Player.BULLET_ID = 'Player.Bullet';
+        Player.VELOCITY_INC = 5;
+        Player.NUM_BULLETS = 100;
+        Player.PLAYER_LIVES = 4;
+        return Player;
+    }(PCGGame.Sprite));
+    PCGGame.Player = Player;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
@@ -305,16 +797,19 @@ var PCGGame;
     }());
     PCGGame.SpriteSingletonFactory = SpriteSingletonFactory;
 })(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    var Animation = (function () {
-        function Animation() {
+var Generator;
+(function (Generator) {
+    ;
+    var Block = (function () {
+        function Block() {
+            this.position = new Phaser.Point(0, 0);
+            this.offset = new Phaser.Point(0, 0);
+            this.type = 0;
         }
-        Animation.EXPLODE_ID = 'explode';
-        return Animation;
+        return Block;
     }());
-    PCGGame.Animation = Animation;
-})(PCGGame || (PCGGame = {}));
+    Generator.Block = Block;
+})(Generator || (Generator = {}));
 var Generator;
 (function (Generator_1) {
     var Generator = (function () {
@@ -521,245 +1016,6 @@ var Generator;
     }());
     Generator.MOBGenerator = MOBGenerator;
 })(Generator || (Generator = {}));
-var PCGGame;
-(function (PCGGame) {
-    var BackgroundLayer = (function (_super) {
-        __extends(BackgroundLayer, _super);
-        function BackgroundLayer(game, parent) {
-            _super.call(this, game, parent);
-            this._starWidth = 0;
-            this._nextFarthestStarX = 0;
-            this._nextClosestStarX = 0;
-            this._prevX = -1;
-            this._starWidth = this.game.cache.getImage(BackgroundLayer.STAR_ID).width;
-            this._fartherStars = new Phaser.Group(game, this);
-            this._fartherStars.createMultiple(Math.round(BackgroundLayer.MAX_STARS * 3), BackgroundLayer.STAR_ID, 0, true);
-            this._closerStars = new Phaser.Group(game, this);
-            this._closerStars.createMultiple(BackgroundLayer.MAX_STARS, BackgroundLayer.STAR_ID, 0, true);
-            this._closerStars.forEach(function (star) {
-                star.scale = new Phaser.Point(1.1, 1.1);
-            }, this);
-        }
-        BackgroundLayer.prototype.render = function (x) {
-            if (this._prevX < x) {
-                this._manageStars(x * 0.5);
-            }
-            this._prevX = x;
-        };
-        BackgroundLayer.prototype._manageStars = function (x) {
-            var _this = this;
-            this._closerStars.x = x;
-            this._fartherStars.x = x;
-            this._closerStars.forEachExists(function (star) {
-                star.x--;
-                if (star.x < (x - _this._starWidth)) {
-                    star.exists = false;
-                }
-            }, this);
-            this._fartherStars.forEachExists(function (star) {
-                if (star.x < (x - _this._starWidth)) {
-                    star.exists = false;
-                }
-            }, this);
-            var screenX = x + this.game.width;
-            while (this._nextFarthestStarX < screenX) {
-                var starX = this._nextFarthestStarX;
-                this._nextFarthestStarX += this.game.rnd.integerInRange(BackgroundLayer.STAR_DIST_MIN, BackgroundLayer.STAR_DIST_MAX);
-                var star = this._fartherStars.getFirstExists(false);
-                if (star === null) {
-                    break;
-                }
-                star.x = starX;
-                star.y = this.game.rnd.integerInRange(0, this.game.height);
-                star.exists = true;
-            }
-            while (this._nextClosestStarX < screenX) {
-                var starX = this._nextClosestStarX;
-                this._nextClosestStarX += this.game.rnd.integerInRange(BackgroundLayer.STAR_DIST_MIN, BackgroundLayer.STAR_DIST_MAX);
-                var star = this._closerStars.getFirstExists(false);
-                if (star === null) {
-                    break;
-                }
-                star.x = starX;
-                star.y = this.game.rnd.integerInRange(0, this.game.height);
-                star.exists = true;
-            }
-        };
-        BackgroundLayer.MAX_STARS = 25;
-        BackgroundLayer.STAR_DIST_MIN = 0;
-        BackgroundLayer.STAR_DIST_MAX = 25;
-        BackgroundLayer.STAR_ID = 'stars';
-        return BackgroundLayer;
-    }(Phaser.Group));
-    PCGGame.BackgroundLayer = BackgroundLayer;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    ;
-    var MainLayer = (function (_super) {
-        __extends(MainLayer, _super);
-        function MainLayer(game, parent) {
-            var _this = this;
-            _super.call(this, game, parent);
-            this._lastTile = new Phaser.Point(0, 0);
-            this._lastMOB = new Phaser.Point(0, 0);
-            this._game = game;
-            this._randomGenerator = game.rnd;
-            this._generator = new Generator.Generator(this._randomGenerator);
-            this._MOBgenerator = new Generator.MOBGenerator(this._randomGenerator);
-            this._MOBSpritePool = new Helper.Pool(PCGGame.SpriteSingletonFactory, Generator.Parameters.GRID.CELL.SIZE, function () {
-                return new PCGGame.SpriteSingletonFactory(game);
-            });
-            this._wallSpritePool = new Helper.Pool(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE / 2, function () {
-                var sprite = new Phaser.Sprite(game, 0, 0, 'BlockTextures', 0);
-                _this._changeSpriteBlockTexture(sprite);
-                game.physics.enable(sprite, Phaser.Physics.ARCADE);
-                var body = sprite.body;
-                body.allowGravity = false;
-                body.immovable = true;
-                body.moves = false;
-                body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
-                return sprite;
-            });
-            this._walls = new Phaser.Group(game, this);
-            this._mobs = new Phaser.Group(game, this);
-            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
-            this._MOBgenerator.addMob(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
-            this._platformGenerationState = 0;
-            this._mobsGenerationState = 0;
-        }
-        MainLayer.prototype.render = function () {
-        };
-        Object.defineProperty(MainLayer.prototype, "wallBlocks", {
-            get: function () {
-                return this._walls;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(MainLayer.prototype, "mobs", {
-            get: function () {
-                return this._mobs;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        MainLayer.prototype.generate = function (leftTile) {
-            this._cleanTiles(leftTile);
-            this._cleanMOBS(leftTile);
-            var width = Math.ceil(this.game.width / Generator.Parameters.GRID.CELL.SIZE);
-            while (this._lastTile.x < leftTile + width) {
-                switch (this._platformGenerationState) {
-                    case 0:
-                        if (!this._generator.hasBlocks) {
-                            console.error("Blocks queue is empty!");
-                        }
-                        var block = this._generator.getBlockFromQueue();
-                        this._lastTile.copyFrom(block.position);
-                        var length_1 = block.length;
-                        while (length_1 > 0) {
-                            this._addBlockSprite(this._lastTile.x, this._lastTile.y);
-                            if ((--length_1) > 0) {
-                                ++this._lastTile.x;
-                            }
-                        }
-                        this._generator.destroyBlock(block);
-                        if (!this._generator.hasBlocks) {
-                            this._platformGenerationState = 1;
-                        }
-                        break;
-                    case 1:
-                        this._generator.generateBlocks(this._lastTile);
-                        this._platformGenerationState = 0;
-                        break;
-                }
-            }
-            while (this._lastMOB.x < leftTile + width) {
-                switch (this._mobsGenerationState) {
-                    case 0:
-                        if (!this._MOBgenerator.hasBlocks) {
-                            console.error("Mob Blocks queue is empty!");
-                        }
-                        var block = this._MOBgenerator.getBlockFromQueue();
-                        this._lastMOB.copyFrom(block.position);
-                        var length_2 = block.length;
-                        while (length_2 > 0) {
-                            this._addMobSprite(this._lastMOB.x, this._lastMOB.y, block.type);
-                            if ((--length_2) > 0) {
-                                ++this._lastMOB.x;
-                            }
-                        }
-                        this._MOBgenerator.destroyBlock(block);
-                        if (!this._MOBgenerator.hasBlocks) {
-                            this._mobsGenerationState = 1;
-                        }
-                        break;
-                    case 1:
-                        this._MOBgenerator.generateMOBs(this._lastMOB);
-                        this._mobsGenerationState = 0;
-                        break;
-                }
-            }
-        };
-        MainLayer.prototype._cleanMOBS = function (leftTile) {
-            leftTile *= Generator.Parameters.GRID.CELL.SIZE;
-            for (var i = this._mobs.length - 1; i >= 0; i--) {
-                var mob = this._mobs.getChildAt(i);
-                if ((mob.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
-                    this._mobs.remove(mob);
-                    mob.parent = null;
-                    this._MOBSpritePool.destroyItem(mob.spriteFactoryParent);
-                }
-            }
-        };
-        MainLayer.prototype._cleanTiles = function (leftTile) {
-            leftTile *= Generator.Parameters.GRID.CELL.SIZE;
-            for (var i = this._walls.length - 1; i >= 0; i--) {
-                var wall = this._walls.getChildAt(i);
-                if ((wall.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
-                    this._walls.remove(wall);
-                    wall.parent = null;
-                    this._wallSpritePool.destroyItem(wall);
-                }
-            }
-        };
-        MainLayer.prototype._changeSpriteBlockTexture = function (sprite) {
-            sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
-        };
-        MainLayer.prototype._addBlockSprite = function (x, y) {
-            var sprite = this._wallSpritePool.createItem();
-            sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
-            sprite.exists = true;
-            sprite.visible = true;
-            this._changeSpriteBlockTexture(sprite);
-            if (sprite.parent === null) {
-                this._walls.add(sprite);
-            }
-        };
-        MainLayer.prototype._addMobSprite = function (x, y, mobType) {
-            var spriteFactory = this._MOBSpritePool.createItem();
-            var sprite = null;
-            switch (mobType) {
-                case 4:
-                    sprite = spriteFactory.getNotchMob();
-                    break;
-                case 3:
-                    sprite = spriteFactory.getInvaderMob();
-                    break;
-                default:
-                    sprite = spriteFactory.getMeteorMob();
-                    break;
-            }
-            sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
-            sprite.reset();
-            if (sprite.parent === null) {
-                this._mobs.add(sprite);
-            }
-        };
-        return MainLayer;
-    }(Phaser.Group));
-    PCGGame.MainLayer = MainLayer;
-})(PCGGame || (PCGGame = {}));
 var Generator;
 (function (Generator) {
     var Parameters = (function () {
@@ -801,168 +1057,62 @@ var Generator;
     }());
     Generator.Parameters = Parameters;
 })(Generator || (Generator = {}));
-var Generator;
-(function (Generator) {
-    ;
-    var Block = (function () {
-        function Block() {
-            this.position = new Phaser.Point(0, 0);
-            this.offset = new Phaser.Point(0, 0);
-            this.type = 0;
-        }
-        return Block;
-    }());
-    Generator.Block = Block;
-})(Generator || (Generator = {}));
-var PCGGame;
-(function (PCGGame) {
-    var Player = (function (_super) {
-        __extends(Player, _super);
-        function Player(game) {
-            _super.call(this, game, game.width / 4, game.height / 2, Player.ID);
-            this._minX = 0;
-            this._maxX = 0;
-            this.anchor.x = 0.5;
-            this.anchor.y = 0.5;
-            this.scale.set(1.5);
-            this.playerEvents = new Phaser.Signal();
-            this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
-            this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
-            this._weapon.bulletKillDistance = this.game.width * 4;
-            this._weapon.bulletAngleOffset = 0;
-            this._weapon.fireAngle = Phaser.ANGLE_RIGHT;
-            this._weapon.fireRate = 80;
-            this._weapon.bulletSpeedVariance = 10;
-            this._weapon.trackSprite(this, 16, 0);
-            game.physics.arcade.enable(this, false);
-            this._body = this.body;
-            this._body.allowGravity = false;
-            this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
-        }
-        Object.defineProperty(Player.prototype, "minX", {
-            set: function (n) {
-                this._minX = n;
-                this.x = Math.max(this.position.x, this._minX);
-                this._body.velocity.y = 0;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Player.prototype, "maxX", {
-            set: function (n) {
-                this._maxX = n;
-                this.x = Math.min(this.position.x, this._maxX);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Player.prototype._updateBulletSpeed = function (speed) {
-            var playerBody = this._body;
-            this._weapon.bulletSpeed = (speed || playerBody.velocity.x) + 200;
-        };
-        Player.prototype.moveRight = function () {
-            this.x += Player.VELOCITY_INC;
-            this.x = Math.min(this.x, this._maxX);
-            this._updateBulletSpeed();
-        };
-        Player.prototype.moveLeft = function () {
-            this.x -= Player.VELOCITY_INC;
-            this.x = Math.max(this.x, this._minX);
-            this._updateBulletSpeed();
-        };
-        Player.prototype.fire = function () {
-            this._weapon.fire();
-        };
-        Player.prototype.takeLoot = function (loot) {
-            console.log('Got loot! ', loot, loot.spriteTint);
-            this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
-        };
-        Object.defineProperty(Player.prototype, "died", {
-            get: function () {
-                return this._isDead;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Player.prototype.die = function () {
-            var _this = this;
-            if (this.died) {
-                return;
+var Helper;
+(function (Helper) {
+    var Pool = (function () {
+        function Pool(classType, count, newItemFunction) {
+            this._newItemFunction = null;
+            this._itemCount = 0;
+            this._pool = [];
+            this._canGrow = true;
+            this._poolSize = 0;
+            this._classType = classType;
+            this._newItemFunction = newItemFunction;
+            for (var i = 0; i < count; i++) {
+                this._pool.push(this.newItem());
+                this._itemCount++;
             }
-            this._isDead = true;
-            this.loadTexture(PCGGame.Animation.EXPLODE_ID);
-            this.animations.add(PCGGame.Animation.EXPLODE_ID, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
-            this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
-            this.animations.currentAnim.onComplete.add(function () {
-                _this.reset();
-                _this.playerEvents.dispatch(new PCGGame.GameEvent(1, _this));
-            }, this);
-            this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
-        };
-        Player.prototype.reset = function () {
-            _super.prototype.reset.call(this);
-            var playerBody = this._body;
-            playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
-            return this;
-        };
-        Object.defineProperty(Player.prototype, "bullets", {
-            get: function () {
-                return this._weapon.bullets;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Player.prototype._toggleInvincibilityTween = function (shouldReverse) {
-            var _this = this;
-            if (!this._isInvincible) {
-                return;
-            }
-            var reverse = shouldReverse === true ? true : false;
-            if (reverse === true) {
-                this.tweenSpriteTint(this, 0xffffff, 0x333333, 1000, function () {
-                    _this._toggleInvincibilityTween(!reverse);
-                });
+        }
+        Pool.prototype.createItem = function () {
+            if (this._itemCount === 0) {
+                return this._canGrow ? this.newItem() : null;
             }
             else {
-                this.tweenSpriteTint(this, 0x333333, 0xffffff, 1000, function () {
-                    _this._toggleInvincibilityTween(!reverse);
-                });
+                return this._pool[--this._itemCount];
             }
         };
-        Object.defineProperty(Player.prototype, "isInvincible", {
-            get: function () {
-                return this._isInvincible;
-            },
-            set: function (isInvincibleFlag) {
-                if (isInvincibleFlag !== this._isInvincible) {
-                    this._isInvincible = isInvincibleFlag;
-                }
-                this._toggleInvincibilityTween();
+        Pool.prototype.destroyItem = function (item) {
+            this._pool[this._itemCount++] = item;
+        };
+        Pool.prototype.newItem = function () {
+            var item = null;
+            if (typeof this._newItemFunction === 'function') {
+                item = this._newItemFunction();
+            }
+            else {
+                item = new this._classType;
+            }
+            ++this._poolSize;
+            return item;
+        };
+        Object.defineProperty(Pool.prototype, "newItemFunction", {
+            set: function (newFunction) {
+                this._newItemFunction = newFunction;
             },
             enumerable: true,
             configurable: true
         });
-        Player.prototype.takeDamage = function (damage) {
-            if (this._isInvincible) {
-                return;
-            }
-            console.log(this.health, damage);
-            this.health -= damage;
-            this.playerEvents.dispatch(new PCGGame.GameEvent(2, this));
-            if (this.health <= 0) {
-                this.die();
-                return;
-            }
-            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
-        };
-        Player.ID = 'Player';
-        Player.BULLET_ID = 'Player.Bullet';
-        Player.VELOCITY_INC = 5;
-        Player.NUM_BULLETS = 100;
-        return Player;
-    }(PCGGame.Sprite));
-    PCGGame.Player = Player;
-})(PCGGame || (PCGGame = {}));
+        Object.defineProperty(Pool.prototype, "canGrow", {
+            set: function (canGrow) {
+                this._canGrow = canGrow;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Pool;
+    }());
+    Helper.Pool = Pool;
+})(Helper || (Helper = {}));
 var PCGGame;
 (function (PCGGame) {
     var Boot = (function (_super) {
@@ -984,7 +1134,7 @@ var PCGGame;
         function Play() {
             _super.apply(this, arguments);
             this._gameScore = 0;
-            this._playerLives = 3;
+            this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
             this._playLivesFirstX = 0;
             this._healthBarSpriteBG = null;
             this._healthBarSprite = null;
@@ -1006,7 +1156,7 @@ var PCGGame;
             configurable: true
         });
         Play.prototype.setPlayerLives = function (incDec) {
-            this._playerLives += incDec;
+            this._extraLives += incDec;
             if (incDec < 0) {
                 while ((incDec++) < 0) {
                     var live = this._playerLivesGroup.getFirstAlive();
@@ -1025,13 +1175,31 @@ var PCGGame;
                     ship.alpha = 0.8;
                 }
             }
-            if (this._playerLives <= 0) {
+            if (this._extraLives <= 0) {
+                this._gameOver();
             }
         };
-        Play.prototype._updateHealthBar = function () {
-            var health = this._player.health;
+        Play.prototype._gameOver = function () {
+            this._gameState.end = true;
+            this._gameState.paused = false;
+        };
+        Play.prototype._startNewGame = function () {
+            this._player.reset();
+            this._gameState.end = false;
+            this._gameState.paused = false;
+            this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
+            Play.setInvincible(this._player, 3000);
+            this._updateHealthBar(this._player.health);
+        };
+        Play.setInvincible = function (player, duration) {
+            player.isInvincible = true;
+            setTimeout(function () {
+                player.isInvincible = false;
+            }, (duration || 2000));
+        };
+        Play.prototype._updateHealthBar = function (health) {
             var barWidth = 1024 / 2;
-            var barHeight = 20;
+            var barHeight = 10;
             if (this._healthBarSprite === null) {
                 var meterBackgroundBitmap = this.game.add.bitmapData(barWidth, barHeight);
                 meterBackgroundBitmap.ctx.beginPath();
@@ -1072,9 +1240,9 @@ var PCGGame;
         };
         Play.prototype._setUpGameHUD = function () {
             var scoreString = 'Score: ';
-            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '32px Arial', fill: '#fff' });
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px Arial', fill: '#fff' });
             this._playerLivesGroup = this.game.add.group();
-            for (var i = 0; i < this._playerLives; i++) {
+            for (var i = 0; i < this._extraLives; i++) {
                 var ship = this._playerLivesGroup.create(this.game.world.width - 100 + (Generator.Parameters.GRID.CELL.SIZE * i), Generator.Parameters.GRID.CELL.SIZE, PCGGame.Player.ID);
                 if (!this._playLivesFirstX) {
                     this._playLivesFirstX = this.game.world.width - 100;
@@ -1099,10 +1267,13 @@ var PCGGame;
                 switch (e.type) {
                     case 1:
                         _this.setPlayerLives(-1);
-                        _this._updateHealthBar();
+                        _this._updateHealthBar(0);
                         break;
                     case 2:
-                        _this._updateHealthBar();
+                        _this._updateHealthBar(_this._player.health);
+                        break;
+                    case 3:
+                        _this._updateHealthBar(_this._player.health);
                         break;
                     default:
                         break;
@@ -1114,22 +1285,22 @@ var PCGGame;
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
             this.world.add(this._player);
             this._setUpGameHUD();
-            this._updateHealthBar();
+            this._updateHealthBar(this._player.health);
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._fireKey.onDown.add(function () {
-                _this._keysPressed.fire = true;
+                _this.startPlayerAttack(true);
                 console.log('Space Fire Key Down!');
             }, this);
             this._fireKey.onUp.add(function () {
-                _this._keysPressed.fire = false;
+                _this.startPlayerAttack(false);
                 console.log('Space Fire Key Up!');
             }, this);
             this.game.input.onDown.add(function () {
-                _this._keysPressed.fire = true;
+                _this.startPlayerAttack(true);
                 console.log('Mouse Fire Key Down!');
             }, this);
             this.game.input.onUp.add(function () {
-                _this._keysPressed.fire = false;
+                _this.startPlayerAttack(false);
                 console.log('Mouse Fire Key Up!');
             }, this);
             this._cursors = this.game.input.keyboard.createCursorKeys();
@@ -1143,6 +1314,15 @@ var PCGGame;
                 _this._player.position.x += dx;
                 lastX = x;
             }, this);
+        };
+        Play.prototype.startPlayerAttack = function (shouldStartAttacking) {
+            if (this._gameState.end) {
+                this._startNewGame();
+            }
+            else if (this._gameState.paused) {
+                this._gameState.paused = false;
+            }
+            this._keysPressed.fire = shouldStartAttacking;
         };
         Play.prototype.render = function () {
             this._mainLayer.render();
@@ -1172,10 +1352,7 @@ var PCGGame;
         };
         Play.prototype.wallPlayerCollisionHandler = function (player, wall) {
             player.takeDamage(10);
-            player.isInvincible = true;
-            setTimeout(function () {
-                player.isInvincible = false;
-            }, 2000);
+            Play.setInvincible(player);
         };
         Play.prototype.mobPlayerCollisionHandler = function (player, mob) {
             if (!mob.died) {
@@ -1256,133 +1433,5 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
-})(PCGGame || (PCGGame = {}));
-var Helper;
-(function (Helper) {
-    var Pool = (function () {
-        function Pool(classType, count, newItemFunction) {
-            this._newItemFunction = null;
-            this._itemCount = 0;
-            this._pool = [];
-            this._canGrow = true;
-            this._poolSize = 0;
-            this._classType = classType;
-            this._newItemFunction = newItemFunction;
-            for (var i = 0; i < count; i++) {
-                this._pool.push(this.newItem());
-                this._itemCount++;
-            }
-        }
-        Pool.prototype.createItem = function () {
-            if (this._itemCount === 0) {
-                return this._canGrow ? this.newItem() : null;
-            }
-            else {
-                return this._pool[--this._itemCount];
-            }
-        };
-        Pool.prototype.destroyItem = function (item) {
-            this._pool[this._itemCount++] = item;
-        };
-        Pool.prototype.newItem = function () {
-            var item = null;
-            if (typeof this._newItemFunction === 'function') {
-                item = this._newItemFunction();
-            }
-            else {
-                item = new this._classType;
-            }
-            ++this._poolSize;
-            return item;
-        };
-        Object.defineProperty(Pool.prototype, "newItemFunction", {
-            set: function (newFunction) {
-                this._newItemFunction = newFunction;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Pool.prototype, "canGrow", {
-            set: function (canGrow) {
-                this._canGrow = canGrow;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Pool;
-    }());
-    Helper.Pool = Pool;
-})(Helper || (Helper = {}));
-var PCGGame;
-(function (PCGGame) {
-    var ExperientialGameManager = (function () {
-        function ExperientialGameManager() {
-        }
-        return ExperientialGameManager;
-    }());
-    PCGGame.ExperientialGameManager = ExperientialGameManager;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    ;
-    var Loot = (function () {
-        function Loot() {
-            this._type = 1;
-            this._tint = 0x9975B9;
-            this.value = 0;
-            this.points = 0;
-        }
-        Object.defineProperty(Loot.prototype, "type", {
-            get: function () {
-                return this._type;
-            },
-            set: function (type) {
-                this._type = type;
-                this._calcLootTint();
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Loot.prototype, "spriteTint", {
-            get: function () {
-                return this._tint;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Loot.prototype._calcLootTint = function () {
-            var tint = 0x9975B9;
-            switch (this._type) {
-                case 2:
-                    tint = 0x00ff00;
-                    break;
-                case 3:
-                    tint = 0x0000ff;
-                    break;
-                case 4:
-                    tint = 0xff0000;
-                    break;
-                case 5:
-                    break;
-                default:
-                    break;
-            }
-            this._tint = tint;
-        };
-        return Loot;
-    }());
-    PCGGame.Loot = Loot;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    ;
-    var GameEvent = (function () {
-        function GameEvent(type, payload) {
-            this.type = type;
-            this.payload = payload;
-        }
-        return GameEvent;
-    }());
-    PCGGame.GameEvent = GameEvent;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

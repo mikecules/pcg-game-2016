@@ -6,7 +6,9 @@ namespace PCGGame {
         public static BULLET_ID : string = 'Player.Bullet';
         public static VELOCITY_INC : number = 5;
         public static NUM_BULLETS : number = 100;
+        public static PLAYER_LIVES : number = 4;
         public playerEvents : Phaser.Signal;
+        public playerLives : number = Player.PLAYER_LIVES;
 
 
         public _minX : number = 0;
@@ -129,9 +131,22 @@ namespace PCGGame {
 
             this.play(Animation.EXPLODE_ID, 30, false);
 
+            this.playerLives--;
+
             this.animations.currentAnim.onComplete.add(() => {
-                this.reset();
+
                 this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_KILLED, this));
+
+                if (this.playerLives > 0) {
+                    this.reset();
+                    this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_RESPAWNED, this));
+                }
+                else {
+                    this._body.velocity.x = 0;
+                    this._body.velocity.y = 0;
+                    this.visible = false;
+                }
+
             }, this);
 
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
@@ -140,6 +155,8 @@ namespace PCGGame {
         public reset() : Player {
             super.reset();
             let playerBody = this._body;
+            this.playerLives = Player.PLAYER_LIVES;
+            this.visible = true;
             playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             return this;
         }
@@ -150,19 +167,23 @@ namespace PCGGame {
 
         private _toggleInvincibilityTween(shouldReverse? : boolean) {
 
+            let startTint : number = 0xffffff;
+            let endTint : number = 0x333333;
+
             if (! this._isInvincible) {
+                this.tint = startTint;
                 return;
             }
 
             let reverse = shouldReverse === true ? true : false;
 
             if (reverse === true) {
-                this.tweenSpriteTint(this, 0xffffff, 0x333333, 1000, () => {
+                this.tweenSpriteTint(this, startTint, endTint, 1000, () => {
                     this._toggleInvincibilityTween(! reverse);
                 });
             }
             else {
-                this.tweenSpriteTint(this, 0x333333, 0xffffff, 1000, () => {
+                this.tweenSpriteTint(this, endTint, startTint, 1000, () => {
                     this._toggleInvincibilityTween(! reverse);
                 });
             }
@@ -195,6 +216,7 @@ namespace PCGGame {
 
             if (this.health <= 0) {
                 this.die();
+                this.health = 1;
                 return;
             }
 

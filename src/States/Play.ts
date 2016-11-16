@@ -7,7 +7,7 @@ namespace PCGGame {
         private _gameScore : number = 0;
         private _gameScoreText : Phaser.Text;
         private _gameGameStateText : Phaser.Text;
-        private _playerLives : number = 3;
+        private _extraLives : number = Player.PLAYER_LIVES - 1;
         private _playLivesFirstX : number = 0;
         private _playerLivesGroup : Phaser.Group;
         private _playerHealthGroup : Phaser.Group;
@@ -35,7 +35,7 @@ namespace PCGGame {
         }
 
         public setPlayerLives(incDec : number) {
-            this._playerLives += incDec;
+            this._extraLives += incDec;
 
             if (incDec < 0) {
 
@@ -61,17 +61,41 @@ namespace PCGGame {
 
             }
 
-            if (this._playerLives <= 0) {
+            if (this._extraLives <= 0) {
                 // Game over
+                this._gameOver();
             }
 
         }
 
-        private _updateHealthBar() {
+        private _gameOver() {
+            this._gameState.end = true;
+            this._gameState.paused = false;
+        }
+
+        private _startNewGame() {
+            this._player.reset();
+            this._gameState.end = false;
+            this._gameState.paused = false;
+            this._extraLives = Player.PLAYER_LIVES - 1;
+            Play.setInvincible(this._player, 3000);
+            this._updateHealthBar(this._player.health);
+
+        }
+
+        public static setInvincible(player : Player, duration? : number) {
+            player.isInvincible = true;
+
+            setTimeout(() => {
+                player.isInvincible = false;
+            }, (duration || 2000));
+
+        }
+
+        private _updateHealthBar(health : number) {
             // just a property we can tween so the bar has a progress to show
-            let health : number = this._player.health;
             let barWidth : number = 1024 / 2;
-            let barHeight = 20;
+            let barHeight = 10;
 
 
             if ( this._healthBarSprite === null) {
@@ -146,12 +170,12 @@ namespace PCGGame {
         private _setUpGameHUD() {
             //  The score
             let scoreString = 'Score: ';
-            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '32px Arial', fill: '#fff' });
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px Arial', fill: '#fff' });
 
             //  Lives
             this._playerLivesGroup = this.game.add.group();
 
-            for (let i = 0; i < this._playerLives; i++) {
+            for (let i = 0; i < this._extraLives; i++) {
                 let ship = this._playerLivesGroup.create(this.game.world.width - 100 + (Generator.Parameters.GRID.CELL.SIZE * i), Generator.Parameters.GRID.CELL.SIZE, Player.ID);
 
                 if (! this._playLivesFirstX) {
@@ -186,10 +210,13 @@ namespace PCGGame {
                 switch(e.type) {
                     case gameEventTypeEnum.MOB_KILLED:
                         this.setPlayerLives(-1);
-                        this._updateHealthBar();
+                        this._updateHealthBar(0);
                         break;
                     case gameEventTypeEnum.MOB_TOOK_DAMAGE:
-                        this._updateHealthBar();
+                        this._updateHealthBar(this._player.health);
+                        break;
+                    case gameEventTypeEnum.MOB_RESPAWNED:
+                        this._updateHealthBar(this._player.health);
                         break;
                     default:
                         break;
@@ -210,31 +237,31 @@ namespace PCGGame {
             this.world.add(this._player);
 
             this._setUpGameHUD();
-            this._updateHealthBar();
+            this._updateHealthBar(this._player.health);
 
 
 
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 
             this._fireKey.onDown.add(() => {
-                this._keysPressed.fire = true;
+                this.startPlayerAttack(true);
                 console.log('Space Fire Key Down!');
             }, this);
 
 
             this._fireKey.onUp.add(() => {
-                this._keysPressed.fire = false;
+                this.startPlayerAttack(false);
                 console.log('Space Fire Key Up!');
             }, this);
 
 
             this.game.input.onDown.add(() => {
-                this._keysPressed.fire = true;
+                this.startPlayerAttack(true);
                 console.log('Mouse Fire Key Down!');
             }, this);
 
             this.game.input.onUp.add(() => {
-                this._keysPressed.fire = false;
+                this.startPlayerAttack(false);
                 console.log('Mouse Fire Key Up!');
             }, this);
 
@@ -260,6 +287,20 @@ namespace PCGGame {
 
 
         }
+
+        public startPlayerAttack(shouldStartAttacking : boolean) {
+
+            if (this._gameState.end) {
+                this._startNewGame();
+            }
+            else if (this._gameState.paused) {
+                this._gameState.paused = false;
+            }
+
+            this._keysPressed.fire = shouldStartAttacking;
+        }
+
+
 
         public render() {
             this._mainLayer.render();
@@ -309,14 +350,12 @@ namespace PCGGame {
             // TODO: FIRE SIGNAL OF MOB DEATH
         }
 
+
         public wallPlayerCollisionHandler(player : Player, wall : Phaser.Sprite) {
 
             player.takeDamage(10);
 
-            player.isInvincible = true;
-            setTimeout(() => {
-                player.isInvincible = false;
-            }, 2000);
+            Play.setInvincible(player);
 
             //player.kill();
             //wall.kill();
