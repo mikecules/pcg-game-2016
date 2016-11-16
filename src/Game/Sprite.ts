@@ -88,7 +88,7 @@ namespace PCGGame {
             return 10;
         }
 
-        public reset() : Sprite {
+        public reset()  {
             super.reset(0, 0);
             this._isDead = false;
             this._loot = null;
@@ -98,7 +98,6 @@ namespace PCGGame {
             this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
             this.canCollide = true;
             this.loadTexture(this._id);
-            return this;
         }
 
 
