@@ -197,7 +197,6 @@ var PCGGame;
             this.dangerLevel = 0;
             this.canCollide = true;
             this.loadTexture(this._id);
-            return this;
         };
         Sprite.prototype.tweenSpriteTint = function (obj, startColor, endColor, time, callback) {
             if (time === void 0) { time = 250; }
@@ -444,7 +443,7 @@ var PCGGame;
             enumerable: true,
             configurable: true
         });
-        MainLayer.prototype.generate = function (leftTile) {
+        MainLayer.prototype.generate = function (leftTile, gameState) {
             this._cleanTiles(leftTile);
             this._cleanMOBS(leftTile);
             var width = Math.ceil(this.game.width / Generator.Parameters.GRID.CELL.SIZE);
@@ -473,6 +472,10 @@ var PCGGame;
                         this._platformGenerationState = 0;
                         break;
                 }
+            }
+            if (gameState.start) {
+                console.log('aaaa');
+                return;
             }
             while (this._lastMOB.x < leftTile + width) {
                 switch (this._mobsGenerationState) {
@@ -583,6 +586,7 @@ var PCGGame;
             var body = this.body;
             body.velocity.x = this._velocityX;
             body.velocity.y = this._velocityY;
+            this.angle += -1;
         };
         Meteor.prototype.reset = function () {
             _super.prototype.reset.call(this);
@@ -739,6 +743,8 @@ var PCGGame;
         };
         Player.prototype.reset = function () {
             _super.prototype.reset.call(this);
+            this.x = Generator.Parameters.GRID.CELL.SIZE;
+            this.y = this.game.height / 2;
             var playerBody = this._body;
             this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
@@ -1206,10 +1212,10 @@ var PCGGame;
             _super.apply(this, arguments);
             this._gameScore = 0;
             this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
-            this._playLivesFirstX = 0;
             this._healthBarSpriteBG = null;
             this._healthBarSprite = null;
             this._gameState = {
+                start: true,
                 end: false,
                 paused: false
             };
@@ -1228,39 +1234,41 @@ var PCGGame;
         });
         Play.prototype.setPlayerLives = function (incDec) {
             this._extraLives += incDec;
-            if (incDec < 0) {
-                while ((incDec++) < 0) {
-                    var live = this._playerLivesGroup.getFirstAlive();
-                    if (live) {
-                        live.kill();
-                    }
-                }
-            }
-            else if (incDec > 0) {
-                for (var i = 0; i < incDec; i++) {
-                    this._playLivesFirstX -= Generator.Parameters.GRID.CELL.SIZE + (5);
-                    console.log(this._playLivesFirstX);
-                    var ship = this._playerLivesGroup.create(this._playLivesFirstX, Generator.Parameters.GRID.CELL.SIZE, PCGGame.Player.ID);
-                    ship.anchor.setTo(0.5, 0.5);
-                    ship.angle = 90;
-                    ship.alpha = 0.8;
-                }
-            }
             if (this._extraLives <= 0) {
                 this._gameOver();
+            }
+            var liveShipIcon = this._playerLivesGroup.getFirstAlive();
+            var firstX = this.game.world.width - this._extraLives * (Generator.Parameters.GRID.CELL.SIZE + 5);
+            var y = Generator.Parameters.GRID.CELL.SIZE;
+            while (liveShipIcon) {
+                liveShipIcon.kill();
+                liveShipIcon = this._playerLivesGroup.getFirstAlive();
+            }
+            for (var i = 0; i < this._extraLives; i++) {
+                var ship = this._playerLivesGroup.create(firstX + (Generator.Parameters.GRID.CELL.SIZE * i), y, PCGGame.Player.ID);
+                ship.x += i > 0 ? (5 * i) : 0;
+                ship.anchor.setTo(0.5, 0.5);
+                ship.angle = 90;
+                ship.alpha = 0.8;
             }
         };
         Play.prototype._gameOver = function () {
             this._gameState.end = true;
             this._gameState.paused = false;
+            this._gameGameStateText.visible = true;
         };
         Play.prototype._startNewGame = function () {
             this._player.reset();
+            this._gameState.start = false;
             this._gameState.end = false;
             this._gameState.paused = false;
             this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
-            Play.setInvincible(this._player, 3000);
-            this._updateHealthBar(this._player.health);
+            this._gameGameStateText.text = Play.GAME_OVER_TEXT;
+            this._gameGameStateText.visible = false;
+            this._player.x = Generator.Parameters.GRID.CELL.SIZE;
+            this._player.y = this.game.height / 2;
+            Play.setInvincible(this._player, Play.START_GAME_INVINCIBILITY_TIME);
+            this._updateShieldBar(this._player.health);
         };
         Play.setInvincible = function (player, duration) {
             player.isInvincible = true;
@@ -1268,8 +1276,8 @@ var PCGGame;
                 player.isInvincible = false;
             }, (duration || 2000));
         };
-        Play.prototype._updateHealthBar = function (health) {
-            var barWidth = 1024 / 2;
+        Play.prototype._updateShieldBar = function (health) {
+            var barWidth = this.game.width / 2;
             var barHeight = 10;
             if (this._healthBarSprite === null) {
                 var meterBackgroundBitmap = this.game.add.bitmapData(barWidth, barHeight);
@@ -1289,7 +1297,7 @@ var PCGGame;
                 this._healthBarSprite = this.game.add.sprite(53, this.game.height - 36, healthBitmap);
                 this._healthBarSprite.alpha = 0.7;
                 this._playerHealthGroup.add(this._healthBarSprite);
-                var shieldSprite = this.game.add.sprite(32, this.game.height - 50, 'Shield');
+                var shieldSprite = this.game.add.sprite(32, this.game.height - 50, Play.SHIELD_ID);
                 shieldSprite.alpha = 1;
                 this._playerHealthGroup.add(shieldSprite);
             }
@@ -1305,7 +1313,6 @@ var PCGGame;
             }
             var m = health / 100;
             var bw = ((barWidth - 6) * m);
-            console.log('HEALTH BAR: ', bw);
             this._healthBarSprite.key.context.fillRect(0, 0, bw, barHeight - 6);
             this._healthBarSprite.key.dirty = true;
         };
@@ -1313,19 +1320,10 @@ var PCGGame;
             var scoreString = 'Score: ';
             this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px Arial', fill: '#fff' });
             this._playerLivesGroup = this.game.add.group();
-            for (var i = 0; i < this._extraLives; i++) {
-                var ship = this._playerLivesGroup.create(this.game.world.width - 100 + (Generator.Parameters.GRID.CELL.SIZE * i), Generator.Parameters.GRID.CELL.SIZE, PCGGame.Player.ID);
-                if (!this._playLivesFirstX) {
-                    this._playLivesFirstX = this.game.world.width - 100;
-                }
-                ship.x += i > 0 ? (5 * i) : 0;
-                ship.anchor.setTo(0.5, 0.5);
-                ship.angle = 90;
-                ship.alpha = 0.8;
-            }
-            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, ' ', { font: '84px Arial', fill: '#fff' });
+            this.setPlayerLives(0);
+            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, Play.GAME_INTRO_TEXT, { font: '32px Arial', fill: '#fff' });
             this._gameGameStateText.anchor.setTo(0.5, 0.5);
-            this._gameGameStateText.visible = false;
+            this._gameGameStateText.visible = true;
         };
         Play.prototype.create = function () {
             var _this = this;
@@ -1338,20 +1336,20 @@ var PCGGame;
                 switch (e.type) {
                     case 1:
                         _this.setPlayerLives(-1);
-                        _this._updateHealthBar(0);
+                        _this._updateShieldBar(0);
                         break;
                     case 2:
-                        _this._updateHealthBar(_this._player.health);
+                        _this._updateShieldBar(_this._player.health);
                         break;
                     case 3:
-                        _this._updateHealthBar(_this._player.health);
+                        _this._updateShieldBar(_this._player.health);
                         break;
                     case 4:
                         var loot = e.payload;
                         console.log(e.payload);
                         switch (loot.type) {
                             case 3:
-                                _this._updateHealthBar(_this._player.health);
+                                _this._updateShieldBar(_this._player.health);
                                 break;
                             case 2:
                                 break;
@@ -1373,7 +1371,7 @@ var PCGGame;
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
             this.world.add(this._player);
             this._setUpGameHUD();
-            this._updateHealthBar(this._player.health);
+            this._updateShieldBar(this._player.health);
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._fireKey.onDown.add(function () {
                 _this.startPlayerAttack(true);
@@ -1405,7 +1403,7 @@ var PCGGame;
         };
         Play.prototype.startPlayerAttack = function (shouldStartAttacking) {
             if (shouldStartAttacking) {
-                if (this._gameState.end) {
+                if (this._gameState.end || this._gameState.start) {
                     this._startNewGame();
                 }
                 else if (this._gameState.paused) {
@@ -1418,15 +1416,17 @@ var PCGGame;
             this._mainLayer.render();
         };
         Play.prototype.update = function () {
-            if (this._gameState.end || this._gameState.paused) {
+            if (this._gameState.paused || this._gameState.end) {
                 return;
             }
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X;
-            this._gameScoreText.x = this.camera.x + 10;
-            this._playerLivesGroup.x = this.camera.x + 10;
-            this._playerHealthGroup.x = this.camera.x + 10;
+            var x = this.camera.x + 10;
+            this._gameScoreText.x = x;
+            this._playerLivesGroup.x = x;
+            this._playerHealthGroup.x = x;
+            this._gameGameStateText.x = this.game.width / 2 + x;
             this.updatePhysics();
-            this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
+            this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE, this._gameState);
             this._backgroundLayer.render(this.camera.x);
         };
         Play.prototype.wallBulletCollisionHandler = function (bullet, wall) {
@@ -1462,12 +1462,12 @@ var PCGGame;
         Play.prototype.updatePhysics = function () {
             var _this = this;
             var playerBody = this._player.body;
-            if (!this._player.isInvincible) {
+            if (!this._player.isInvincible && !this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
                 this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
-                this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
-                this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
             }
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
             this._mainLayer.mobs.forEachExists(function (mob) { mob.render(_this._player); }, this);
             if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X) {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
@@ -1490,6 +1490,10 @@ var PCGGame;
                 this._player.position.y = Math.min(PCGGame.Global.SCREEN.HEIGHT - playerBody.halfHeight, this._player.position.y + 5);
             }
         };
+        Play.GAME_INTRO_TEXT = 'Press fire button to start.';
+        Play.GAME_OVER_TEXT = 'Game Over...\n\nPress fire button to restart.';
+        Play.SHIELD_ID = 'Shield';
+        Play.START_GAME_INVINCIBILITY_TIME = 10000;
         return Play;
     }(Phaser.State));
     PCGGame.Play = Play;
@@ -1510,7 +1514,7 @@ var PCGGame;
             this.load.spritesheet(PCGGame.Notch.ID, 'assets/tutor-anim.png', 32, 32, 6);
             this.load.spritesheet(PCGGame.Invader.ID, 'assets/invader32x32x4.png', 32, 32, 4);
             this.load.image(PCGGame.Player.ID, 'assets/ship.png');
-            this.load.image('Shield', 'assets/shield.png');
+            this.load.image(PCGGame.Play.SHIELD_ID, 'assets/shield.png');
             this.load.image(PCGGame.Sprite.LOOT_ID, 'assets/star-particle.png');
             this.load.image(PCGGame.Invader.BULLET_ID, 'assets/enemy-bullet.png');
             this.load.image(PCGGame.Player.BULLET_ID, 'assets/player-bullet.png');

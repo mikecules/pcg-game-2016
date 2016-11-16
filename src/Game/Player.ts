@@ -191,6 +191,9 @@ namespace PCGGame {
 
         public reset() : Player {
             super.reset();
+
+            this.x = Generator.Parameters.GRID.CELL.SIZE;
+            this.y = this.game.height / 2;
             let playerBody = this._body;
             this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;

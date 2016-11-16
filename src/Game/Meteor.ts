@@ -40,6 +40,8 @@ namespace PCGGame {
            body.velocity.x = this._velocityX;
            body.velocity.y = this._velocityY;
 
+           this.angle += -1;
+
         }
 
         public reset() {

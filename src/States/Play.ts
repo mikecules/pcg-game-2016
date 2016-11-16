@@ -1,6 +1,11 @@
 namespace PCGGame {
     export class Play extends Phaser.State {
 
+        public static GAME_INTRO_TEXT : string = 'Press fire button to start.';
+        public static GAME_OVER_TEXT : string = 'Game Over...\n\nPress fire button to restart.';
+        public static SHIELD_ID : string = 'Shield';
+        public static START_GAME_INVINCIBILITY_TIME : number = 10000;
+
         private _mainLayer: MainLayer;
         private _backgroundLayer: BackgroundLayer;
         private _player : Player;
@@ -8,7 +13,6 @@ namespace PCGGame {
         private _gameScoreText : Phaser.Text;
         private _gameGameStateText : Phaser.Text;
         private _extraLives : number = Player.PLAYER_LIVES - 1;
-        private _playLivesFirstX : number = 0;
         private _playerLivesGroup : Phaser.Group;
         private _playerHealthGroup : Phaser.Group;
         private _healthBarSpriteBG : Phaser.Sprite = null;
@@ -16,6 +20,7 @@ namespace PCGGame {
 
 
         private _gameState : any = {
+            start: true,
             end: false,
             paused: false
         };
@@ -37,49 +42,58 @@ namespace PCGGame {
         public setPlayerLives(incDec : number) {
             this._extraLives += incDec;
 
-            if (incDec < 0) {
-
-                while ((incDec++) < 0) {
-                    let live = this._playerLivesGroup.getFirstAlive();
-
-                    if (live) {
-                        live.kill();
-                    }
-                }
-
-            }
-            else if (incDec > 0) {
-
-                for (let i = 0; i < incDec; i++) {
-                    this._playLivesFirstX -= Generator.Parameters.GRID.CELL.SIZE + (5);
-                    console.log(this._playLivesFirstX);
-                    let ship = this._playerLivesGroup.create(this._playLivesFirstX,  Generator.Parameters.GRID.CELL.SIZE, Player.ID);
-                    ship.anchor.setTo(0.5, 0.5);
-                    ship.angle = 90;
-                    ship.alpha = 0.8;
-                }
-
-            }
 
             if (this._extraLives <= 0) {
                 // Game over
                 this._gameOver();
             }
 
+
+            let liveShipIcon = this._playerLivesGroup.getFirstAlive();
+            let firstX = this.game.world.width - this._extraLives * (Generator.Parameters.GRID.CELL.SIZE + 5);
+            let y = Generator.Parameters.GRID.CELL.SIZE;
+
+            while (liveShipIcon) {
+                liveShipIcon.kill();
+                liveShipIcon = this._playerLivesGroup.getFirstAlive();
+            }
+
+            for (let i = 0; i < this._extraLives; i++) {
+
+                let ship = this._playerLivesGroup.create(firstX + (Generator.Parameters.GRID.CELL.SIZE * i), y, Player.ID);
+
+                ship.x += i > 0 ? (5 * i) : 0;
+                ship.anchor.setTo(0.5, 0.5);
+                ship.angle = 90;
+                ship.alpha = 0.8;
+
+            }
+
+
+
+
         }
 
         private _gameOver() {
             this._gameState.end = true;
             this._gameState.paused = false;
+            this._gameGameStateText.visible = true;
         }
 
         private _startNewGame() {
             this._player.reset();
+            this._gameState.start = false;
             this._gameState.end = false;
             this._gameState.paused = false;
             this._extraLives = Player.PLAYER_LIVES - 1;
-            Play.setInvincible(this._player, 3000);
-            this._updateHealthBar(this._player.health);
+            this._gameGameStateText.text = Play.GAME_OVER_TEXT;
+            this._gameGameStateText.visible = false;
+
+            this._player.x = Generator.Parameters.GRID.CELL.SIZE;
+            this._player.y = this.game.height / 2;
+
+            Play.setInvincible(this._player, Play.START_GAME_INVINCIBILITY_TIME);
+            this._updateShieldBar(this._player.health);
 
         }
 
@@ -92,9 +106,9 @@ namespace PCGGame {
 
         }
 
-        private _updateHealthBar(health : number) {
+        private _updateShieldBar(health : number) {
             // just a property we can tween so the bar has a progress to show
-            let barWidth : number = 1024 / 2;
+            let barWidth : number = this.game.width / 2;
             let barHeight = 10;
 
 
@@ -126,7 +140,7 @@ namespace PCGGame {
                 this._healthBarSprite.alpha = 0.7;
                 this._playerHealthGroup.add(this._healthBarSprite);
 
-                let shieldSprite =  this.game.add.sprite(32, this.game.height - 50, 'Shield');
+                let shieldSprite =  this.game.add.sprite(32, this.game.height - 50, Play.SHIELD_ID);
                 shieldSprite.alpha = 1;
                 this._playerHealthGroup.add(shieldSprite);
 
@@ -155,7 +169,7 @@ namespace PCGGame {
 
 
 
-            console.log('HEALTH BAR: ', bw);
+            //console.log('HEALTH BAR: ', bw);
             // draw the bar
 
             this._healthBarSprite.key.context.fillRect(0, 0, bw, barHeight - 6);
@@ -175,23 +189,12 @@ namespace PCGGame {
             //  Lives
             this._playerLivesGroup = this.game.add.group();
 
-            for (let i = 0; i < this._extraLives; i++) {
-                let ship = this._playerLivesGroup.create(this.game.world.width - 100 + (Generator.Parameters.GRID.CELL.SIZE * i), Generator.Parameters.GRID.CELL.SIZE, Player.ID);
-
-                if (! this._playLivesFirstX) {
-                    this._playLivesFirstX = this.game.world.width - 100;
-                }
-
-                ship.x += i > 0 ? (5 * i) : 0;
-                ship.anchor.setTo(0.5, 0.5);
-                ship.angle = 90;
-                ship.alpha = 0.8;
-            }
+            this.setPlayerLives(0);
 
             //  Text
-            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY,' ', { font: '84px Arial', fill: '#fff' });
+            this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, Play.GAME_INTRO_TEXT, { font: '32px Arial', fill: '#fff' });
             this._gameGameStateText.anchor.setTo(0.5, 0.5);
-            this._gameGameStateText.visible = false;
+            this._gameGameStateText.visible = true;
 
         }
 
@@ -210,13 +213,13 @@ namespace PCGGame {
                 switch(e.type) {
                     case gameEventTypeEnum.MOB_KILLED:
                         this.setPlayerLives(-1);
-                        this._updateHealthBar(0);
+                        this._updateShieldBar(0);
                         break;
                     case gameEventTypeEnum.MOB_TOOK_DAMAGE:
-                        this._updateHealthBar(this._player.health);
+                        this._updateShieldBar(this._player.health);
                         break;
                     case gameEventTypeEnum.MOB_RESPAWNED:
-                        this._updateHealthBar(this._player.health);
+                        this._updateShieldBar(this._player.health);
                         break;
                     case gameEventTypeEnum.MOB_RECIEVED_LOOT:
 
@@ -226,7 +229,7 @@ namespace PCGGame {
 
                         switch(loot.type) {
                             case lootTypeEnum.SHIELD:
-                                this._updateHealthBar(this._player.health);
+                                this._updateShieldBar(this._player.health);
                                 break;
                             case lootTypeEnum.WEAPON:
 
@@ -245,7 +248,6 @@ namespace PCGGame {
                 
                 console.log(e);
 
-                // TODO: FIRE SIGNAL OF PLAYER DEATH/LOOT GRAB
             });
 
             this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT)/2);
@@ -258,7 +260,7 @@ namespace PCGGame {
             this.world.add(this._player);
 
             this._setUpGameHUD();
-            this._updateHealthBar(this._player.health);
+            this._updateShieldBar(this._player.health);
 
 
 
@@ -312,7 +314,7 @@ namespace PCGGame {
         public startPlayerAttack(shouldStartAttacking : boolean) {
 
             if (shouldStartAttacking) {
-                if (this._gameState.end) {
+                if (this._gameState.end || this._gameState.start) {
                     this._startNewGame();
                 }
                 else if (this._gameState.paused) {
@@ -331,23 +333,25 @@ namespace PCGGame {
 
         public update() {
 
-            if (this._gameState.end || this._gameState.paused) {
+            if (this._gameState.paused || this._gameState.end) {
                 return;
             }
-
-
 
             //this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
             //console.log((this.game.time.fps.toString() || '--') + 'fps');
 
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X; //this._player.horizontalX - Generator.Parameters.GRID.CELL.SIZE * 1.5;
-            this._gameScoreText.x = this.camera.x + 10;
-            this._playerLivesGroup.x = this.camera.x + 10;
-            this._playerHealthGroup.x = this.camera.x + 10;
+
+            let x = this.camera.x + 10;
+
+            this._gameScoreText.x = x;
+            this._playerLivesGroup.x = x;
+            this._playerHealthGroup.x = x;
+            this._gameGameStateText.x = this.game.width/2 + x ;
 
             this.updatePhysics();
 
-            this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE);
+            this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE, this._gameState);
 
             this._backgroundLayer.render(this.camera.x);
 
@@ -408,15 +412,13 @@ namespace PCGGame {
         public updatePhysics() {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
 
-            if (! this._player.isInvincible) {
+            if (! this._player.isInvincible && ! this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
                 this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
-
-
-                this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
-                this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
-
             }
+
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
 
             //console.log('Invicibility: ', this._player.isInvincible);
 

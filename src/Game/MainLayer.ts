@@ -82,7 +82,7 @@ namespace PCGGame {
         }
 
 
-        public generate(leftTile: number): void {
+        public generate(leftTile: number, gameState: any): void {
             // remove tiles too far to left
             this._cleanTiles(leftTile);
             this._cleanMOBS(leftTile);
@@ -130,6 +130,11 @@ namespace PCGGame {
                             break;
 
                 }
+            }
+
+            if (gameState.start) {
+                console.log('aaaa');
+                return;
             }
 
 
