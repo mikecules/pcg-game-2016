@@ -642,6 +642,7 @@ var PCGGame;
         };
         Player.prototype.takeLoot = function (loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
+            this.playerEvents.dispatch(new PCGGame.GameEvent(4, loot));
             this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
         };
         Object.defineProperty(Player.prototype, "died", {
@@ -1274,6 +1275,8 @@ var PCGGame;
                         break;
                     case 3:
                         _this._updateHealthBar(_this._player.health);
+                        break;
+                    case 4:
                         break;
                     default:
                         break;

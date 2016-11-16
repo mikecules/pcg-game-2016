@@ -1,5 +1,5 @@
 namespace PCGGame {
-    export const enum gameEventTypeEnum {MOB_KILLED = 1, MOB_TOOK_DAMAGE, MOB_RESPAWNED};
+    export const enum gameEventTypeEnum {MOB_KILLED = 1, MOB_TOOK_DAMAGE, MOB_RESPAWNED, MOB_RECIEVED_LOOT};
 
     export class GameEvent {
         public type : number;

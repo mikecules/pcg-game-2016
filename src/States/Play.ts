@@ -218,6 +218,11 @@ namespace PCGGame {
                     case gameEventTypeEnum.MOB_RESPAWNED:
                         this._updateHealthBar(this._player.health);
                         break;
+                    case gameEventTypeEnum.MOB_RECIEVED_LOOT:
+                        //this.setPlayerLives(1);
+                        //this._updateHealthBar(this._player.health);
+                        //this.incScore()
+                        break;
                     default:
                         break;
                 }

@@ -110,6 +110,9 @@ namespace PCGGame {
 
         public takeLoot(loot: Loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
+
+            this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_RECIEVED_LOOT, loot));
+
             this.tweenSpriteTint(this, loot.spriteTint, 0xffffff, 2000);
         }
 
