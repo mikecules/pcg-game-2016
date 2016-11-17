@@ -33,6 +33,10 @@ namespace PCGGame {
 
         public render(player? : Player) {
             console.log('Base Sprite class die.');
+
+            if (this.hasLoot) {
+                this.angle = (this.angle - 1) % 360;
+            }
         }
 
         public fire(player? : Player) {
@@ -79,7 +83,8 @@ namespace PCGGame {
 
         protected _convertMobToLoot(player: Player) {
             this.loadTexture(Sprite.LOOT_ID);
-            this.game.physics.arcade.moveToObject(this, player, 1000, 800);
+            //this.game.physics.arcade.moveToObject(this, player, 1000, 800);
+            this.game.physics.arcade.moveToObject(this, player, 1000, 1800);
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
         }
@@ -91,6 +96,7 @@ namespace PCGGame {
         public reset()  {
             super.reset(0, 0);
             this._isDead = false;
+            this.angle = 0;
             this._loot = null;
             this.health = 100;
             this.alpha = 1;

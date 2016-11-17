@@ -7,6 +7,7 @@ namespace PCGGame {
         public static VELOCITY_INC : number = 5;
         public static NUM_BULLETS : number = 150;
         public static PLAYER_LIVES : number = 4;
+        public static NUM_BULLET_FRAMES : number = 80;
 
         public static WEAPON_STATS : any = {
             fireRate: 200,
@@ -29,6 +30,7 @@ namespace PCGGame {
         public _minX : number = 0;
         public _maxX : number = 0;
         private _body : Phaser.Physics.Arcade.Body;
+        private _bulletFrameNumber : number = 0;
 
 
         public set minX(n : number) {
@@ -61,7 +63,11 @@ namespace PCGGame {
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
 
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
-            this._weapon.bulletKillDistance = this.game.width * 4;
+            //this._weapon.bulletKillDistance = this.game.width * 4;
+            this._weapon.bulletKillDistance = this.game.width * 2.5;
+
+            this._weapon.setBulletFrames(0, Player.NUM_BULLET_FRAMES, true);
+
 
 
             //  Because our bullet is drawn facing up, we need to offset its rotation:
@@ -153,7 +159,12 @@ namespace PCGGame {
             //  Add a variance to the bullet speed by +- this value
             this._weapon.bulletSpeedVariance = Math.max(this._weapon.bulletSpeedVariance + 1, Player.MAX_WEAPON_STATS.variance);
 
-            this._weapon.bulletAngleVariance = Math.min(this._weapon.bulletAngleVariance + 0.5, Player.MAX_WEAPON_STATS.bulletAngleVariance)
+            this._weapon.bulletAngleVariance = Math.min(this._weapon.bulletAngleVariance + 0.5, Player.MAX_WEAPON_STATS.bulletAngleVariance);
+
+            this._bulletFrameNumber = Math.min(this._bulletFrameNumber + 1, Player.NUM_BULLET_FRAMES);
+
+            //this._weapon.bulletFrame = 30;//this._bulletFrameNumber;
+            //this._weapon.setBulletFrames(this._bulletFrameNumber, Player.NUM_BULLET_FRAMES, false);
         }
 
         public get died() : boolean {

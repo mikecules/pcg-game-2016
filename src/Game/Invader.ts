@@ -53,6 +53,8 @@ namespace PCGGame {
 
         public render(player:Player) {
 
+            super.render();
+
             if (this.died) {
                 return;
             }

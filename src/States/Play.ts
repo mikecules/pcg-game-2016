@@ -35,6 +35,8 @@ namespace PCGGame {
         };
 
         private _fireKey : Phaser.Key;
+        private _pauseKey : Phaser.Key;
+        private _invokeExperientialKey : Phaser.Key;
 
         private _keysPressed : any = {
             fire: false
@@ -222,6 +224,22 @@ namespace PCGGame {
             });
         }
 
+        public togglePause() {
+            this._gameState.paused = ! this._gameState.paused;
+            this.game.physics.arcade.isPaused = this._gameState.paused;
+
+
+            if (this._gameState.paused) {
+                this._gameGameStateText.text = 'Game Paused...';
+                this._gameGameStateText.visible = true;
+            }
+            else {
+                this._gameGameStateText.visible = false;
+            }
+
+
+        }
+
 
 
         public create() {
@@ -291,6 +309,12 @@ namespace PCGGame {
 
 
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+            this._pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SHIFT);
+
+            this._pauseKey.onUp.add(() => {
+                console.log('Pause Key pressed!');
+                this.togglePause();
+            }, this);
 
             this._fireKey.onDown.add(() => {
                 this.startPlayerAttack(true);
@@ -344,7 +368,7 @@ namespace PCGGame {
                     this._startNewGame();
                 }
                 else if (this._gameState.paused) {
-                    this._gameState.paused = false;
+                    this.togglePause();
                 }
             }
 
@@ -360,6 +384,7 @@ namespace PCGGame {
         public update() {
 
             if (this._gameState.paused || this._gameState.end) {
+                this._player.body.velocity.x = 0;
                 return;
             }
 

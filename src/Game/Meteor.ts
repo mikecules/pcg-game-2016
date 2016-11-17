@@ -32,6 +32,8 @@ namespace PCGGame {
 
         public render() {
 
+            super.render();
+
             if (this.died) {
                 return;
             }
@@ -40,7 +42,7 @@ namespace PCGGame {
            body.velocity.x = this._velocityX;
            body.velocity.y = this._velocityY;
 
-           this.angle += -1;
+           this.angle = (this.angle - 1) % 360;
 
         }
 
