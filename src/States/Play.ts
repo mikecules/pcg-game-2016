@@ -2,7 +2,7 @@ namespace PCGGame {
     export class Play extends Phaser.State {
 
         public static GAME_INTRO_TEXT : string = 'Press fire button to start.';
-        public static GAME_OVER_TEXT : string = 'Game Over...\n\nPress fire button to restart.';
+        public static GAME_OVER_TEXT : string = 'Game Over...\n\nPress fire button to continue.';
         public static SHIELD_ID : string = 'Shield';
         public static START_GAME_INVINCIBILITY_TIME : number = 10000;
 
@@ -424,7 +424,17 @@ namespace PCGGame {
             this.incScore = mob.getKillScore();
 
             bullet.kill();
-            mob.die(this._player);
+
+            if (mob instanceof MegaHead) {
+                mob.takeDamage(10);
+
+                if (mob.health <= 0) {
+                    mob.die(this._player);
+                }
+            }
+            else {
+                mob.die(this._player);
+            }
             // TODO: FIRE SIGNAL OF MOB DEATH
         }
 

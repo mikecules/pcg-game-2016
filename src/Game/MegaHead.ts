@@ -30,7 +30,6 @@ namespace PCGGame {
 
             this._killScoreVal = 1000;
 
-
             this._weapon = game.add.weapon(MegaHead.NUM_BULLETS, MegaHead.BULLET_ID);
 
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
@@ -106,9 +105,18 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
+            this.health = 20;
             this.dangerLevel = spriteDangerLevelEnum.HIGH_DANGER;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);
             this.play(MegaHead.ID);
+        }
+
+        public takeDamage(damage : number) {
+
+            this.health -= damage;
+
+            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 500);
+
         }
 
     }

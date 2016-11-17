@@ -16,6 +16,7 @@ namespace PCGGame {
         protected _weapon : Phaser.Weapon;
         protected _loot : Loot = null;
         protected _killScoreVal : number = 10;
+        protected _weaponDamageCost : number = 10;
 
 
         public constructor(game : Phaser.Game, x?: number, y?: number, id? : string) {
@@ -91,7 +92,7 @@ namespace PCGGame {
         }
 
         public getDamageCost() : number {
-            return 10;
+            return this._weaponDamageCost;
         }
 
         public reset()  {
@@ -132,6 +133,10 @@ namespace PCGGame {
 
                 colorTween.start();
             }
+        }
+
+        public takeDamage(damage: number) {
+
         }
     }
 }

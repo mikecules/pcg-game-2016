@@ -131,12 +131,16 @@ namespace PCGGame {
             this._weapon.fire();
         }
 
+        public getDamageCost() {
+            return this._weaponDamageCost;
+        }
+
         public takeLoot(loot: Loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
 
             switch(loot.type) {
                 case lootTypeEnum.SHIELD:
-                    this.health += loot.value * 2;
+                    this.health = Math.min(100, this.health + (loot.value * 2));
                     break;
                 case lootTypeEnum.WEAPON:
                     this.upgradeWeapon(loot.value);

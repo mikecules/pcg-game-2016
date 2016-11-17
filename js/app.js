@@ -124,6 +124,7 @@ var PCGGame;
             this._isDead = false;
             this._loot = null;
             this._killScoreVal = 10;
+            this._weaponDamageCost = 10;
             this._id = id;
             this.health = 100;
         }
@@ -189,7 +190,7 @@ var PCGGame;
             this.tint = this._loot.spriteTint;
         };
         Sprite.prototype.getDamageCost = function () {
-            return 10;
+            return this._weaponDamageCost;
         };
         Sprite.prototype.reset = function () {
             _super.prototype.reset.call(this, 0, 0);
@@ -223,6 +224,8 @@ var PCGGame;
                 }
                 colorTween.start();
             }
+        };
+        Sprite.prototype.takeDamage = function (damage) {
         };
         Sprite.LOOT_ID = 'mob.loot';
         return Sprite;
@@ -711,11 +714,14 @@ var PCGGame;
         Player.prototype.fire = function () {
             this._weapon.fire();
         };
+        Player.prototype.getDamageCost = function () {
+            return this._weaponDamageCost;
+        };
         Player.prototype.takeLoot = function (loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
             switch (loot.type) {
                 case 3:
-                    this.health += loot.value * 2;
+                    this.health = Math.min(100, this.health + (loot.value * 2));
                     break;
                 case 2:
                     this.upgradeWeapon(loot.value);
@@ -1506,7 +1512,15 @@ var PCGGame;
             }
             this.incScore = mob.getKillScore();
             bullet.kill();
-            mob.die(this._player);
+            if (mob instanceof PCGGame.MegaHead) {
+                mob.takeDamage(10);
+                if (mob.health <= 0) {
+                    mob.die(this._player);
+                }
+            }
+            else {
+                mob.die(this._player);
+            }
         };
         Play.prototype.wallPlayerCollisionHandler = function (player, wall) {
             player.takeDamage(10);
@@ -1561,7 +1575,7 @@ var PCGGame;
             }
         };
         Play.GAME_INTRO_TEXT = 'Press fire button to start.';
-        Play.GAME_OVER_TEXT = 'Game Over...\n\nPress fire button to restart.';
+        Play.GAME_OVER_TEXT = 'Game Over...\n\nPress fire button to continue.';
         Play.SHIELD_ID = 'Shield';
         Play.START_GAME_INVINCIBILITY_TIME = 10000;
         Play.POWER_UP_MESSAGE = {
@@ -1659,9 +1673,14 @@ var PCGGame;
         };
         MegaHead.prototype.reset = function () {
             _super.prototype.reset.call(this);
+            this.health = 20;
             this.dangerLevel = 3;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);
             this.play(MegaHead.ID);
+        };
+        MegaHead.prototype.takeDamage = function (damage) {
+            this.health -= damage;
+            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 500);
         };
         MegaHead.ID = 'MegaHead';
         MegaHead.BULLET_ID = 'Invader.Bullets';
