@@ -85,7 +85,7 @@ namespace Generator {
         private _generate(lastPosition: Phaser.Point,
                           length?: number, offsetX?: number, offsetY?: number, experientialGameManger?: PCGGame.ExperientialGameManager): Block {
             let block = this._createBlock();
-            block.type = this._randomGenerator.integerInRange(blockTypeEnum.MOB_METEOR, blockTypeEnum.MOB_NOTCH);
+            block.type = this._randomGenerator.integerInRange(blockTypeEnum.MOB_NOTCH, blockTypeEnum.MOB_MEGA_HEAD);
 
             let upperBlockBound = 1;
             let lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT -  Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;

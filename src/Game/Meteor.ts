@@ -21,6 +21,8 @@ namespace PCGGame {
 
             this.scale.set(1.2);
 
+            this._killScoreVal = 200;
+
             // enable physics for player
             game.physics.arcade.enable(this, false);
 
@@ -30,9 +32,9 @@ namespace PCGGame {
             body.allowGravity = false;
         }
 
-        public render() {
+        public render(player : Player) {
 
-            super.render();
+            super.render(player);
 
             if (this.died) {
                 return;

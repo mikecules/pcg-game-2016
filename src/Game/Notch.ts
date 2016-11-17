@@ -18,6 +18,8 @@ namespace PCGGame {
 
             this.scale.set(1.5);
 
+            this._killScoreVal = 250;
+
             // enable physics for player
             game.physics.arcade.enable(this, false);
 
@@ -28,9 +30,9 @@ namespace PCGGame {
 
         }
 
-        public render() {
+        public render(player : Player) {
 
-            super.render();
+            super.render(player);
 
             if (this.died) {
                 return;
@@ -38,6 +40,10 @@ namespace PCGGame {
 
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.velocity.x = -10;
+        }
+
+        public getDamageCost() {
+            return -5;
         }
 
         public reset() {

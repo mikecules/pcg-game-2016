@@ -12,6 +12,7 @@ namespace PCGGame {
             this.load.spritesheet(Animation.EXPLODE_ID, 'assets/explode.png', 128, 128, 16);
             this.load.spritesheet(Notch.ID, 'assets/tutor-anim.png', 32, 32, 6);
             this.load.spritesheet(Invader.ID, 'assets/invader32x32x4.png', 32, 32, 4);
+            this.load.spritesheet(MegaHead.ID, 'assets/metalface78x92.png', 78, 92, 4);
             this.load.spritesheet(Player.BULLET_ID, 'assets/rgb-bullets.png', 8, 4, Player.NUM_BULLET_FRAMES);
 
             this.load.image(Player.ID, 'assets/ship.png');

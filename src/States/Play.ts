@@ -99,6 +99,7 @@ namespace PCGGame {
             this._extraLives = Player.PLAYER_LIVES - 1;
             this._gameGameStateText.text = Play.GAME_OVER_TEXT;
             this._gameGameStateText.visible = false;
+            this.setPlayerLives(0);
 
             this._player.x = Generator.Parameters.GRID.CELL.SIZE;
             this._player.y = this.game.height / 2;
@@ -200,8 +201,6 @@ namespace PCGGame {
             //  Lives
             this._playerLivesGroup = this.game.add.group();
 
-            this.setPlayerLives(0);
-
             //  Text
             this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, Play.GAME_INTRO_TEXT, { font: '32px opensans', fill: '#fff' });
             this._gameGameStateText.anchor.setTo(0.5, 0.5);
@@ -282,7 +281,7 @@ namespace PCGGame {
                                 this._updatePowerUpText(Play.POWER_UP_MESSAGE.LIFE, '#00ff00');
                                 break;
                             default:
-                                this.incScore = loot.value * 100;
+                                this.incScore = loot.value * 250;
                                 break;
                         }
                         break;
@@ -422,7 +421,7 @@ namespace PCGGame {
                 return;
             }
 
-            this.incScore = 10;
+            this.incScore = mob.getKillScore();
 
             bullet.kill();
             mob.die(this._player);

@@ -245,6 +245,9 @@ namespace PCGGame {
                 case  blockTypeEnum.MOB_INVADER:
                     sprite = spriteFactory.getInvaderMob();//spriteFactory.getMeteorMob();//spriteFactory.getInvaderMob();
                     break;
+                case  blockTypeEnum.MOB_MEGA_HEAD:
+                    sprite = spriteFactory.getMegaHeadMob();//spriteFactory.getMeteorMob();//spriteFactory.getInvaderMob();
+                    break;
                 default:
                     sprite = spriteFactory.getMeteorMob();
                     break;

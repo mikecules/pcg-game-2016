@@ -10,7 +10,8 @@ namespace PCGGame {
         private _mobs : any = {
             NOTCH: null,
             INVADER: null,
-            METEOR: null
+            METEOR: null,
+            MEGAHEAD: null
         };
 
         public constructor(game: Phaser.Game) {
@@ -61,6 +62,14 @@ namespace PCGGame {
             }
 
             return this._mobs.INVADER;
+        }
+
+        public getMegaHeadMob() {
+            if (this._mobs.MEGAHEAD === null) {
+                this._mobs.MEGAHEAD = this._addCommonSpriteAttributes(new MegaHead(this._game));
+            }
+
+            return this._mobs.MEGAHEAD;
         }
 
 

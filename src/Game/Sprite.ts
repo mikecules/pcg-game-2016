@@ -1,6 +1,6 @@
 namespace PCGGame {
 
-    export const enum spriteDangerLevelEnum {NO_DANGER, LOW_DANGER, MEDIUM_DANGER}
+    export const enum spriteDangerLevelEnum {NO_DANGER, LOW_DANGER, MEDIUM_DANGER, HIGH_DANGER}
 
     export class Sprite extends Phaser.Sprite {
 
@@ -15,6 +15,7 @@ namespace PCGGame {
         protected _isDead : boolean = false;
         protected _weapon : Phaser.Weapon;
         protected _loot : Loot = null;
+        protected _killScoreVal : number = 10;
 
 
         public constructor(game : Phaser.Game, x?: number, y?: number, id? : string) {
@@ -31,11 +32,13 @@ namespace PCGGame {
             this._isInvincible = isInvincibleFlag;
         }
 
-        public render(player? : Player) {
+        public render(player : Player) {
             console.log('Base Sprite class die.');
 
             if (this.hasLoot) {
                 this.angle = (this.angle - 1) % 360;
+                //this.game.physics.arcade.moveToObject(this, player, 1000, 800);
+                this.game.physics.arcade.moveToObject(this, player, 1000, 1800);
             }
         }
 
@@ -60,7 +63,7 @@ namespace PCGGame {
             this.play(Animation.EXPLODE_ID, 30, false);
 
             this.animations.currentAnim.onComplete.add(() => {
-                this._convertMobToLoot(player);
+                this._convertMobToLoot();
             }, this);
         }
 
@@ -81,10 +84,8 @@ namespace PCGGame {
             this._loot = new Loot(this.game.rnd);
         }
 
-        protected _convertMobToLoot(player: Player) {
+        protected _convertMobToLoot() {
             this.loadTexture(Sprite.LOOT_ID);
-            //this.game.physics.arcade.moveToObject(this, player, 1000, 800);
-            this.game.physics.arcade.moveToObject(this, player, 1000, 1800);
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
         }
@@ -104,6 +105,10 @@ namespace PCGGame {
             this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
             this.canCollide = true;
             this.loadTexture(this._id);
+        }
+
+        public getKillScore() : number {
+            return this._killScoreVal;
         }
 
 
