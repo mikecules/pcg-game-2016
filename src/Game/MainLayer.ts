@@ -257,7 +257,7 @@ namespace PCGGame {
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
 
 
-            console.log(sprite.parent);
+            //console.log(sprite.parent);
             // add into mobs group
             if (sprite.parent === null) {
                 this._mobs.add(sprite);

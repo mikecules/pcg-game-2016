@@ -13,7 +13,7 @@ namespace PCGGame {
         protected _isInvincible : boolean = false;
         protected _id : string = null;
         protected _isDead : boolean = false;
-        protected _weapon : Phaser.Weapon;
+        protected _weapon : Phaser.Weapon = null;
         protected _loot : Loot = null;
         protected _killScoreVal : number = 10;
         protected _weaponDamageCost : number = 10;
@@ -34,7 +34,7 @@ namespace PCGGame {
         }
 
         public render(player : Player) {
-            console.log('Base Sprite class die.');
+            //console.log('Base Sprite class die.');
 
             if (this.hasLoot) {
                 this.angle = (this.angle - 1) % 360;
@@ -44,7 +44,7 @@ namespace PCGGame {
         }
 
         public fire(player? : Player) {
-            console.log('Base class fire.');
+            //console.log('Base class fire.');
         }
 
         public die(player : Player) {
@@ -53,7 +53,7 @@ namespace PCGGame {
                 return;
             }
 
-            console.log('Base Sprite class die.');
+            //console.log('Base Sprite class die.');
 
             this._isDead = true;
 
@@ -137,6 +137,16 @@ namespace PCGGame {
 
         public takeDamage(damage: number) {
 
+        }
+
+        public get bullets() : Phaser.Group {
+            let bullets : Phaser.Group = null;
+
+            if (this._weapon !== null) {
+                bullets = this._weapon.bullets;
+            }
+
+            return bullets;
         }
     }
 }

@@ -74,14 +74,6 @@ namespace PCGGame {
 
             this.game.physics.arcade.moveToObject(this, player, 1500, 3000);
 
-            if (this._weapon.bullets.countLiving()) {
-
-                this.game.physics.arcade.collide(player, this._weapon.bullets, (player : Player, bullet : Phaser.Sprite) => {
-                    player.takeDamage(this.getDamageCost());
-                    bullet.kill();
-                } );
-            }
-
             let shouldFight = this.game.rnd.integerInRange(0, 100);
             let AGGRESSION_LEVEL = 50;
 

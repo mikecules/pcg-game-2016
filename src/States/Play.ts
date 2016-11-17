@@ -16,6 +16,8 @@ namespace PCGGame {
 
         public static EXPERIENTIAL_PROMPT : string = 'Press the C key to configure your game!';
 
+        public experientialGameManager : ExperientialGameManager = null;
+
         private _mainLayer: MainLayer;
         private _backgroundLayer: BackgroundLayer;
         private _player : Player;
@@ -148,12 +150,12 @@ namespace PCGGame {
             this._player.x = Generator.Parameters.GRID.CELL.SIZE;
             this._player.y = this.game.height / 2;
 
-            Play.setInvincible(this._player, Play.START_GAME_INVINCIBILITY_TIME);
+            this.setInvincible(this._player, Play.START_GAME_INVINCIBILITY_TIME);
             this._updateShieldBar(this._player.health);
 
         }
 
-        public static setInvincible(player : Player, duration? : number) {
+        public setInvincible(player : Player, duration? : number) {
             player.isInvincible = true;
 
             setTimeout(() => {
@@ -299,6 +301,8 @@ namespace PCGGame {
             PCGGame.SpriteSingletonFactory.instance(this.game);
 
             this._player = new Player(this.game);
+
+            this.experientialGameManager = ExperientialGameManager.instance(this.game, this._player);
 
             this._player.playerEvents.add((e : GameEvent) => {
                 switch(e.type) {
@@ -464,9 +468,15 @@ namespace PCGGame {
 
             this.updatePhysics();
 
+            if (! (this._gameState.start || this._gameState.paused || this._gameState.end)) {
+                this.experientialGameManager.update();
+            }
+
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE, this._gameState);
 
             this._backgroundLayer.render(this.camera.x);
+
+
 
             //this.game.debug.bodyInfo(this._player, 32, 32);
         }
@@ -488,7 +498,7 @@ namespace PCGGame {
             bullet.kill();
 
             if (mob instanceof MegaHead) {
-                mob.takeDamage(10);
+                mob.takeDamage(this._player.getDamageCost());
 
                 if (mob.health <= 0) {
                     mob.die(this._player);
@@ -497,14 +507,22 @@ namespace PCGGame {
             else {
                 mob.die(this._player);
             }
+
+            this.experientialGameManager.mobKilled(mob);
             // TODO: FIRE SIGNAL OF MOB DEATH
         }
 
 
         public wallPlayerCollisionHandler(player : Player, wall : Phaser.Sprite) {
 
-            player.takeDamage(10);
-            Play.setInvincible(player);
+            let damage = 10;
+            player.takeDamage(damage);
+
+            this.experientialGameManager.playerDamageReceived(damage, wall);
+
+            this.setInvincible(player);
+
+            this.experientialGameManager.playerCollidedWithPlatform();
 
             //wall.kill();
         }
@@ -512,17 +530,25 @@ namespace PCGGame {
         public mobPlayerCollisionHandler(player : Player, mob : Sprite) {
 
 
-            if (! mob.canCollide) {
+            /*if (! mob.canCollide) {
                 return;
-            }
+            }*/
 
             if (! mob.died) {
 
                 if (! player.isInvincible) {
-                    player.takeDamage(mob.getDamageCost());
+
+                    let damage = mob.getDamageCost();
+
+                    player.takeDamage(damage);
+
+                    if (damage) {
+                        this.experientialGameManager.playerDamageReceived(damage, mob);
+                    }
                 }
 
                 mob.die(player);
+                this.experientialGameManager.mobKilled(mob);
             }
             else {
 
@@ -536,23 +562,57 @@ namespace PCGGame {
         }
 
 
+        public playerTookMobDamageHandler(player : Player, bullet : Phaser.Sprite, mob: Sprite) {
+
+            let damage : number = mob.getDamageCost();
+
+            player.takeDamage(damage);
+
+            this.experientialGameManager.playerDamageReceived(damage, mob);
+
+            if (player.died) {
+                this.experientialGameManager.playerKilled(mob);
+            }
+
+            bullet.kill();
+        }
+
+
         public updatePhysics() {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
 
             if (! this._player.isInvincible && ! this._gameState.start) {
-                this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, this.wallPlayerCollisionHandler);
+                this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, (player : Player, wall : Phaser.Sprite) => {
+                    this.wallPlayerCollisionHandler(player, wall)
+                });
             }
 
-            this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
-            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
-            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
+            this.physics.arcade.collide(this._player, this._mainLayer.mobs, (player : Player, mob : Sprite) => {
+                this.mobPlayerCollisionHandler(player, mob)
+            });
 
-            //console.log('Invicibility: ', this._player.isInvincible);
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Phaser.Sprite) => {
+                this.wallBulletCollisionHandler(bullet, wall)
+            }, null, this);
+
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, (bullet : Phaser.Sprite, mob : Sprite) => {
+                this.mobBulletCollisionHandler(bullet, mob)
+            }, null, this);
+
 
             let shouldShowExperientialPrompt = false;
 
             this._mainLayer.mobs.forEachExists((mob: any) => {
                 mob.render(this._player);
+
+                if (mob.bullets && mob.bullets.countLiving()) {
+
+                    this.game.physics.arcade.collide(this._player, mob.bullets, (player : Player, bullet : Phaser.Sprite) => {
+                        this.playerTookMobDamageHandler(player, bullet, mob);
+                    });
+
+                    return;
+                }
 
                 if (mob instanceof Notch) {
                     shouldShowExperientialPrompt = true;

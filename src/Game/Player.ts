@@ -171,14 +171,14 @@ namespace PCGGame {
             //this._weapon.setBulletFrames(this._bulletFrameNumber, Player.NUM_BULLET_FRAMES, false);
         }
 
-        public get died() : boolean {
+        /*public get died() : boolean {
             return this._isDead;
-        }
+        }*/
 
         public die() : void {
 
 
-            if (this.died) {
+            if (this._isDead) {
                 return;
             }
 
@@ -273,7 +273,7 @@ namespace PCGGame {
             console.log(this.health, damage);
             this.health -= damage;
 
-            this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_TOOK_DAMAGE, this));
+            this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_TOOK_DAMAGE, damage));
 
             if (this.health <= 0) {
                 this.die();
