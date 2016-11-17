@@ -645,6 +645,7 @@ var PCGGame;
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
             this._weapon.bulletKillDistance = this.game.width * 4;
             this._weapon.bulletAngleOffset = 0;
+            this._weapon.bulletAngleVariance = Player.WEAPON_STATS.bulletAngleVariance;
             this._weapon.fireAngle = Phaser.ANGLE_RIGHT;
             this._weapon.fireRate = Player.WEAPON_STATS.fireRate;
             this._weapon.bulletSpeedVariance = Player.WEAPON_STATS.variance;
@@ -709,6 +710,7 @@ var PCGGame;
         Player.prototype.upgradeWeapon = function (inc) {
             this._weapon.fireRate = Math.max(this._weapon.fireRate - inc, Player.MAX_WEAPON_STATS.fireRate);
             this._weapon.bulletSpeedVariance = Math.max(this._weapon.bulletSpeedVariance + 1, Player.MAX_WEAPON_STATS.variance);
+            this._weapon.bulletAngleVariance = Math.min(this._weapon.bulletAngleVariance + 0.5, Player.MAX_WEAPON_STATS.bulletAngleVariance);
         };
         Object.defineProperty(Player.prototype, "died", {
             get: function () {
@@ -812,11 +814,13 @@ var PCGGame;
         Player.PLAYER_LIVES = 4;
         Player.WEAPON_STATS = {
             fireRate: 200,
-            variance: 0
+            variance: 0,
+            bulletAngleVariance: 0
         };
         Player.MAX_WEAPON_STATS = {
             fireRate: 40,
-            variance: 10
+            variance: 10,
+            bulletAngleVariance: 8
         };
         return Player;
     }(PCGGame.Sprite));

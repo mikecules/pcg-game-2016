@@ -10,12 +10,14 @@ namespace PCGGame {
 
         public static WEAPON_STATS : any = {
             fireRate: 200,
-            variance: 0
+            variance: 0,
+            bulletAngleVariance: 0
         };
 
         public static MAX_WEAPON_STATS : any = {
             fireRate: 40,
-            variance: 10
+            variance: 10,
+            bulletAngleVariance: 8
         };
 
 
@@ -64,6 +66,8 @@ namespace PCGGame {
 
             //  Because our bullet is drawn facing up, we need to offset its rotation:
             this._weapon.bulletAngleOffset = 0;
+
+            this._weapon.bulletAngleVariance = Player.WEAPON_STATS.bulletAngleVariance;
 
             this._weapon.fireAngle = Phaser.ANGLE_RIGHT;
 
@@ -148,6 +152,8 @@ namespace PCGGame {
 
             //  Add a variance to the bullet speed by +- this value
             this._weapon.bulletSpeedVariance = Math.max(this._weapon.bulletSpeedVariance + 1, Player.MAX_WEAPON_STATS.variance);
+
+            this._weapon.bulletAngleVariance = Math.min(this._weapon.bulletAngleVariance + 0.5, Player.MAX_WEAPON_STATS.bulletAngleVariance)
         }
 
         public get died() : boolean {
