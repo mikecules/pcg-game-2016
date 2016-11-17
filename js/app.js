@@ -332,10 +332,11 @@ var PCGGame;
             this._typeProbabilities = {};
             this._randomGenerator = null;
             this.value = 5;
-            this._typeProbabilities[1] = 33;
-            this._typeProbabilities[2] = 32;
-            this._typeProbabilities[3] = 32;
-            this._typeProbabilities[4] = 3;
+            this._typeProbabilities[1] = 30;
+            this._typeProbabilities[2] = 29;
+            this._typeProbabilities[3] = 29;
+            this._typeProbabilities[4] = 10;
+            this._typeProbabilities[5] = 2;
             this._randomGenerator = randomGen;
             this._calcProbabilityBoundaries();
             this._type = this._calcType();
@@ -375,7 +376,7 @@ var PCGGame;
         Loot.prototype._calcType = function () {
             var p = this._randomGenerator.integerInRange(0, 100);
             var type = 1;
-            for (var i = 1; i <= 4; i++) {
+            for (var i = 1; i <= 5; i++) {
                 if (p <= this._typeProbabilitiesUpperBoundary[i]) {
                     type = i;
                     break;
@@ -385,7 +386,7 @@ var PCGGame;
             return type;
         };
         Loot.prototype._calcLootTint = function () {
-            var tint = 0x9975B9;
+            var tint = 0x9400D3;
             switch (this._type) {
                 case 2:
                     tint = 0x0000ff;
@@ -393,8 +394,11 @@ var PCGGame;
                 case 3:
                     tint = 0xff0000;
                     break;
-                case 4:
+                case 5:
                     tint = 0x00ff00;
+                    break;
+                case 4:
+                    tint = 0xFFD700;
                     break;
                 default:
                     break;
@@ -487,7 +491,6 @@ var PCGGame;
                 }
             }
             if (gameState.start) {
-                console.log('aaaa');
                 return;
             }
             while (this._lastMOB.x < leftTile + width) {
@@ -726,7 +729,7 @@ var PCGGame;
                 case 2:
                     this.upgradeWeapon(loot.value);
                     break;
-                case 4:
+                case 5:
                     this.playerLives++;
                     break;
                 default:
@@ -1252,6 +1255,7 @@ var PCGGame;
         function Play() {
             _super.apply(this, arguments);
             this._gameScore = 0;
+            this._isShowingExperiencePrompt = false;
             this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
             this._healthBarSpriteBG = null;
             this._healthBarSprite = null;
@@ -1298,6 +1302,36 @@ var PCGGame;
             this._gameState.paused = false;
             this._gameGameStateText.visible = true;
         };
+        Play.prototype._invokeExperientialSurvey = function () {
+            this.togglePause();
+        };
+        Play.prototype._experiencePromptFlasher = function () {
+            var _this = this;
+            this._gameExperiencePromptText.visible = true;
+            var tween = this.game.add.tween(this._gameExperiencePromptText).to({ alpha: 1 }, 1000, 'Linear', true);
+            tween.onComplete.add(function () {
+                _this.game.add.tween(_this._gameExperiencePromptText).to({ alpha: 0 }, 1000, 'Linear', true);
+                if (_this._isShowingExperiencePrompt) {
+                    _this._experiencePromptFlasher();
+                }
+                else {
+                    _this._gameExperiencePromptText.visible = false;
+                }
+            });
+        };
+        Play.prototype._showExperientialPrompt = function (shouldShow) {
+            if (shouldShow === this._isShowingExperiencePrompt) {
+                return;
+            }
+            this._isShowingExperiencePrompt = shouldShow;
+            if (shouldShow) {
+                this._gameExperiencePromptText.alpha = 0;
+                this._experiencePromptFlasher();
+            }
+            else {
+                this._gameExperiencePromptText.alpha = 1;
+            }
+        };
         Play.prototype._startNewGame = function () {
             this._player.reset();
             this._gameState.start = false;
@@ -1306,6 +1340,7 @@ var PCGGame;
             this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
             this._gameGameStateText.text = Play.GAME_OVER_TEXT;
             this._gameGameStateText.visible = false;
+            this._showExperientialPrompt(false);
             this.setPlayerLives(0);
             this._player.x = Generator.Parameters.GRID.CELL.SIZE;
             this._player.y = this.game.height / 2;
@@ -1360,7 +1395,8 @@ var PCGGame;
         };
         Play.prototype._setUpGameHUD = function () {
             var scoreString = 'Score: ';
-            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px opensans', fill: '#fff' });
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px opensans', fill: '#6495ED' });
+            this._gameScoreText.addColor('#fff', 7);
             this._playerLivesGroup = this.game.add.group();
             this._gameGameStateText = this.game.add.text(this.game.world.centerX, this.game.world.centerY, Play.GAME_INTRO_TEXT, { font: '32px opensans', fill: '#fff' });
             this._gameGameStateText.anchor.setTo(0.5, 0.5);
@@ -1368,6 +1404,11 @@ var PCGGame;
             this._gameGamePowerUpText = this.game.add.text(this.game.width - 100, this.game.height - 32, Play.POWER_UP_MESSAGE.WEAPON, { font: '24px opensans', fill: '#00ff00' });
             this._gameGamePowerUpText.anchor.setTo(0.5, 0.5);
             this._gameGamePowerUpText.alpha = 0;
+            this._gameExperiencePromptText = this.game.add.text(this.game.world.centerX - 10, 30, Play.EXPERIENTIAL_PROMPT, { font: '24px opensans', fill: '#00ff00' });
+            this._gameExperiencePromptText.anchor.setTo(0.5, 0.5);
+            this._gameExperiencePromptText.addColor('#fff', 10);
+            this._gameExperiencePromptText.addColor('#00ff00', 15);
+            this._gameExperiencePromptText.visible = false;
         };
         Play.prototype._updatePowerUpText = function (type, colour) {
             var _this = this;
@@ -1414,17 +1455,22 @@ var PCGGame;
                         switch (loot.type) {
                             case 3:
                                 _this._updateShieldBar(_this._player.health);
-                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#ff0000');
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#B22222');
                                 break;
                             case 2:
-                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.WEAPON, '#0000ff');
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.WEAPON, '#6495ED');
                                 break;
-                            case 4:
+                            case 5:
                                 _this.setPlayerLives(1);
                                 _this._updatePowerUpText(Play.POWER_UP_MESSAGE.LIFE, '#00ff00');
                                 break;
+                            case 4:
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.MYSTERY, '#FFD700');
+                                _this.incScore = loot.value * 500;
+                                break;
                             default:
                                 _this.incScore = loot.value * 250;
+                                _this._updatePowerUpText(Play.POWER_UP_MESSAGE.BONUS_POINTS, '#9400D3');
                                 break;
                         }
                         break;
@@ -1441,6 +1487,11 @@ var PCGGame;
             this._updateShieldBar(this._player.health);
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SHIFT);
+            this._invokeExperientialKey = this.game.input.keyboard.addKey(Phaser.Keyboard.C);
+            this._invokeExperientialKey.onDown.add(function () {
+                console.log('Invoke Experiential Dialogue');
+                _this._invokeExperientialSurvey();
+            }, this);
             this._pauseKey.onUp.add(function () {
                 console.log('Pause Key pressed!');
                 _this.togglePause();
@@ -1499,6 +1550,7 @@ var PCGGame;
             this._playerHealthGroup.x = x;
             this._gameGameStateText.x = this.game.width / 2 + x;
             this._gameGamePowerUpText.x = x + this.game.width - 200;
+            this._gameExperiencePromptText.x = x + this.game.width / 2;
             this.updatePhysics();
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE, this._gameState);
             this._backgroundLayer.render(this.camera.x);
@@ -1552,7 +1604,14 @@ var PCGGame;
             this.physics.arcade.collide(this._player, this._mainLayer.mobs, this.mobPlayerCollisionHandler);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, this.wallBulletCollisionHandler, null, this);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, this.mobBulletCollisionHandler, null, this);
-            this._mainLayer.mobs.forEachExists(function (mob) { mob.render(_this._player); }, this);
+            var shouldShowExperientialPrompt = false;
+            this._mainLayer.mobs.forEachExists(function (mob) {
+                mob.render(_this._player);
+                if (mob instanceof PCGGame.Notch) {
+                    shouldShowExperientialPrompt = true;
+                }
+            }, this);
+            this._showExperientialPrompt(shouldShowExperientialPrompt);
             if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X) {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
@@ -1581,9 +1640,11 @@ var PCGGame;
         Play.POWER_UP_MESSAGE = {
             LIFE: 'Extra Life Gained!',
             SHIELD: 'Shield Levels Up!',
-            WEAPON: 'Weapon Power Upgraded!'
+            WEAPON: 'Weapon Power Upgraded!',
+            BONUS_POINTS: 'Bonus Points Received!',
+            MYSTERY: 'Mystery Power Received!'
         };
-        Play.EXPERIENTIAL_PROMPT = 'Press C to configure your game!';
+        Play.EXPERIENTIAL_PROMPT = 'Press the C key to configure your game!';
         return Play;
     }(Phaser.State));
     PCGGame.Play = Play;

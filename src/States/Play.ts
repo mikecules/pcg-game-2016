@@ -9,10 +9,12 @@ namespace PCGGame {
         public static POWER_UP_MESSAGE : any = {
             LIFE: 'Extra Life Gained!',
             SHIELD: 'Shield Levels Up!',
-            WEAPON: 'Weapon Power Upgraded!'
+            WEAPON: 'Weapon Power Upgraded!',
+            BONUS_POINTS: 'Bonus Points Received!',
+            MYSTERY: 'Mystery Power Received!'
         };
 
-        public static EXPERIENTIAL_PROMPT : string = 'Press C to configure your game!';
+        public static EXPERIENTIAL_PROMPT : string = 'Press the C key to configure your game!';
 
         private _mainLayer: MainLayer;
         private _backgroundLayer: BackgroundLayer;
@@ -21,6 +23,8 @@ namespace PCGGame {
         private _gameScoreText : Phaser.Text;
         private _gameGameStateText : Phaser.Text;
         private _gameGamePowerUpText : Phaser.Text;
+        private _gameExperiencePromptText : Phaser.Text;
+        private _isShowingExperiencePrompt : boolean = false;
         private _extraLives : number = Player.PLAYER_LIVES - 1;
         private _playerLivesGroup : Phaser.Group;
         private _playerHealthGroup : Phaser.Group;
@@ -91,6 +95,44 @@ namespace PCGGame {
             this._gameGameStateText.visible = true;
         }
 
+
+        private _invokeExperientialSurvey() {
+            this.togglePause();
+        }
+
+        private _experiencePromptFlasher() {
+            this._gameExperiencePromptText.visible = true;
+            let tween = this.game.add.tween(this._gameExperiencePromptText).to( { alpha: 1 }, 1000, 'Linear', true);
+
+            tween.onComplete.add( () => {
+                this.game.add.tween(this._gameExperiencePromptText).to( { alpha: 0 }, 1000, 'Linear', true);
+                if (this._isShowingExperiencePrompt) {
+                    this._experiencePromptFlasher();
+                }
+                else {
+                    this._gameExperiencePromptText.visible = false;
+                }
+            });
+        }
+
+        private _showExperientialPrompt(shouldShow : boolean) {
+
+            if (shouldShow === this._isShowingExperiencePrompt) {
+                return;
+            }
+
+            this._isShowingExperiencePrompt = shouldShow;
+
+            if (shouldShow) {
+                this._gameExperiencePromptText.alpha = 0;
+                this._experiencePromptFlasher();
+            }
+            else {
+                this._gameExperiencePromptText.alpha = 1;
+            }
+
+        }
+
         private _startNewGame() {
             this._player.reset();
             this._gameState.start = false;
@@ -99,6 +141,8 @@ namespace PCGGame {
             this._extraLives = Player.PLAYER_LIVES - 1;
             this._gameGameStateText.text = Play.GAME_OVER_TEXT;
             this._gameGameStateText.visible = false;
+            this._showExperientialPrompt(false);
+
             this.setPlayerLives(0);
 
             this._player.x = Generator.Parameters.GRID.CELL.SIZE;
@@ -196,7 +240,8 @@ namespace PCGGame {
         private _setUpGameHUD() {
             //  The score
             let scoreString = 'Score: ';
-            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px opensans', fill: '#fff' });
+            this._gameScoreText = this.game.add.text(10, 15, scoreString + this._gameScore, { font: '20px opensans', fill: '#6495ED' });
+            this._gameScoreText.addColor('#fff', 7);
 
             //  Lives
             this._playerLivesGroup = this.game.add.group();
@@ -211,6 +256,11 @@ namespace PCGGame {
             this._gameGamePowerUpText.anchor.setTo(0.5, 0.5);
             this._gameGamePowerUpText.alpha = 0;
 
+            this._gameExperiencePromptText = this.game.add.text(this.game.world.centerX - 10, 30, Play.EXPERIENTIAL_PROMPT, { font: '24px opensans', fill: '#00ff00' });
+            this._gameExperiencePromptText.anchor.setTo(0.5, 0.5);
+            this._gameExperiencePromptText.addColor('#fff', 10);
+            this._gameExperiencePromptText.addColor('#00ff00', 15);
+            this._gameExperiencePromptText.visible = false;
         }
 
         private _updatePowerUpText(type : string, colour: string) {
@@ -271,17 +321,22 @@ namespace PCGGame {
                         switch(loot.type) {
                             case lootTypeEnum.SHIELD:
                                 this._updateShieldBar(this._player.health);
-                                this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#ff0000');
+                                this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#B22222');
                                 break;
                             case lootTypeEnum.WEAPON:
-                                this._updatePowerUpText(Play.POWER_UP_MESSAGE.WEAPON, '#0000ff');
+                                this._updatePowerUpText(Play.POWER_UP_MESSAGE.WEAPON, '#6495ED');
                                 break;
                             case lootTypeEnum.NEW_LIFE:
                                 this.setPlayerLives(1);
                                 this._updatePowerUpText(Play.POWER_UP_MESSAGE.LIFE, '#00ff00');
                                 break;
+                            case lootTypeEnum.MYSTERY_LOOT:
+                                this._updatePowerUpText(Play.POWER_UP_MESSAGE.MYSTERY, '#FFD700');
+                                this.incScore = loot.value * 500;
+                                break;
                             default:
                                 this.incScore = loot.value * 250;
+                                this._updatePowerUpText(Play.POWER_UP_MESSAGE.BONUS_POINTS, '#9400D3');
                                 break;
                         }
                         break;
@@ -309,6 +364,12 @@ namespace PCGGame {
 
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SHIFT);
+            this._invokeExperientialKey = this.game.input.keyboard.addKey(Phaser.Keyboard.C);
+
+            this._invokeExperientialKey.onDown.add(() => {
+                console.log('Invoke Experiential Dialogue');
+                this._invokeExperientialSurvey();
+            }, this);
 
             this._pauseKey.onUp.add(() => {
                 console.log('Pause Key pressed!');
@@ -399,6 +460,7 @@ namespace PCGGame {
             this._playerHealthGroup.x = x;
             this._gameGameStateText.x = this.game.width/2 + x ;
             this._gameGamePowerUpText.x = x + this.game.width - 200;
+            this._gameExperiencePromptText.x = x + this.game.width/2;
 
             this.updatePhysics();
 
@@ -487,7 +549,20 @@ namespace PCGGame {
 
             //console.log('Invicibility: ', this._player.isInvincible);
 
-            this._mainLayer.mobs.forEachExists((mob: any) => { mob.render(this._player); }, this);
+            let shouldShowExperientialPrompt = false;
+
+            this._mainLayer.mobs.forEachExists((mob: any) => {
+                mob.render(this._player);
+
+                if (mob instanceof Notch) {
+                    shouldShowExperientialPrompt = true;
+                }
+
+            }, this);
+
+
+            this._showExperientialPrompt(shouldShowExperientialPrompt);
+
 
 
             if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X)  {

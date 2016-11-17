@@ -133,7 +133,6 @@ namespace PCGGame {
             }
 
             if (gameState.start) {
-                console.log('aaaa');
                 return;
             }
 

@@ -1,5 +1,5 @@
 namespace PCGGame {
-    export const enum lootTypeEnum {DEFAULT = 1, WEAPON, SHIELD, NEW_LIFE};
+    export const enum lootTypeEnum {DEFAULT = 1, WEAPON, SHIELD, MYSTERY_LOOT, NEW_LIFE};
 
     export class Loot {
         private _type : number = lootTypeEnum.DEFAULT;
@@ -12,10 +12,12 @@ namespace PCGGame {
 
         public constructor(randomGen: Phaser.RandomDataGenerator) {
 
-            this._typeProbabilities[lootTypeEnum.DEFAULT] = 33;
-            this._typeProbabilities[lootTypeEnum.WEAPON] = 32;
-            this._typeProbabilities[lootTypeEnum.SHIELD] = 32;
-            this._typeProbabilities[lootTypeEnum.NEW_LIFE] = 3;
+            this._typeProbabilities[lootTypeEnum.DEFAULT] = 30;
+            this._typeProbabilities[lootTypeEnum.WEAPON] = 29;
+            this._typeProbabilities[lootTypeEnum.SHIELD] = 29;
+            this._typeProbabilities[lootTypeEnum.MYSTERY_LOOT] = 10;
+            this._typeProbabilities[lootTypeEnum.NEW_LIFE] = 2;
+
 
 
             this._randomGenerator = randomGen;
@@ -78,7 +80,7 @@ namespace PCGGame {
         }
 
         private _calcLootTint() {
-            let tint = 0x9975B9;
+            let tint = 0x9400D3;
 
             switch (this._type) {
                 case lootTypeEnum.WEAPON:
@@ -89,6 +91,9 @@ namespace PCGGame {
                     break;
                 case lootTypeEnum.NEW_LIFE:
                     tint = 0x00ff00;
+                    break;
+                case lootTypeEnum.MYSTERY_LOOT:
+                    tint = 0xFFD700;
                     break;
                 default:
                     break;
