@@ -171,9 +171,6 @@ namespace PCGGame {
             //this._weapon.setBulletFrames(this._bulletFrameNumber, Player.NUM_BULLET_FRAMES, false);
         }
 
-        /*public get died() : boolean {
-            return this._isDead;
-        }*/
 
         public die() : void {
 
@@ -218,6 +215,8 @@ namespace PCGGame {
             let playerBody = this._body;
             this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
+            this._body.immovable = true;
+
             playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             return this;
         }
