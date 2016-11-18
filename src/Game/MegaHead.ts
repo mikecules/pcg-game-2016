@@ -6,11 +6,11 @@ namespace PCGGame {
 
         public static ID : string = 'MegaHead';
         public static BULLET_ID : string = 'Invader.Bullets';
-        public static NUM_BULLETS : number = 20;
+        public static NUM_BULLETS : number = 10;
 
 
         public static WEAPON_STATS : any = {
-            fireRate: 200,
+            fireRate: 400,
             variance: 0,
             bulletAngleVariance: 0
         };
@@ -73,13 +73,6 @@ namespace PCGGame {
             }
 
             this.game.physics.arcade.moveToObject(this, player, 1500, 3000);
-
-            let shouldFight = this.game.rnd.integerInRange(0, 100);
-            let AGGRESSION_LEVEL = 50;
-
-            if (shouldFight > AGGRESSION_LEVEL) {
-                this.fire(player);
-            }
         }
 
 
@@ -99,6 +92,7 @@ namespace PCGGame {
             super.reset();
             this.health = this.weaponDamageCost * 2;
             this.dangerLevel = spriteDangerLevelEnum.HIGH_DANGER;
+            this.aggressionProbability = 70;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);
             this.play(MegaHead.ID);
         }

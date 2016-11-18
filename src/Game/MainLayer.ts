@@ -79,6 +79,9 @@ namespace PCGGame {
 
 
         public generate(leftTile: number, gameState: any): void {
+
+            let experientialManager : ExperientialGameManager = ExperientialGameManager.instance();
+
             // remove tiles too far to left
             this._cleanTiles(leftTile);
             this._cleanMOBS(leftTile);
@@ -86,45 +89,66 @@ namespace PCGGame {
             // width of screen rounded to whole tiles up
             let width = Math.ceil(this.game.width / Generator.Parameters.GRID.CELL.SIZE);
 
-            // generate platforms until we generate platform that ends out of the screen on right
-            while (this._lastTile.x < leftTile + width) {
-                switch (this._platformGenerationState) {
-                    case generateStateEnum.PROCESS_BLOCK:
-                        // check if queue not empty - should never happen
-                        if (!this._generator.hasBlocks) {
-                            console.error("Blocks queue is empty!");
-                        }
 
-                        let block = this._generator.getBlockFromQueue();
-
-                        this._lastTile.copyFrom(block.position);
-                        let length = block.length;
-
-                        // process piece
-                        while (length > 0) {
-                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y);
-
-                            if ((--length) > 0) {
-                                ++this._lastTile.x;
+            if (experientialManager.isPlatformGenerationEnabled) {
+                // generate platforms until we generate platform that ends out of the screen on right
+                while (this._lastTile.x < leftTile + width) {
+                    switch (this._platformGenerationState) {
+                        case generateStateEnum.PROCESS_BLOCK:
+                            // check if queue not empty - should never happen
+                            if (!this._generator.hasBlocks) {
+                                console.error("Blocks queue is empty!");
                             }
-                        }
 
-                        // return processed piece into pool
-                        this._generator.destroyBlock(block);
+                            let block = this._generator.getBlockFromQueue();
 
-                        // generate next platform
-                        if (!this._generator.hasBlocks) {
-                            this._platformGenerationState = generateStateEnum.GENERATE_BLOCK;
-                        }
+                            this._lastTile.copyFrom(block.position);
 
-                        break;
+                            let length = block.length;
+                            let rows = block.rows;
+                            let isHollow = block.isHollow;
 
-                    case generateStateEnum.GENERATE_BLOCK:
+                            console.warn(isHollow);
 
-                            this._generator.generateBlocks(this._lastTile);
-                            this._platformGenerationState = generateStateEnum.PROCESS_BLOCK;
+
+
+                                // process piece
+                                for  (let i = 0; i < length; i++) {
+
+                                    rows = block.rows;
+
+                                    for (let j = 0; j < rows; j++) {
+
+                                        if (! isHollow || j === 0 || j == (rows - 1)) {
+                                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
+                                        }
+                                        else if (i === 0 || i === (length - 1)) {
+                                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
+                                        }
+                                    }
+
+
+                                    ++this._lastTile.x;
+
+                            }
+
+                            // return processed piece into pool
+                            this._generator.destroyBlock(block);
+
+                            // generate next platform
+                            if (!this._generator.hasBlocks) {
+                                this._platformGenerationState = generateStateEnum.GENERATE_BLOCK;
+                            }
+
                             break;
 
+                        case generateStateEnum.GENERATE_BLOCK:
+
+                                this._generator.generateBlocks(this._lastTile);
+                                this._platformGenerationState = generateStateEnum.PROCESS_BLOCK;
+                                break;
+
+                    }
                 }
             }
 
@@ -133,45 +157,47 @@ namespace PCGGame {
             }
 
 
-            // generate platforms until we generate platform that ends out of the screen on right
-            while (this._lastMOB.x < leftTile + width) {
-                switch (this._mobsGenerationState) {
-                    case generateStateEnum.PROCESS_BLOCK:
-                        // check if queue not empty - should never happen
-                        if (!this._MOBgenerator.hasBlocks) {
-                            console.error("Mob Blocks queue is empty!");
-                        }
-
-                        let block = this._MOBgenerator.getBlockFromQueue();
-
-                        this._lastMOB.copyFrom(block.position);
-                        let length = block.length;
-
-                        // process mob
-                        while (length > 0) {
-                            this._addMobSprite(this._lastMOB.x, this._lastMOB.y, block.type);
-
-                            if ((--length) > 0) {
-                                ++this._lastMOB.x;
+            if (experientialManager.isMobGenerationEnabled) {
+                // generate platforms until we generate platform that ends out of the screen on right
+                while (this._lastMOB.x < leftTile + width) {
+                    switch (this._mobsGenerationState) {
+                        case generateStateEnum.PROCESS_BLOCK:
+                            // check if queue not empty - should never happen
+                            if (!this._MOBgenerator.hasBlocks) {
+                                console.error("Mob Blocks queue is empty!");
                             }
-                        }
 
-                        // return processed piece into pool
-                        this._MOBgenerator.destroyBlock(block);
+                            let block = this._MOBgenerator.getBlockFromQueue();
 
-                        // generate next platform
-                        if (!this._MOBgenerator.hasBlocks) {
-                            this._mobsGenerationState = generateStateEnum.GENERATE_BLOCK;
-                        }
+                            this._lastMOB.copyFrom(block.position);
+                            let length = block.length;
 
-                        break;
+                            // process mob
+                            while (length > 0) {
+                                this._addMobSprite(this._lastMOB.x, this._lastMOB.y, block.type);
 
-                    case generateStateEnum.GENERATE_BLOCK:
+                                if ((--length) > 0) {
+                                    ++this._lastMOB.x;
+                                }
+                            }
 
-                        this._MOBgenerator.generateMOBs(this._lastMOB);
-                        this._mobsGenerationState = generateStateEnum.PROCESS_BLOCK;
-                        break;
+                            // return processed piece into pool
+                            this._MOBgenerator.destroyBlock(block);
 
+                            // generate next platform
+                            if (!this._MOBgenerator.hasBlocks) {
+                                this._mobsGenerationState = generateStateEnum.GENERATE_BLOCK;
+                            }
+
+                            break;
+
+                        case generateStateEnum.GENERATE_BLOCK:
+
+                            this._MOBgenerator.generateMOBs(this._lastMOB);
+                            this._mobsGenerationState = generateStateEnum.PROCESS_BLOCK;
+                            break;
+
+                    }
                 }
             }
         }

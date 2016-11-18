@@ -66,13 +66,6 @@ namespace PCGGame {
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.velocity.x = -150;
 
-
-            let shouldFight = this.game.rnd.integerInRange(0, 100);
-            let AGGRESSION_LEVEL = 50;
-
-            if (shouldFight > AGGRESSION_LEVEL) {
-                this.fire(player);
-            }
         }
 
         public fire(player:Player) {
@@ -90,6 +83,7 @@ namespace PCGGame {
         public reset() {
             super.reset();
             this.health = this.weaponDamageCost;
+            this.aggressionProbability = 30;
             this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;
             this.animations.add(Invader.ID, [ 0, 1, 2, 3 ], 20, true);
             this.play(Invader.ID);

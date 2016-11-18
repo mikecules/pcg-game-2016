@@ -10,6 +10,7 @@ namespace PCGGame {
         public canCollide : boolean = true;
         public dangerLevel : number = spriteDangerLevelEnum.NO_DANGER;
         public weaponDamageCost : number = 10;
+        public aggressionProbability : number = 0;
 
         protected _isInvincible : boolean = false;
         protected _id : string = null;
@@ -17,6 +18,7 @@ namespace PCGGame {
         protected _weapon : Phaser.Weapon = null;
         protected _loot : Loot = null;
         protected _killScoreVal : number = 10;
+
 
 
 
@@ -37,10 +39,10 @@ namespace PCGGame {
         public render(player : Player) {
             //console.log('Base Sprite class die.');
 
-            if (this.hasLoot) {
+            if (this._isDead && this.hasLoot) {
                 this.angle = (this.angle - 1) % 360;
                 //this.game.physics.arcade.moveToObject(this, player, 1000, 800);
-                this.game.physics.arcade.moveToObject(this, player, 1000, 1800);
+                this.game.physics.arcade.moveToObject(this, player, 1000, 800);
             }
         }
 
@@ -106,6 +108,7 @@ namespace PCGGame {
             this.tint = 0xffffff;
             this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
             this.canCollide = true;
+            this.aggressionProbability = 0;
             this.loadTexture(this._id);
         }
 
