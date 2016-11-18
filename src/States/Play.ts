@@ -564,6 +564,10 @@ namespace PCGGame {
 
         public playerTookMobDamageHandler(player : Player, bullet : Phaser.Sprite, mob: Sprite) {
 
+            if (player.died) {
+                return;
+            }
+
             let damage : number = mob.getDamageCost();
 
             player.takeDamage(damage);

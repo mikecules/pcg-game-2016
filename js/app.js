@@ -47,8 +47,7 @@ var PCGGame;
             this._totalTimeElapsed += lastTime;
         };
         ExperientialGameManager.prototype.playerDamageReceived = function (damage, sprite) {
-            console.log('!!!! Damage Received ', damage, ' by ', sprite);
-            this._gameMetricSnapShots.current.playerDamageReceivedCount += damage;
+            this._gameMetricSnapShots.current.playerDamagedBy(sprite, damage);
         };
         ExperientialGameManager.prototype.playerKilled = function (sprite) {
             this._gameMetricSnapShots.current.playerKilledBy(sprite);
@@ -67,6 +66,13 @@ var PCGGame;
     var GameMetric = (function () {
         function GameMetric() {
             this.playerDeathCount = 0;
+            this.playerDeathCountForType = {
+                'Notch': 0,
+                'Meteor': 0,
+                'Invader': 0,
+                'MegaHead': 0,
+                'Platform': 0
+            };
             this.mobDeathCount = 0;
             this.mobDeathCountForType = {
                 'Notch': 0,
@@ -75,32 +81,89 @@ var PCGGame;
                 'MegaHead': 0
             };
             this.playerDamageReceivedCount = 0;
+            this.playerDamageForMobType = {
+                'Notch': 0,
+                'Meteor': 0,
+                'Invader': 0,
+                'MegaHead': 0,
+                'Platform': 0
+            };
             this.numberOfPlatformCollisions = 0;
         }
-        GameMetric.prototype.mobKilled = function (mob) {
-            if (mob instanceof PCGGame.Notch) {
-                this.mobDeathCountForType.Notch++;
-            }
-            else if (mob instanceof PCGGame.Meteor) {
-                this.mobDeathCountForType.Meteor++;
-            }
-            else if (mob instanceof PCGGame.Invader) {
-                this.mobDeathCountForType.Invader++;
-            }
-            else {
-                this.mobDeathCountForType.MegaHead++;
-            }
+        GameMetric.prototype.mobKilled = function (sprite) {
+            var mobType = this._getMobType(sprite);
+            this.mobDeathCountForType[this._getMobKeyForType(mobType)]++;
             this.mobDeathCount++;
+        };
+        GameMetric.prototype.playerDamagedBy = function (sprite, damage) {
+            console.log('MM !!! Player damaged by ', sprite);
+            var mobType = this._getMobType(sprite);
+            this.playerDamageForMobType[this._getMobKeyForType(mobType)] += damage;
+            this.playerDamageReceivedCount += damage;
         };
         GameMetric.prototype.playerKilledBy = function (sprite) {
             console.log('!!! Player killed by ', sprite);
+            var mobType = this._getMobType(sprite);
+            this.playerDeathCountForType[this._getMobKeyForType(mobType)]++;
             this.playerDeathCount++;
+        };
+        GameMetric.prototype._getMobType = function (sprite) {
+            var type = 0;
+            if (sprite instanceof PCGGame.Notch) {
+                type = 2;
+            }
+            else if (sprite instanceof PCGGame.Meteor) {
+                type = 3;
+            }
+            else if (sprite instanceof PCGGame.Invader) {
+                type = 4;
+            }
+            else if (sprite instanceof Generator.Block) {
+                type = 1;
+            }
+            else {
+                type = 5;
+            }
+            return type;
+        };
+        GameMetric.prototype._getMobKeyForType = function (type) {
+            var mobClass = 'UNKNOWN_MOB';
+            switch (type) {
+                case 2:
+                    mobClass = 'Notch';
+                    break;
+                case 3:
+                    mobClass = 'Meteor';
+                    break;
+                case 4:
+                    mobClass = 'Invader';
+                    break;
+                case 5:
+                    mobClass = 'MegaHead';
+                    break;
+                case 1:
+                    mobClass = 'Platform';
+                    break;
+                default:
+                    break;
+            }
+            return mobClass;
         };
         GameMetric.prototype.reset = function () {
             this.mobDeathCountForType.Notch = 0;
             this.mobDeathCountForType.Meteor = 0;
             this.mobDeathCountForType.Invader = 0;
             this.mobDeathCountForType.MegaHead = 0;
+            this.playerDeathCountForType.Notch = 0;
+            this.playerDeathCountForType.Meteor = 0;
+            this.playerDeathCountForType.Invader = 0;
+            this.playerDeathCountForType.MegaHead = 0;
+            this.playerDeathCountForType.Platform = 0;
+            this.playerDamageForMobType.Notch = 0;
+            this.playerDamageForMobType.Meteor = 0;
+            this.playerDamageForMobType.Invader = 0;
+            this.playerDamageForMobType.MegaHead = 0;
+            this.playerDamageForMobType.Platform = 0;
             this.playerDeathCount = 0;
             this.playerDamageReceivedCount = 0;
             this.mobDeathCount = 0;
@@ -1686,6 +1749,9 @@ var PCGGame;
             }
         };
         Play.prototype.playerTookMobDamageHandler = function (player, bullet, mob) {
+            if (player.died) {
+                return;
+            }
             var damage = mob.getDamageCost();
             player.takeDamage(damage);
             this.experientialGameManager.playerDamageReceived(damage, mob);
