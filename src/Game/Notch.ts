@@ -48,6 +48,7 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
+            this.health = this.weaponDamageCost;
             this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
             this.animations.add(Notch.ID, [ 0, 1, 2, 3, 4, 5], 20, true);
             this.play(Notch.ID);

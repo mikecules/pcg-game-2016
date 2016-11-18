@@ -132,7 +132,7 @@ namespace PCGGame {
         }
 
         public getDamageCost() {
-            return this._weaponDamageCost;
+            return this.weaponDamageCost;
         }
 
         public takeLoot(loot: Loot) {

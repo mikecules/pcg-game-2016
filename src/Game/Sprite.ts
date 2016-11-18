@@ -9,6 +9,7 @@ namespace PCGGame {
         public spriteFactoryParent : SpriteSingletonFactory = null;
         public canCollide : boolean = true;
         public dangerLevel : number = spriteDangerLevelEnum.NO_DANGER;
+        public weaponDamageCost : number = 10;
 
         protected _isInvincible : boolean = false;
         protected _id : string = null;
@@ -16,7 +17,7 @@ namespace PCGGame {
         protected _weapon : Phaser.Weapon = null;
         protected _loot : Loot = null;
         protected _killScoreVal : number = 10;
-        protected _weaponDamageCost : number = 10;
+
 
 
         public constructor(game : Phaser.Game, x?: number, y?: number, id? : string) {
@@ -92,7 +93,7 @@ namespace PCGGame {
         }
 
         public getDamageCost() : number {
-            return this._weaponDamageCost;
+            return this.weaponDamageCost;
         }
 
         public reset()  {
@@ -135,7 +136,11 @@ namespace PCGGame {
             }
         }
 
-        public takeDamage(damage: number) {
+        public takeDamage(damage : number) {
+
+            this.health -= damage;
+
+            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 500);
 
         }
 

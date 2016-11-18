@@ -6,7 +6,7 @@ namespace PCGGame {
     export class MainLayer extends Phaser.Group {
         private _generator: Generator.Generator;
         private _MOBgenerator: Generator.MOBGenerator;
-        private _wallSpritePool: Helper.Pool<Phaser.Sprite>;
+        private _wallSpritePool: Helper.Pool<Platform>;
         private _MOBSpritePool: Helper.Pool<SpriteSingletonFactory>;
         private _mobs : Phaser.Group;
         private _walls: Phaser.Group;
@@ -45,18 +45,14 @@ namespace PCGGame {
             });
 
             // pool of walls
-            this._wallSpritePool = new Helper.Pool<Phaser.Sprite>(Phaser.Sprite, Generator.Parameters.GRID.CELL.SIZE / 2,  ()  => { // add empty sprite with body
+            this._wallSpritePool = new Helper.Pool<Platform>(Platform, Generator.Parameters.GRID.CELL.SIZE,  ()  => { // add empty sprite with body
 
-                let sprite = new Phaser.Sprite(game, 0, 0, 'BlockTextures', 0);
+                let sprite = new Platform(game);
 
                 this._changeSpriteBlockTexture(sprite);
 
                 game.physics.enable(sprite, Phaser.Physics.ARCADE);
-                let body = <Phaser.Physics.Arcade.Body>sprite.body;
-                body.allowGravity = false;
-                body.immovable = true;
-                body.moves = false;
-                body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+
                 return sprite;
             });
 
@@ -106,7 +102,7 @@ namespace PCGGame {
 
                         // process piece
                         while (length > 0) {
-                            this._addBlockSprite(this._lastTile.x, this._lastTile.y);
+                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y);
 
                             if ((--length) > 0) {
                                 ++this._lastTile.x;
@@ -201,7 +197,7 @@ namespace PCGGame {
 
             for (let i = this._walls.length - 1; i >= 0; i--) {
 
-                let wall = <Phaser.Sprite>this._walls.getChildAt(i);
+                let wall = <Platform>this._walls.getChildAt(i);
 
                 if ((wall.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
                     this._walls.remove(wall);
@@ -215,9 +211,12 @@ namespace PCGGame {
             sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
         }
 
-        private _addBlockSprite(x: number, y: number): void {
+        private _addPlatformSprite(x: number, y: number): void {
             // sprite  get from pool
-            let sprite = this._wallSpritePool.createItem();
+            let sprite = <Sprite> this._wallSpritePool.createItem();
+
+            sprite.reset();
+
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
             sprite.exists = true;
             sprite.visible = true;

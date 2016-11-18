@@ -481,10 +481,16 @@ namespace PCGGame {
             //this.game.debug.bodyInfo(this._player, 32, 32);
         }
 
-        public wallBulletCollisionHandler(bullet : Phaser.Sprite, wall : Phaser.Sprite) {
+        public wallBulletCollisionHandler(bullet : Phaser.Sprite, wall : Sprite) {
 
             bullet.kill();
-            //wall.kill();
+
+            wall.takeDamage(this._player.getDamageCost());
+
+            if (wall.health <= 0) {
+                wall.die(this._player);
+                this.experientialGameManager.mobKilled(wall);
+            }
         }
 
         public mobBulletCollisionHandler(bullet : Phaser.Sprite, mob : Sprite) {
@@ -497,26 +503,21 @@ namespace PCGGame {
 
             bullet.kill();
 
-            if (mob instanceof MegaHead) {
-                mob.takeDamage(this._player.getDamageCost());
+            mob.takeDamage(this._player.getDamageCost());
 
-                if (mob.health <= 0) {
-                    mob.die(this._player);
-                }
-            }
-            else {
+            if (mob.health <= 0) {
                 mob.die(this._player);
+                this.experientialGameManager.mobKilled(mob);
             }
 
-            this.experientialGameManager.mobKilled(mob);
-            // TODO: FIRE SIGNAL OF MOB DEATH
         }
 
 
-        public wallPlayerCollisionHandler(player : Player, wall : Phaser.Sprite) {
+        public wallPlayerCollisionHandler(player : Player, wall : Sprite) {
 
-            let damage = 10;
+            let damage = wall.getDamageCost();
             player.takeDamage(damage);
+            wall.takeDamage(player.getDamageCost());
 
             this.experientialGameManager.playerDamageReceived(damage, wall);
 
@@ -586,7 +587,7 @@ namespace PCGGame {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
 
             if (! this._player.isInvincible && ! this._gameState.start) {
-                this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, (player : Player, wall : Phaser.Sprite) => {
+                this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, (player : Player, wall : Sprite) => {
                     this.wallPlayerCollisionHandler(player, wall)
                 });
             }
@@ -595,7 +596,7 @@ namespace PCGGame {
                 this.mobPlayerCollisionHandler(player, mob)
             });
 
-            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Phaser.Sprite) => {
+            this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Sprite) => {
                 this.wallBulletCollisionHandler(bullet, wall)
             }, null, this);
 

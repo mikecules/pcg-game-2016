@@ -24,6 +24,8 @@ namespace PCGGame {
             // enable physics for player
             game.physics.arcade.enable(this, false);
 
+            this.health = this.weaponDamageCost;
+
             // allow gravity
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
 
@@ -87,6 +89,7 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
+            this.health = this.weaponDamageCost;
             this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;
             this.animations.add(Invader.ID, [ 0, 1, 2, 3 ], 20, true);
             this.play(Invader.ID);

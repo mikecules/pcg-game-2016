@@ -97,19 +97,12 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
-            this.health = 20;
+            this.health = this.weaponDamageCost * 2;
             this.dangerLevel = spriteDangerLevelEnum.HIGH_DANGER;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);
             this.play(MegaHead.ID);
         }
 
-        public takeDamage(damage : number) {
-
-            this.health -= damage;
-
-            this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 500);
-
-        }
 
     }
 
