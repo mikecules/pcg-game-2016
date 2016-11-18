@@ -16,6 +16,7 @@ namespace PCGGame {
         private _totalTimeElapsed : number = 0;
         private _currentSnapShotTime : number = 0;
         private _adaptTimeElapsedMS : number = 0;
+        private _player : Player = null;
 
         private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;
@@ -54,7 +55,7 @@ namespace PCGGame {
                 GENERATE_BLOCK_THRESHOLD: 10
             },
             MOBS: {
-                MIN_MOB_TYPE: Generator.blockTypeEnum.MOB_NOTCH,
+                MIN_MOB_TYPE: Generator.blockTypeEnum.MOB_NULL,
                 MAX_MOB_TYPE: Generator.blockTypeEnum.MOB_NOTCH,
                 MIN_X_DISTANCE: 1,
                 MAX_X_DISTANCE: 5,
@@ -72,6 +73,7 @@ namespace PCGGame {
 
         public constructor(game: Phaser.Game, player: Player) {
             this._game = game;
+            this._player = player;
 
             this.calculateGridSpace();
 
@@ -90,6 +92,12 @@ namespace PCGGame {
                 this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
                 this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
                 this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_INVADER;
+            });
+
+            this.addAdaptationToQueue(15000, () => {
+                this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
+                this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
+                this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_MEGA_HEAD;
             });
 
         }
@@ -151,12 +159,12 @@ namespace PCGGame {
             this._adaptTimeElapsedMS += lastTime;
 
 
-            if (this.mobTransitionTimelineAdaptationQueue.length && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
+            if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
                 let adaptationToMake = this.getNextAdaptationInQueue();
-                console.log(adaptationToMake);
-                    adaptationToMake.f.call(this);
 
-                this._adaptTimeElapsedMS = this._adaptTimeElapsedMS - adaptationToMake - adaptationToMake.deltaMS;
+                adaptationToMake.f.call(this);
+
+                this._adaptTimeElapsedMS = this._adaptTimeElapsedMS - adaptationToMake.deltaMS;
             }
 
 
@@ -173,6 +181,10 @@ namespace PCGGame {
 
         public playerDamageReceived(damage: number, sprite : Sprite) {
             this._gameMetricSnapShots.current.playerDamagedBy(sprite, damage);
+        }
+
+        public playerDamageGiven(damage: number, sprite: Sprite) {
+
         }
 
         public playerKilled(sprite: Sprite) {

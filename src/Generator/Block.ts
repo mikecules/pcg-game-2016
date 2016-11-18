@@ -1,6 +1,6 @@
 namespace Generator {
 
-    export const enum blockTypeEnum {UNKNOWN_TYPE = 0, PLATFORM_TYPE, MOB_NOTCH, MOB_METEOR, MOB_INVADER, MOB_MEGA_HEAD};
+    export const enum blockTypeEnum {PLATFORM_TYPE = 1, MOB_NULL, MOB_NOTCH, MOB_METEOR, MOB_INVADER, MOB_MEGA_HEAD};
 
     export class Block {
 
@@ -16,12 +16,12 @@ namespace Generator {
         public isHollow : boolean = false;
 
 
-        public type : number = blockTypeEnum.UNKNOWN_TYPE;
+        public type : number = blockTypeEnum.MOB_NULL;
 
 
         public static getMobEnumType(sprite : PCGGame.Sprite) : number {
 
-        let type : number = blockTypeEnum.UNKNOWN_TYPE;
+        let type : number = blockTypeEnum.MOB_NULL;
 
         if (sprite instanceof PCGGame.Notch) {
             type = blockTypeEnum.MOB_NOTCH;
@@ -35,7 +35,7 @@ namespace Generator {
         else if (sprite instanceof PCGGame.Platform) {
             type = blockTypeEnum.PLATFORM_TYPE
         }
-        else {
+        else if (sprite instanceof PCGGame.MegaHead) {
             type = blockTypeEnum.MOB_MEGA_HEAD;
         }
 

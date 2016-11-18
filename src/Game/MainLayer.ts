@@ -19,9 +19,10 @@ namespace PCGGame {
 
 
         public render(): void {
-            /* this._mobs.forEachExists(function (sprite: Phaser.Sprite) {
+            return;
+            this._mobs.forEachExists(function (sprite: Phaser.Sprite) {
                 this.game.debug.body(sprite);
-            }, this); */
+            }, this);
 
             /*let a : Phaser.Sprite = <Phaser.Sprite>this._walls.getAt(0);
             if (a) {
@@ -286,6 +287,9 @@ namespace PCGGame {
                     break;
                 case  blockTypeEnum.MOB_MEGA_HEAD:
                     sprite = spriteFactory.getMegaHeadMob();//spriteFactory.getMeteorMob();//spriteFactory.getInvaderMob();
+                    break;
+                case blockTypeEnum.MOB_NULL:
+                    sprite = spriteFactory.getNullMob();
                     break;
                 default:
                     sprite = spriteFactory.getMeteorMob();

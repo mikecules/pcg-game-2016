@@ -11,7 +11,8 @@ namespace PCGGame {
             NOTCH: null,
             INVADER: null,
             METEOR: null,
-            MEGAHEAD: null
+            MEGAHEAD: null,
+            'NULL': null
         };
 
         public constructor(game: Phaser.Game) {
@@ -79,6 +80,14 @@ namespace PCGGame {
             }
 
             return this._mobs.METEOR;
+        }
+
+        public getNullMob() {
+            if (this._mobs.NULL === null) {
+                this._mobs.NULL = this._addCommonSpriteAttributes(new NullSprite(this._game));
+            }
+
+            return this._mobs.NULL;
         }
 
 
