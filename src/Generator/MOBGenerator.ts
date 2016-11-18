@@ -94,7 +94,7 @@ namespace Generator {
 
 
             // Y POSITION
-            let minY = -5;
+            let minY = -Parameters.PLATFORM_BLOCKS.MIN_DISTANCE * 2;
 
 
             let maxY = lowerBlockBound - upperBlockBound;

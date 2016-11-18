@@ -30,15 +30,15 @@ namespace Generator {
         public static PLATFORM_BLOCKS : any = {
             MIN_LENGTH: 1,
             MAX_LENGTH: 5,
-            MIN_DISTANCE: 1,
+            MIN_DISTANCE: 5,
             MAX_DISTANCE: 10,
             NEW_PATTERN_REPEAT_LENGTH: 2,
-            NEW_PATTERN_COMPOSITION_PERCENTAGE: 80
+            NEW_PATTERN_COMPOSITION_PERCENTAGE: 50
         };
 
 
         public static VELOCITY : any = {
-            X: 300
+            X: 250
         };
     }
 }

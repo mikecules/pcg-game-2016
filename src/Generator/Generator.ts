@@ -117,10 +117,10 @@ namespace Generator {
                 // repeat all pieces in pattern
                 for (let p = 0; p < baseBlockCount; p++) {
                     // get first piece in pattern to repeat as template
-                    let templateBlock = this._blocksQueue[oldQueueTop + p];
+                    let templateBlock = <Block> this._blocksQueue[oldQueueTop + p];
 
                     // replicate it
-                    let block = this._generate(hlpPos, length,
+                    let block = this._generate(hlpPos, length, templateBlock.rows,
                         templateBlock.offset.x, templateBlock.offset.y, experientialGameManager);
 
                     hlpPos.copyFrom(block.position);
@@ -152,7 +152,7 @@ namespace Generator {
         }
 
         private _generate(lastPosition: Phaser.Point,
-                          length?: number, offsetX?: number, offsetY?: number, experientialGameManger?: PCGGame.ExperientialGameManager): Block {
+                          length?: number, rows?: number, offsetX?: number, offsetY?: number, experientialGameManger?: PCGGame.ExperientialGameManager): Block {
             let block = this._createBlock();
             block.type = blockTypeEnum.PLATFORM_TYPE;
 
@@ -163,7 +163,7 @@ namespace Generator {
 
 
             // Y POSITION
-            let minY = -5;
+            let minY = -Parameters.PLATFORM_BLOCKS.MIN_DISTANCE * 2;
 
 
             let maxY = lowerBlockBound - upperBlockBound;
@@ -213,6 +213,11 @@ namespace Generator {
 
             // LENGTH
             block.length = length || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            block.rows = rows || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+
+            if (block.rows > 2 && block.length > 2) {
+                block.isHollow =  true;// this._randomGenerator.integerInRange(0, 1) === 0 ? false : true;
+            }
 
             // RESULT
             this._lastGeneratedBlock = block;

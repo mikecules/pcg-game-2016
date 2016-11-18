@@ -29,7 +29,7 @@ namespace PCGGame {
         }
 
         public takeMetricSnapShot() {
-            console.log(this._gameMetricSnapShots.current);
+            console.warn(this._gameMetricSnapShots.current);
         }
 
 
