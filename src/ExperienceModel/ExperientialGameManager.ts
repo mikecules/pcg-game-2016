@@ -17,13 +17,52 @@ namespace PCGGame {
         private _currentSnapShotTime : number = 0;
         private _adaptTimeElapsedMS : number = 0;
         private _player : Player = null;
+        private _randomGenerator : Phase.RandomDataGenerator;
 
         private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;
 
-        private _lootProbabilityDist : any = {
+        private _probabilityDistributions : any = {
+            LOOT: {
+                DEFAULT: 33,
+                WEAPON: 30,
+                SHIELD: 30,
+                MYSTERY_LOOT: 2,
+                NEW_LIFE: 5
+            },
+            PLATFORM: {
+                NULL_BLOCKS: 50,
+                BLOCKS: 50
+            },
+            MOB: {
+                NULL_MOB: 20,
+                NOTCH: 25,
+                METEOR: 15,
+                INVADER: 25,
+                MEGAHEAD: 15
+            }
+        };
 
-    };
+        private _probabilityDistributionBoundries : any = {
+            LOOT: {
+                DEFAULT: 0,
+                WEAPON: 0,
+                SHIELD: 0,
+                MYSTERY_LOOT: 0,
+                NEW_LIFE: 0
+            },
+            PLATFORM: {
+                NULL_BLOCKS: 0,
+                BLOCKS: 0
+            },
+            MOB: {
+                NULL_MOB: 0,
+                NOTCH: 0,
+                METEOR: 0,
+                INVADER: 0,
+                MEGAHEAD: 0
+            }
+        };
 
         /*public generatorParameters : any = {
             PLATFORM: {
@@ -48,8 +87,8 @@ namespace PCGGame {
             PLATFORM: {
                 MIN_LENGTH: 1,
                 MAX_LENGTH: 5,
-                MIN_DISTANCE: 5,
-                MAX_DISTANCE: 10,
+                MIN_DISTANCE: 3,
+                MAX_DISTANCE: 6,
                 NEW_PATTERN_REPEAT_LENGTH: 2,
                 NEW_PATTERN_COMPOSITION_PERCENTAGE: 50,
                 GENERATE_BLOCK_THRESHOLD: 10
@@ -74,6 +113,7 @@ namespace PCGGame {
         public constructor(game: Phaser.Game, player: Player) {
             this._game = game;
             this._player = player;
+            this._randomGenerator = game.rnd;
 
             this.calculateGridSpace();
 
@@ -95,10 +135,32 @@ namespace PCGGame {
             });
 
             this.addAdaptationToQueue(15000, () => {
-                this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
-                this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
                 this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_MEGA_HEAD;
             });
+
+        }
+
+        public get lootDistributionFn() : Function {
+            return () => {};
+        }
+
+        public get platformDistributionFn() : Function {
+            return () => this._randomGenerator.integerInRange(blockTypeEnum.PLATFORM_TYPE, blockTypeEnum.MOB_NULL);
+        }
+
+        public get mobDistributionFn() : Function {
+            return () => {};
+        }
+
+        private _updateLootDistribution() {
+
+        }
+
+        private _updateMobDistribution() {
+
+        }
+
+        private _updatePlatformDistribution() {
 
         }
 
@@ -271,7 +333,7 @@ namespace PCGGame {
         }
 
         private _getMobKeyForType(type : number) : string {
-            let mobClass : string = 'UNKNOWN_MOB';
+            let mobClass : string = 'MOB_NULL';
 
             switch (type) {
                 case blockTypeEnum.MOB_NOTCH:

@@ -164,7 +164,7 @@ namespace Generator {
             let generatorParams =  this._experientialGameManager.generatorParameters;
 
             let block = this._createBlock();
-            block.type = blockTypeEnum.PLATFORM_TYPE;
+            block.type = this._experientialGameManager.platformDistributionFn.call(this);
 
             let upperBlockBound = 0;
             let lowerBlockBound =  (PCGGame.Global.SCREEN.HEIGHT - Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;
@@ -226,7 +226,7 @@ namespace Generator {
             block.rows = rows || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_LENGTH, generatorParams.PLATFORM.MAX_LENGTH);
 
             if (block.rows > 2 && block.length > 2) {
-                block.isHollow =  true;// this._randomGenerator.integerInRange(0, 1) === 0 ? false : true;
+                block.isHollow =  true;
             }
 
             // RESULT

@@ -24,12 +24,7 @@ namespace PCGGame {
             game.physics.arcade.enable(this, false);
 
 
-            // allow gravity
-            let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
 
-            body.allowGravity = false;
-            body.immovable = true;
-            body.moves = true;
 
 
         }
@@ -50,6 +45,14 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
+            // allow gravity
+            let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
+
+            body.setSize(32, 32 , -3, 0);
+
+            body.allowGravity = false;
+            body.immovable = true;
+            body.moves = true;
             this.health = this.weaponDamageCost * 3;
             this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
 

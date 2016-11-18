@@ -6,7 +6,7 @@ namespace PCGGame {
     export class MainLayer extends Phaser.Group {
         private _generator: Generator.Generator;
         private _MOBgenerator: Generator.MOBGenerator;
-        private _wallSpritePool: Helper.Pool<Platform>;
+        private _wallSpritePool: Helper.Pool<SpriteSingletonFactory>;
         private _MOBSpritePool: Helper.Pool<SpriteSingletonFactory>;
         private _mobs : Phaser.Group;
         private _walls: Phaser.Group;
@@ -19,7 +19,11 @@ namespace PCGGame {
 
 
         public render(): void {
-            return;
+            //return;
+            this._walls.forEachExists(function (sprite: Phaser.Sprite) {
+                this.game.debug.body(sprite);
+            }, this);
+
             this._mobs.forEachExists(function (sprite: Phaser.Sprite) {
                 this.game.debug.body(sprite);
             }, this);
@@ -46,15 +50,8 @@ namespace PCGGame {
             });
 
             // pool of walls
-            this._wallSpritePool = new Helper.Pool<Platform>(Platform, Generator.Parameters.GRID.CELL.SIZE,  ()  => { // add empty sprite with body
-
-                let sprite = new Platform(game);
-
-                this._changeSpriteBlockTexture(sprite);
-
-                game.physics.enable(sprite, Phaser.Physics.ARCADE);
-
-                return sprite;
+            this._wallSpritePool = new Helper.Pool<SpriteSingletonFactory>(Platform, Generator.Parameters.GRID.CELL.SIZE,  ()  => { // add empty sprite with body
+                return new SpriteSingletonFactory(game);
             });
 
             // walls group
@@ -133,10 +130,10 @@ namespace PCGGame {
                                     for (let j = 0; j < rows; j++) {
 
                                         if (! isHollow || j === 0 || j == (rows - 1)) {
-                                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
+                                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j, block.type);
                                         }
                                         else if (i === 0 || i === (length - 1)) {
-                                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
+                                            this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j, block.type);
                                         }
                                     }
 
@@ -245,7 +242,7 @@ namespace PCGGame {
                 if ((wall.x - leftTile) <= -Generator.Parameters.GRID.CELL.SIZE) {
                     this._walls.remove(wall);
                     wall.parent = null;
-                    this._wallSpritePool.destroyItem(wall);
+                    this._wallSpritePool.destroyItem(wall.spriteFactoryParent);
                 }
             }
         }
@@ -254,15 +251,25 @@ namespace PCGGame {
             sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
         }
 
-        private _addPlatformSprite(x: number, y: number): void {
+        private _addPlatformSprite(x: number, y: number, platformType: number): void {
             // sprite  get from pool
-            let sprite = <Sprite> this._wallSpritePool.createItem();
+            let spriteFactory = <SpriteSingletonFactory> this._wallSpritePool.createItem();
+            let sprite : Sprite = null;
+
+
+            switch (platformType) {
+                case blockTypeEnum.MOB_NULL:
+                    sprite = spriteFactory.getPlatformMob();
+                    this._changeSpriteBlockTexture(sprite);
+                    break;
+                default:
+                    sprite = spriteFactory.getNullMob();
+                    break;
+            }
 
             sprite.reset();
 
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
-            sprite.exists = true;
-            sprite.visible = true;
 
             this._changeSpriteBlockTexture(sprite);
 
@@ -275,7 +282,7 @@ namespace PCGGame {
         private _addMobSprite (x: number, y: number, mobType: number): void {
 
             let spriteFactory : SpriteSingletonFactory = this._MOBSpritePool.createItem();
-            let sprite : any = null;
+            let sprite : Sprite = null;
 
 
             switch (mobType) {
@@ -302,8 +309,8 @@ namespace PCGGame {
             // convert grid space of blog into 2D X,Y space used by the engine
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
 
-console.warn(x, y, sprite.position);
-            //console.log(sprite.parent);
+            console.warn(x, y, sprite.position);
+
             // add into mobs group
             if (sprite.parent === null) {
                 this._mobs.add(sprite);

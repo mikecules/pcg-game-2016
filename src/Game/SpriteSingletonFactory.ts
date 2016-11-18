@@ -12,7 +12,8 @@ namespace PCGGame {
             INVADER: null,
             METEOR: null,
             MEGAHEAD: null,
-            'NULL': null
+            NULL_MOB: null,
+            PLATFORM_TYPE: null
         };
 
         public constructor(game: Phaser.Game) {
@@ -83,11 +84,19 @@ namespace PCGGame {
         }
 
         public getNullMob() {
-            if (this._mobs.NULL === null) {
-                this._mobs.NULL = this._addCommonSpriteAttributes(new NullSprite(this._game));
+            if (this._mobs.NULL_MOB === null) {
+                this._mobs.NULL_MOB = this._addCommonSpriteAttributes(new NullSprite(this._game));
             }
 
-            return this._mobs.NULL;
+            return this._mobs.NULL_MOB;
+        }
+
+        public getPlatformMob() {
+            if (this._mobs.PLATFORM_TYPE === null) {
+                this._mobs.PLATFORM_TYPE = this._addCommonSpriteAttributes(new Platform(this._game));
+            }
+
+            return this._mobs.PLATFORM_TYPE;
         }
 
 

@@ -50,6 +50,8 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
+            let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
+            body.setCircle(20, -5 , -5);
             this.health = this.weaponDamageCost;
             this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
         }
