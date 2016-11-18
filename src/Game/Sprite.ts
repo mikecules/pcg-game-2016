@@ -63,10 +63,11 @@ namespace PCGGame {
             this.loadTexture(Animation.EXPLODE_ID);
             this.animations.add(Animation.EXPLODE_ID, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
 
-            this._generateLoot();
+
             this.play(Animation.EXPLODE_ID, 30, false);
 
             this.animations.currentAnim.onComplete.add(() => {
+                this._generateLoot();
                 this._convertMobToLoot();
             }, this);
         }

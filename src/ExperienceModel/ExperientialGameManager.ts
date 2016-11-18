@@ -1,5 +1,6 @@
 namespace PCGGame {
     import blockTypeEnum = Generator.blockTypeEnum;
+
     export class ExperientialGameManager {
         public static _instance : ExperientialGameManager = null;
         public static INTERVAL_MS : number = 5000;
@@ -14,13 +15,80 @@ namespace PCGGame {
         private _game : Phaser.Game = null;
         private _totalTimeElapsed : number = 0;
         private _currentSnapShotTime : number = 0;
+        private _adaptTimeElapsedMS : number = 0;
 
-        private _mobGenerationEnabled : boolean = true;
+        private _mobGenerationEnabled : boolean = false;
         private _platformGenerationEnabled : boolean = true;
+
+        private _lootProbabilityDist : any = {
+
+    };
+
+        /*public generatorParameters : any = {
+            PLATFORM: {
+                MIN_LENGTH: 1,
+                MAX_LENGTH: 5,
+                MIN_DISTANCE: 5,
+                MAX_DISTANCE: 10,
+                NEW_PATTERN_REPEAT_LENGTH: 2,
+                NEW_PATTERN_COMPOSITION_PERCENTAGE: 50,
+                GENERATE_BLOCK_THRESHOLD: 50
+            },
+            MOBS: {
+
+            }
+        };*/
+
+        public generatorParameters : any = {
+            GRID: {
+                X_TOTAL: 0,
+                Y_TOTAL: 0
+            },
+            PLATFORM: {
+                MIN_LENGTH: 1,
+                MAX_LENGTH: 5,
+                MIN_DISTANCE: 5,
+                MAX_DISTANCE: 10,
+                NEW_PATTERN_REPEAT_LENGTH: 2,
+                NEW_PATTERN_COMPOSITION_PERCENTAGE: 50,
+                GENERATE_BLOCK_THRESHOLD: 50
+            },
+            MOBS: {
+                MIN_MOB_TYPE: Generator.blockTypeEnum.MOB_NOTCH,
+                MAX_MOB_TYPE: Generator.blockTypeEnum.MOB_NOTCH,
+                MIN_X_DISTANCE: 1,
+                MAX_X_DISTANCE: 5,
+                MIN_Y_DISTANCE: 1,
+                MAX_Y_DISTANCE: 20
+            }
+        };
+
+        /*
+        * X = 32
+        * Y = 24
+        * */
+        public mobTransitionTimelineAdaptationQueue : any = [];
+
 
         public constructor(game: Phaser.Game, player: Player) {
             this._game = game;
+
+            this.calculateGridSpace();
+
+            this.addAdaptationToQueue(5000, () => {
+                this._mobGenerationEnabled = true;
+                this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_METEOR;
+            });
+
+            this.addAdaptationToQueue(5000, () => {
+                this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
+                this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
+                this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_INVADER;
+            });
+
         }
+
+
 
         public static instance(game?: Phaser.Game, player?: Player) : ExperientialGameManager {
 
@@ -29,6 +97,31 @@ namespace PCGGame {
             }
 
             return ExperientialGameManager._instance;
+        }
+
+        public calculateGridSpace() {
+            this.generatorParameters.GRID.X_TOTAL = this._game.width / Generator.Parameters.GRID.CELL.SIZE;
+            this.generatorParameters.GRID.Y_TOTAL = this._game.height / Generator.Parameters.GRID.CELL.SIZE;
+        }
+
+
+        public addAdaptationToQueue(msInFuture: number, adaptationFunction: Function) {
+            this.mobTransitionTimelineAdaptationQueue.push(
+                {
+                    deltaMS: msInFuture,
+                    f: adaptationFunction
+                }
+            );
+        }
+
+        public getNextAdaptationInQueue() {
+            if (this.hasAdapatationsInQueue()) {
+                return this.mobTransitionTimelineAdaptationQueue.shift();
+            }
+        }
+
+        public hasAdapatationsInQueue() {
+            return  this.mobTransitionTimelineAdaptationQueue.length > 0;
         }
 
         public get isMobGenerationEnabled() : boolean {
@@ -49,13 +142,22 @@ namespace PCGGame {
 
             let lastTime = this._game.time.elapsedMS;
             this._currentSnapShotTime += lastTime;
+            this._adaptTimeElapsedMS += lastTime;
+
+
+            if (this.mobTransitionTimelineAdaptationQueue.length && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
+                let adaptationToMake = this.getNextAdaptationInQueue();
+                console.log(adaptationToMake);
+                    adaptationToMake.f.call(this);
+
+                this._adaptTimeElapsedMS = this._adaptTimeElapsedMS - adaptationToMake - adaptationToMake.deltaMS;
+            }
 
 
             if (this._currentSnapShotTime >= ExperientialGameManager.INTERVAL_MS) {
                 this.takeMetricSnapShot();
                 this._currentSnapShotTime = this._currentSnapShotTime - ExperientialGameManager.INTERVAL_MS;
             }
-
 
             this._totalTimeElapsed += lastTime;
 

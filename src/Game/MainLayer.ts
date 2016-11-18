@@ -61,9 +61,21 @@ namespace PCGGame {
 
             this._mobs = new Phaser.Group(game, this);
 
+            let experientialManager : ExperientialGameManager = ExperientialGameManager.instance();
+
             // set initial tile for generating
-            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
-            this._MOBgenerator.addMob(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
+
+
+            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE),
+                this._randomGenerator.integerInRange(experientialManager.generatorParameters.PLATFORM.MIN_DISTANCE,  experientialManager.generatorParameters.PLATFORM.MAX_DISTANCE),
+                this._randomGenerator.integerInRange(experientialManager.generatorParameters.PLATFORM.MIN_DISTANCE,  experientialManager.generatorParameters.PLATFORM.MAX_DISTANCE));
+
+
+
+                this._MOBgenerator.addMob(32 * 3,
+                    this._randomGenerator.integerInRange(experientialManager.generatorParameters.MOBS.MIN_X_DISTANCE, experientialManager.generatorParameters.MOBS.MAX_X_DISTANCE),
+                    this._randomGenerator.integerInRange(experientialManager.generatorParameters.MOBS.MIN_X_DISTANCE, experientialManager.generatorParameters.MOBS.MAX_X_DISTANCE));
+
 
             this._platformGenerationState = generateStateEnum.PROCESS_BLOCK;
             this._mobsGenerationState = generateStateEnum.PROCESS_BLOCK;
@@ -151,6 +163,9 @@ namespace PCGGame {
                     }
                 }
             }
+            else {
+                this._MOBgenerator.updateLastBlockX = leftTile + experientialManager.generatorParameters.GRID.X_TOTAL;
+            }
 
             if (gameState.start) {
                 return;
@@ -193,6 +208,7 @@ namespace PCGGame {
 
                         case generateStateEnum.GENERATE_BLOCK:
 
+                            console.warn('Generate Mobs!!!!!!!!');
                             this._MOBgenerator.generateMOBs(this._lastMOB);
                             this._mobsGenerationState = generateStateEnum.PROCESS_BLOCK;
                             break;
@@ -257,7 +273,6 @@ namespace PCGGame {
 
         private _addMobSprite (x: number, y: number, mobType: number): void {
 
-
             let spriteFactory : SpriteSingletonFactory = this._MOBSpritePool.createItem();
             let sprite : any = null;
 
@@ -279,9 +294,11 @@ namespace PCGGame {
 
 
             sprite.reset();
+
+            // convert grid space of blog into 2D X,Y space used by the engine
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
 
-
+console.warn(x, y, sprite.position);
             //console.log(sprite.parent);
             // add into mobs group
             if (sprite.parent === null) {

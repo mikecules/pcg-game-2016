@@ -5,14 +5,16 @@ namespace Generator {
         private _lastGeneratedBlock : Block;
 
 
-        private _blocksQueue: Generator.Block[] = new Array(Parameters.GRID.CELL.SIZE);
+        private _blocksQueue: Block[] = new Array(Parameters.GRID.CELL.SIZE);
         private _blocksQueueTop: number = 0;
+        private _experientialGameManager : PCGGame.ExperientialGameManager = null;
 
         constructor(randomGenerator: Phaser.RandomDataGenerator) {
             this._randomGenerator = randomGenerator;
 
             // pool of blocks
-            this._blockPool = new Helper.Pool<Block>(Block, 16);
+            this._blockPool = new Helper.Pool<Block>(Block, Parameters.GRID.CELL.SIZE);
+            this._experientialGameManager = PCGGame.ExperientialGameManager.instance();
         }
 
         private _createBlock() : Block {
@@ -74,18 +76,24 @@ namespace Generator {
         }
 
 
-
-        public generateMOBs(lastTile: Phaser.Point , experientialGameManger?: PCGGame.ExperientialGameManager): void {
+        public generateMOBs(lastTile: Phaser.Point): void {
             let block = this._generate(lastTile);
 
             // add to queue
             this.addBlockToQueue(block);
         }
 
-        private _generate(lastPosition: Phaser.Point,
-                          length?: number, offsetX?: number, offsetY?: number, experientialGameManger?: PCGGame.ExperientialGameManager): Block {
+
+        public set updateLastBlockX(x : number) {
+            this._lastGeneratedBlock.position.x = x;
+        }
+
+        private _generate(lastPosition: Phaser.Point): Block {
+
+            let generatorParams =  this._experientialGameManager.generatorParameters;
+
             let block = this._createBlock();
-            block.type = this._randomGenerator.integerInRange(blockTypeEnum.MOB_NOTCH, blockTypeEnum.MOB_MEGA_HEAD);
+            block.type = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_MOB_TYPE, generatorParams.MOBS.MAX_MOB_TYPE);
 
             let upperBlockBound = 1;
             let lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT -  Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;
@@ -94,7 +102,7 @@ namespace Generator {
 
 
             // Y POSITION
-            let minY = -Parameters.PLATFORM_BLOCKS.MIN_DISTANCE * 2;
+            let minY = -generatorParams.MOBS.MIN_DISTANCE * 2;
 
 
             let maxY = lowerBlockBound - upperBlockBound;
@@ -107,40 +115,32 @@ namespace Generator {
             let shiftY = 0;
 
 
+            shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
 
-            if (typeof offsetY === 'undefined') {
+            // substract currentY from shiftY - it will split possible y levels to negative
+            // (how much step up (-)) and positive (how much to step down (+))
+            shiftY -= currentY;
 
-                shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
+            // clamp step to keep it inside interval given with maximum
 
-                // substract currentY from shiftY - it will split possible y levels to negative
-                // (how much step up (-)) and positive (how much to step down (+))
-                shiftY -= currentY;
+            // jump offset up (minY) and maximum fall down (maxX)
+            shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
 
-                // clamp step to keep it inside interval given with maximum
-
-                // jump offset up (minY) and maximum fall down (maxX)
-                shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
-            }
-            else {
-                shiftY = offsetY
-            }
 
             // new level for platform
             // limit once more against game limits (2 free tiles on top, 1 water tile at bottom)
             let newY = Phaser.Math.clamp(currentY + shiftY, 0, deltaGridY);
 
             // shift by upper bound to get right y level on screen
-            block.position.y = newY + upperBlockBound;
+            block.position.y =  this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_Y_DISTANCE, generatorParams.MOBS.MAX_Y_DISTANCE); //newY + upperBlockBound;
 
 
             // position of next tile in x direction
-            let shiftX = offsetX || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_DISTANCE, Parameters.PLATFORM_BLOCKS.MAX_DISTANCE);
+            let shiftX = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_X_DISTANCE, generatorParams.MOBS.MAX_X_DISTANCE);
 
             // new absolute x position
             block.position.x = lastPosition.x + shiftX;
 
-            // offset of new piece relative to last position (end position of last piece)
-            block.offset.x = shiftX;
 
             // LENGTH
             block.length = 1;
@@ -148,7 +148,7 @@ namespace Generator {
             // RESULT
             this._lastGeneratedBlock = block;
 
-            //console.log('MIKE!!! ', block)
+            console.warn(block);
 
             return block;
         }

@@ -18,6 +18,7 @@ var PCGGame;
 (function (PCGGame) {
     var ExperientialGameManager = (function () {
         function ExperientialGameManager(game, player) {
+            var _this = this;
             this._gameMetricSnapShots = {
                 overall: new GameMetric(),
                 previous: new GameMetric(),
@@ -26,15 +27,69 @@ var PCGGame;
             this._game = null;
             this._totalTimeElapsed = 0;
             this._currentSnapShotTime = 0;
-            this._mobGenerationEnabled = true;
+            this._adaptTimeElapsedMS = 0;
+            this._mobGenerationEnabled = false;
             this._platformGenerationEnabled = true;
+            this._lootProbabilityDist = {};
+            this.generatorParameters = {
+                GRID: {
+                    X_TOTAL: 0,
+                    Y_TOTAL: 0
+                },
+                PLATFORM: {
+                    MIN_LENGTH: 1,
+                    MAX_LENGTH: 5,
+                    MIN_DISTANCE: 5,
+                    MAX_DISTANCE: 10,
+                    NEW_PATTERN_REPEAT_LENGTH: 2,
+                    NEW_PATTERN_COMPOSITION_PERCENTAGE: 50,
+                    GENERATE_BLOCK_THRESHOLD: 50
+                },
+                MOBS: {
+                    MIN_MOB_TYPE: 2,
+                    MAX_MOB_TYPE: 2,
+                    MIN_X_DISTANCE: 1,
+                    MAX_X_DISTANCE: 5,
+                    MIN_Y_DISTANCE: 1,
+                    MAX_Y_DISTANCE: 20
+                }
+            };
+            this.mobTransitionTimelineAdaptationQueue = [];
             this._game = game;
+            this.calculateGridSpace();
+            this.addAdaptationToQueue(5000, function () {
+                _this._mobGenerationEnabled = true;
+                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 3;
+            });
+            this.addAdaptationToQueue(5000, function () {
+                _this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
+                _this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
+                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 4;
+            });
         }
         ExperientialGameManager.instance = function (game, player) {
             if (ExperientialGameManager._instance === null && game && player) {
                 ExperientialGameManager._instance = new ExperientialGameManager(game, player);
             }
             return ExperientialGameManager._instance;
+        };
+        ExperientialGameManager.prototype.calculateGridSpace = function () {
+            this.generatorParameters.GRID.X_TOTAL = this._game.width / Generator.Parameters.GRID.CELL.SIZE;
+            this.generatorParameters.GRID.Y_TOTAL = this._game.height / Generator.Parameters.GRID.CELL.SIZE;
+        };
+        ExperientialGameManager.prototype.addAdaptationToQueue = function (msInFuture, adaptationFunction) {
+            this.mobTransitionTimelineAdaptationQueue.push({
+                deltaMS: msInFuture,
+                f: adaptationFunction
+            });
+        };
+        ExperientialGameManager.prototype.getNextAdaptationInQueue = function () {
+            if (this.hasAdapatationsInQueue()) {
+                return this.mobTransitionTimelineAdaptationQueue.shift();
+            }
+        };
+        ExperientialGameManager.prototype.hasAdapatationsInQueue = function () {
+            return this.mobTransitionTimelineAdaptationQueue.length > 0;
         };
         Object.defineProperty(ExperientialGameManager.prototype, "isMobGenerationEnabled", {
             get: function () {
@@ -56,6 +111,13 @@ var PCGGame;
         ExperientialGameManager.prototype.update = function () {
             var lastTime = this._game.time.elapsedMS;
             this._currentSnapShotTime += lastTime;
+            this._adaptTimeElapsedMS += lastTime;
+            if (this.mobTransitionTimelineAdaptationQueue.length && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
+                var adaptationToMake = this.getNextAdaptationInQueue();
+                console.log(adaptationToMake);
+                adaptationToMake.f.call(this);
+                this._adaptTimeElapsedMS = this._adaptTimeElapsedMS - adaptationToMake - adaptationToMake.deltaMS;
+            }
             if (this._currentSnapShotTime >= ExperientialGameManager.INTERVAL_MS) {
                 this.takeMetricSnapShot();
                 this._currentSnapShotTime = this._currentSnapShotTime - ExperientialGameManager.INTERVAL_MS;
@@ -307,9 +369,9 @@ var PCGGame;
             this._isDead = true;
             this.loadTexture(PCGGame.Animation.EXPLODE_ID);
             this.animations.add(PCGGame.Animation.EXPLODE_ID, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
-            this._generateLoot();
             this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
             this.animations.currentAnim.onComplete.add(function () {
+                _this._generateLoot();
                 _this._convertMobToLoot();
             }, this);
         };
@@ -589,8 +651,9 @@ var PCGGame;
             });
             this._walls = new Phaser.Group(game, this);
             this._mobs = new Phaser.Group(game, this);
-            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
-            this._MOBgenerator.addMob(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(1, 3));
+            var experientialManager = PCGGame.ExperientialGameManager.instance();
+            this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(experientialManager.generatorParameters.PLATFORM.MIN_DISTANCE, experientialManager.generatorParameters.PLATFORM.MAX_DISTANCE), this._randomGenerator.integerInRange(experientialManager.generatorParameters.PLATFORM.MIN_DISTANCE, experientialManager.generatorParameters.PLATFORM.MAX_DISTANCE));
+            this._MOBgenerator.addMob(32 * 3, this._randomGenerator.integerInRange(experientialManager.generatorParameters.MOBS.MIN_X_DISTANCE, experientialManager.generatorParameters.MOBS.MAX_X_DISTANCE), this._randomGenerator.integerInRange(experientialManager.generatorParameters.MOBS.MIN_X_DISTANCE, experientialManager.generatorParameters.MOBS.MAX_X_DISTANCE));
             this._platformGenerationState = 0;
             this._mobsGenerationState = 0;
         }
@@ -652,6 +715,9 @@ var PCGGame;
                     }
                 }
             }
+            else {
+                this._MOBgenerator.updateLastBlockX = leftTile + experientialManager.generatorParameters.GRID.X_TOTAL;
+            }
             if (gameState.start) {
                 return;
             }
@@ -677,6 +743,7 @@ var PCGGame;
                             }
                             break;
                         case 1:
+                            console.warn('Generate Mobs!!!!!!!!');
                             this._MOBgenerator.generateMOBs(this._lastMOB);
                             this._mobsGenerationState = 0;
                             break;
@@ -739,6 +806,7 @@ var PCGGame;
             }
             sprite.reset();
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
+            console.warn(x, y, sprite.position);
             if (sprite.parent === null) {
                 this._mobs.add(sprite);
             }
@@ -1179,11 +1247,13 @@ var Generator;
 (function (Generator_1) {
     var Generator = (function () {
         function Generator(randomGenerator) {
+            this._experientialGameManager = null;
             this._blocksQueue = new Array(Generator_1.Parameters.GRID.CELL.SIZE);
             this._blocksQueueTop = 0;
             this._hlpPoint = new Phaser.Point();
             this._randomGenerator = randomGenerator;
             this._blockPool = new Helper.Pool(Generator_1.Block, 16);
+            this._experientialGameManager = PCGGame.ExperientialGameManager.instance();
         }
         Generator.prototype._createBlock = function () {
             var block = this._blockPool.createItem();
@@ -1226,15 +1296,16 @@ var Generator;
             this.addBlockToQueue(block);
             return block;
         };
-        Generator.prototype.generateBlocksPattern = function (lastTile, experientialGameManager) {
+        Generator.prototype.generateBlocksPattern = function (lastTile) {
             var oldQueueTop = this._blocksQueueTop;
+            var generatorParams = this._experientialGameManager.generatorParameters;
             var hlpPos = this._hlpPoint;
             hlpPos.copyFrom(lastTile);
             var length = null;
-            if (this._randomGenerator.integerInRange(0, 99) < Generator_1.Parameters.PLATFORM_BLOCKS.NEW_PATTERN_COMPOSITION_PERCENTAGE) {
-                length = this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            if (this._randomGenerator.integerInRange(0, 99) < generatorParams.PLATFORM.NEW_PATTERN_COMPOSITION_PERCENTAGE) {
+                length = this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_LENGTH, generatorParams.PLATFORM.MAX_LENGTH);
             }
-            var baseBlockCount = Generator_1.Parameters.PLATFORM_BLOCKS.NEW_PATTERN_REPEAT_LENGTH;
+            var baseBlockCount = generatorParams.PLATFORM.NEW_PATTERN_REPEAT_LENGTH;
             for (var i = 0; i < baseBlockCount; i++) {
                 var block = this._generate(hlpPos, length);
                 hlpPos.copyFrom(block.position);
@@ -1245,33 +1316,34 @@ var Generator;
             for (var i = 0; i < repeat; i++) {
                 for (var p = 0; p < baseBlockCount; p++) {
                     var templateBlock = this._blocksQueue[oldQueueTop + p];
-                    var block = this._generate(hlpPos, length, templateBlock.rows, templateBlock.offset.x, templateBlock.offset.y, experientialGameManager);
+                    var block = this._generate(hlpPos, length, templateBlock.rows, templateBlock.offset.x, templateBlock.offset.y);
                     hlpPos.copyFrom(block.position);
                     hlpPos.x += block.length - 1;
                     this.addBlockToQueue(block);
                 }
             }
         };
-        Generator.prototype.generateBlocksRandomly = function (lastTile, experientialGameManager) {
+        Generator.prototype.generateBlocksRandomly = function (lastTile) {
             var block = this._generate(lastTile);
             this.addBlockToQueue(block);
         };
-        Generator.prototype.generateBlocks = function (lastTile, experientialGameManger) {
+        Generator.prototype.generateBlocks = function (lastTile) {
             var probability = this._randomGenerator.integerInRange(0, 99);
-            if (probability < Generator_1.Parameters.GENERATE_BLOCK_THRESHOLD) {
-                this.generateBlocksRandomly(lastTile, experientialGameManger);
+            if (probability < this._experientialGameManager.generatorParameters.PLATFORM.GENERATE_BLOCK_THRESHOLD) {
+                this.generateBlocksRandomly(lastTile);
             }
             else {
-                this.generateBlocksPattern(lastTile, experientialGameManger);
+                this.generateBlocksPattern(lastTile);
             }
         };
-        Generator.prototype._generate = function (lastPosition, length, rows, offsetX, offsetY, experientialGameManger) {
+        Generator.prototype._generate = function (lastPosition, length, rows, offsetX, offsetY) {
+            var generatorParams = this._experientialGameManager.generatorParameters;
             var block = this._createBlock();
             block.type = 1;
             var upperBlockBound = 0;
-            var lowerBlockBound = 768 / Generator_1.Parameters.GRID.CELL.SIZE;
+            var lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT - Generator_1.Parameters.GRID.CELL.SIZE) / Generator_1.Parameters.GRID.CELL.SIZE;
             var deltaGridY = lowerBlockBound - upperBlockBound;
-            var minY = -Generator_1.Parameters.PLATFORM_BLOCKS.MIN_DISTANCE * 2;
+            var minY = -generatorParams.PLATFORM.MIN_DISTANCE * 2;
             var maxY = lowerBlockBound - upperBlockBound;
             var currentY = lastPosition.y - upperBlockBound;
             var shiftY = 0;
@@ -1285,11 +1357,11 @@ var Generator;
             }
             var newY = Phaser.Math.clamp(currentY + shiftY, 0, deltaGridY);
             block.position.y = newY + upperBlockBound;
-            var shiftX = offsetX || this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_DISTANCE, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_DISTANCE);
+            var shiftX = offsetX || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_DISTANCE, generatorParams.PLATFORM.MAX_DISTANCE);
             block.position.x = lastPosition.x + shiftX;
             block.offset.x = shiftX;
-            block.length = length || this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
-            block.rows = rows || this._randomGenerator.integerInRange(Generator_1.Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Generator_1.Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            block.length = length || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_LENGTH, generatorParams.PLATFORM.MAX_LENGTH);
+            block.rows = rows || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_LENGTH, generatorParams.PLATFORM.MAX_LENGTH);
             if (block.rows > 2 && block.length > 2) {
                 block.isHollow = true;
             }
@@ -1306,8 +1378,10 @@ var Generator;
         function MOBGenerator(randomGenerator) {
             this._blocksQueue = new Array(Generator.Parameters.GRID.CELL.SIZE);
             this._blocksQueueTop = 0;
+            this._experientialGameManager = null;
             this._randomGenerator = randomGenerator;
-            this._blockPool = new Helper.Pool(Generator.Block, 16);
+            this._blockPool = new Helper.Pool(Generator.Block, Generator.Parameters.GRID.CELL.SIZE);
+            this._experientialGameManager = PCGGame.ExperientialGameManager.instance();
         }
         MOBGenerator.prototype._createBlock = function () {
             var block = this._blockPool.createItem();
@@ -1350,35 +1424,38 @@ var Generator;
             this.addBlockToQueue(block);
             return block;
         };
-        MOBGenerator.prototype.generateMOBs = function (lastTile, experientialGameManger) {
+        MOBGenerator.prototype.generateMOBs = function (lastTile) {
             var block = this._generate(lastTile);
             this.addBlockToQueue(block);
         };
-        MOBGenerator.prototype._generate = function (lastPosition, length, offsetX, offsetY, experientialGameManger) {
+        Object.defineProperty(MOBGenerator.prototype, "updateLastBlockX", {
+            set: function (x) {
+                this._lastGeneratedBlock.position.x = x;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        MOBGenerator.prototype._generate = function (lastPosition) {
+            var generatorParams = this._experientialGameManager.generatorParameters;
             var block = this._createBlock();
-            block.type = this._randomGenerator.integerInRange(2, 5);
+            block.type = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_MOB_TYPE, generatorParams.MOBS.MAX_MOB_TYPE);
             var upperBlockBound = 1;
             var lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.GRID.CELL.SIZE) / Generator.Parameters.GRID.CELL.SIZE;
             var deltaGridY = lowerBlockBound - upperBlockBound;
-            var minY = -Generator.Parameters.PLATFORM_BLOCKS.MIN_DISTANCE * 2;
+            var minY = -generatorParams.MOBS.MIN_DISTANCE * 2;
             var maxY = lowerBlockBound - upperBlockBound;
             var currentY = lastPosition.y - upperBlockBound;
             var shiftY = 0;
-            if (typeof offsetY === 'undefined') {
-                shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
-                shiftY -= currentY;
-                shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
-            }
-            else {
-                shiftY = offsetY;
-            }
+            shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
+            shiftY -= currentY;
+            shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
             var newY = Phaser.Math.clamp(currentY + shiftY, 0, deltaGridY);
-            block.position.y = newY + upperBlockBound;
-            var shiftX = offsetX || this._randomGenerator.integerInRange(Generator.Parameters.PLATFORM_BLOCKS.MIN_DISTANCE, Generator.Parameters.PLATFORM_BLOCKS.MAX_DISTANCE);
+            block.position.y = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_Y_DISTANCE, generatorParams.MOBS.MAX_Y_DISTANCE);
+            var shiftX = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_X_DISTANCE, generatorParams.MOBS.MAX_X_DISTANCE);
             block.position.x = lastPosition.x + shiftX;
-            block.offset.x = shiftX;
             block.length = 1;
             this._lastGeneratedBlock = block;
+            console.warn(block);
             return block;
         };
         return MOBGenerator;
@@ -1779,9 +1856,11 @@ var PCGGame;
             if (shouldStartAttacking) {
                 if (this._gameState.end || this._gameState.start) {
                     this._startNewGame();
+                    return;
                 }
                 else if (this._gameState.paused) {
                     this.togglePause();
+                    return;
                 }
             }
             this._keysPressed.fire = shouldStartAttacking;
@@ -1851,10 +1930,6 @@ var PCGGame;
             this.experientialGameManager.playerCollidedWithPlatform();
         };
         Play.prototype.wallMobCollisionHandler = function (mob, wall) {
-            if (wall.died) {
-                wall.kill();
-                return;
-            }
             mob.takeDamage(wall.getDamageCost());
             wall.takeDamage(mob.getDamageCost());
             if (wall.health <= 0) {
@@ -1917,25 +1992,29 @@ var PCGGame;
                 wall.render(_this._player);
             }, this);
             this._mainLayer.mobs.forEachExists(function (mob) {
+                mob.render(_this._player);
                 if (!mob.died) {
                     var shouldFight = _this.game.rnd.integerInRange(0, 100);
                     if (shouldFight >= mob.aggressionProbability) {
                         mob.fire(_this._player);
                     }
                 }
-                mob.render(_this._player);
                 _this.game.physics.arcade.collide(mob, _this._mainLayer.wallBlocks, function (mob, wall) {
-                    _this.wallMobCollisionHandler(mob, wall);
+                    if (!mob.died && !wall.died) {
+                        _this.wallMobCollisionHandler(mob, wall);
+                    }
                 });
                 if (mob.bullets && mob.bullets.countLiving()) {
                     _this.game.physics.arcade.collide(_this._player, mob.bullets, function (player, bullet) {
                         _this.playerTookMobDamageHandler(player, bullet, mob);
                     });
                     _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.wallBlocks, function (bullet, mob) {
-                        _this.spriteBulletCollisionHandler(bullet, mob);
+                        if (!mob.died) {
+                            _this.spriteBulletCollisionHandler(bullet, mob);
+                        }
                     }, null, _this);
-                    _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.mobs, function (bullet, mob) {
-                        if (mob.dangerLevel < 2) {
+                    _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.mobs, function (bullet, targetMob) {
+                        if (!targetMob.died && targetMob !== mob) {
                             _this.spriteBulletCollisionHandler(bullet, mob);
                         }
                     }, null, _this);

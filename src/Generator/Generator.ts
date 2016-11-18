@@ -1,9 +1,11 @@
 namespace Generator {
 
+    import ExperientialGameManager = PCGGame.ExperientialGameManager;
     export class Generator {
         private _randomGenerator: Phaser.RandomDataGenerator;
         private _blockPool : Helper.Pool<Block>;
         private _lastGeneratedBlock : Block;
+        private _experientialGameManager : PCGGame.ExperientialGameManager = null;
 
 
         private _blocksQueue: Generator.Block[] = new Array(Parameters.GRID.CELL.SIZE);
@@ -15,6 +17,7 @@ namespace Generator {
 
             // pool of blocks
             this._blockPool = new Helper.Pool<Block>(Block, 16);
+            this._experientialGameManager = PCGGame.ExperientialGameManager.instance();
         }
 
         private _createBlock() : Block {
@@ -75,9 +78,10 @@ namespace Generator {
         }
 
 
-        private generateBlocksPattern(lastTile: Phaser.Point, experientialGameManager: PCGGame.ExperientialGameManager): void {
+        private generateBlocksPattern(lastTile: Phaser.Point): void {
             // save index of first new piece
             let oldQueueTop = this._blocksQueueTop;
+            let generatorParams =  this._experientialGameManager.generatorParameters;
 
 
             // where to start generating
@@ -88,13 +92,16 @@ namespace Generator {
             // same length for all blocks?
             let length : any = null;
 
-            if (this._randomGenerator.integerInRange(0, 99) < Parameters.PLATFORM_BLOCKS.NEW_PATTERN_COMPOSITION_PERCENTAGE) {
-                length = this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            if (this._randomGenerator.integerInRange(0, 99) <  generatorParams.PLATFORM.NEW_PATTERN_COMPOSITION_PERCENTAGE) {
+                length = this._randomGenerator.integerInRange(
+                    generatorParams.PLATFORM.MIN_LENGTH,
+                    generatorParams.PLATFORM.MAX_LENGTH
+                );
             }
 
 
             // how many pieces to repeat in pattern
-            let baseBlockCount = Parameters.PLATFORM_BLOCKS.NEW_PATTERN_REPEAT_LENGTH;
+            let baseBlockCount = generatorParams.PLATFORM.NEW_PATTERN_REPEAT_LENGTH;
 
             for (let i = 0; i < baseBlockCount; i++) {
                 let block = this._generate(hlpPos, length);
@@ -121,7 +128,7 @@ namespace Generator {
 
                     // replicate it
                     let block = this._generate(hlpPos, length, templateBlock.rows,
-                        templateBlock.offset.x, templateBlock.offset.y, experientialGameManager);
+                        templateBlock.offset.x, templateBlock.offset.y);
 
                     hlpPos.copyFrom(block.position);
                     hlpPos.x += block.length - 1;
@@ -133,37 +140,40 @@ namespace Generator {
         }
 
 
-        private generateBlocksRandomly(lastTile: Phaser.Point, experientialGameManager: PCGGame.ExperientialGameManager): void {
+        private generateBlocksRandomly(lastTile: Phaser.Point): void {
             let block = this._generate(lastTile);
 
             // add to queue
             this.addBlockToQueue(block);
         }
 
-        public generateBlocks(lastTile: Phaser.Point , experientialGameManger?: PCGGame.ExperientialGameManager): void {
+        public generateBlocks(lastTile: Phaser.Point): void {
             let probability = this._randomGenerator.integerInRange(0, 99);
 
-            if (probability < Parameters.GENERATE_BLOCK_THRESHOLD) {
-                this.generateBlocksRandomly(lastTile, experientialGameManger);
+            if (probability < this._experientialGameManager.generatorParameters.PLATFORM.GENERATE_BLOCK_THRESHOLD) {
+                this.generateBlocksRandomly(lastTile);
             }
             else {
-                this.generateBlocksPattern(lastTile, experientialGameManger);
+                this.generateBlocksPattern(lastTile);
             }
         }
 
         private _generate(lastPosition: Phaser.Point,
-                          length?: number, rows?: number, offsetX?: number, offsetY?: number, experientialGameManger?: PCGGame.ExperientialGameManager): Block {
+                          length?: number, rows?: number, offsetX?: number, offsetY?: number): Block {
+
+            let generatorParams =  this._experientialGameManager.generatorParameters;
+
             let block = this._createBlock();
             block.type = blockTypeEnum.PLATFORM_TYPE;
 
             let upperBlockBound = 0;
-            let lowerBlockBound = 768 / Parameters.GRID.CELL.SIZE;
+            let lowerBlockBound =  (PCGGame.Global.SCREEN.HEIGHT - Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;
 
             let deltaGridY = lowerBlockBound - upperBlockBound;
 
 
             // Y POSITION
-            let minY = -Parameters.PLATFORM_BLOCKS.MIN_DISTANCE * 2;
+            let minY = -generatorParams.PLATFORM.MIN_DISTANCE * 2;
 
 
             let maxY = lowerBlockBound - upperBlockBound;
@@ -203,7 +213,7 @@ namespace Generator {
 
 
             // position of next tile in x direction
-            let shiftX = offsetX || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_DISTANCE, Parameters.PLATFORM_BLOCKS.MAX_DISTANCE);
+            let shiftX = offsetX || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_DISTANCE, generatorParams.PLATFORM.MAX_DISTANCE);
 
             // new absolute x position
             block.position.x = lastPosition.x + shiftX;
@@ -212,8 +222,8 @@ namespace Generator {
             block.offset.x = shiftX;
 
             // LENGTH
-            block.length = length || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
-            block.rows = rows || this._randomGenerator.integerInRange(Parameters.PLATFORM_BLOCKS.MIN_LENGTH, Parameters.PLATFORM_BLOCKS.MAX_LENGTH);
+            block.length = length || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_LENGTH, generatorParams.PLATFORM.MAX_LENGTH);
+            block.rows = rows || this._randomGenerator.integerInRange(generatorParams.PLATFORM.MIN_LENGTH, generatorParams.PLATFORM.MAX_LENGTH);
 
             if (block.rows > 2 && block.length > 2) {
                 block.isHollow =  true;// this._randomGenerator.integerInRange(0, 1) === 0 ? false : true;
