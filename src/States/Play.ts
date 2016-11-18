@@ -148,9 +148,6 @@ namespace PCGGame {
 
             this.setPlayerLives(0);
 
-            this._player.x = Generator.Parameters.GRID.CELL.SIZE;
-            this._player.y = this.game.height / 2;
-
             this.setInvincible(this._player, Play.START_GAME_INVINCIBILITY_TIME);
             this._updateShieldBar(this._player.health);
 
@@ -353,7 +350,7 @@ namespace PCGGame {
 
             });
 
-            this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT)/2);
+            this._player.reset();
 
 
             this._backgroundLayer = new BackgroundLayer(this.game, this.world);
@@ -458,6 +455,10 @@ namespace PCGGame {
             this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
             //console.log((this.game.time.fps.toString() || '--') + 'fps');
 
+
+
+            this.updatePhysics();
+
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X; //this._player.horizontalX - Generator.Parameters.GRID.CELL.SIZE * 1.5;
 
             let x = this.camera.x;
@@ -469,7 +470,7 @@ namespace PCGGame {
             this._gameGamePowerUpText.x = x + this.game.width - 200;
             this._gameExperiencePromptText.x = x + this.game.width/2;
 
-            this.updatePhysics();
+
 
             if (! (this._gameState.start || this._gameState.paused || this._gameState.end)) {
                 this.experientialGameManager.update();
@@ -683,7 +684,7 @@ namespace PCGGame {
                     }, null, this);
 
                     this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.mobs, (bullet : Phaser.Sprite, targetMob : Sprite) => {
-                        if (! targetMob.died && targetMob !== mob /*&& mob.dangerLevel < spriteDangerLevelEnum.MEDIUM_DANGER */) {
+                        if (! targetMob.died && targetMob !== mob) {
                             this.spriteBulletCollisionHandler(bullet, mob);
                         }
                     }, null, this);
@@ -705,7 +706,7 @@ namespace PCGGame {
 
 
 
-            if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X)  {
+            if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X)  {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
 

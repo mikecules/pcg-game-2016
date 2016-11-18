@@ -17,7 +17,7 @@ namespace PCGGame {
         private _currentSnapShotTime : number = 0;
         private _adaptTimeElapsedMS : number = 0;
 
-        private _mobGenerationEnabled : boolean = false;
+        private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;
 
         private _lootProbabilityDist : any = {
@@ -51,7 +51,7 @@ namespace PCGGame {
                 MAX_DISTANCE: 10,
                 NEW_PATTERN_REPEAT_LENGTH: 2,
                 NEW_PATTERN_COMPOSITION_PERCENTAGE: 50,
-                GENERATE_BLOCK_THRESHOLD: 50
+                GENERATE_BLOCK_THRESHOLD: 10
             },
             MOBS: {
                 MIN_MOB_TYPE: Generator.blockTypeEnum.MOB_NOTCH,
@@ -78,6 +78,12 @@ namespace PCGGame {
             this.addAdaptationToQueue(5000, () => {
                 this._mobGenerationEnabled = true;
                 this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_METEOR;
+            });
+
+
+            this.addAdaptationToQueue(2500, () => {
+                this.generatorParameters.PLATFORM.MIN_DISTANCE = 8;
+                this.generatorParameters.PLATFORM.MAX_DISTANCE = 10;
             });
 
             this.addAdaptationToQueue(5000, () => {

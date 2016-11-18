@@ -38,7 +38,7 @@ namespace Generator {
 
 
         public static VELOCITY : any = {
-            X: 250
+            X: 180 //300 //180
         };
     }
 }

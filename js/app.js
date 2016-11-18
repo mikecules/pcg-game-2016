@@ -28,7 +28,7 @@ var PCGGame;
             this._totalTimeElapsed = 0;
             this._currentSnapShotTime = 0;
             this._adaptTimeElapsedMS = 0;
-            this._mobGenerationEnabled = false;
+            this._mobGenerationEnabled = true;
             this._platformGenerationEnabled = true;
             this._lootProbabilityDist = {};
             this.generatorParameters = {
@@ -43,7 +43,7 @@ var PCGGame;
                     MAX_DISTANCE: 10,
                     NEW_PATTERN_REPEAT_LENGTH: 2,
                     NEW_PATTERN_COMPOSITION_PERCENTAGE: 50,
-                    GENERATE_BLOCK_THRESHOLD: 50
+                    GENERATE_BLOCK_THRESHOLD: 10
                 },
                 MOBS: {
                     MIN_MOB_TYPE: 2,
@@ -60,6 +60,10 @@ var PCGGame;
             this.addAdaptationToQueue(5000, function () {
                 _this._mobGenerationEnabled = true;
                 _this.generatorParameters.MOBS.MAX_MOB_TYPE = 3;
+            });
+            this.addAdaptationToQueue(2500, function () {
+                _this.generatorParameters.PLATFORM.MIN_DISTANCE = 8;
+                _this.generatorParameters.PLATFORM.MAX_DISTANCE = 10;
             });
             this.addAdaptationToQueue(5000, function () {
                 _this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
@@ -947,6 +951,41 @@ var PCGGame;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
+    var Platform = (function (_super) {
+        __extends(Platform, _super);
+        function Platform(game) {
+            _super.call(this, game, 0, 0, Platform.ID);
+            this.anchor.x = 0.5;
+            this.anchor.y = 0.5;
+            this.frame = 0;
+            this._killScoreVal = 20;
+            game.physics.arcade.enable(this, false);
+            var body = this.body;
+            body.allowGravity = false;
+            body.immovable = true;
+            body.moves = true;
+        }
+        Platform.prototype.render = function (player) {
+            _super.prototype.render.call(this, player);
+            if (this.died) {
+                return;
+            }
+        };
+        Platform.prototype.getDamageCost = function () {
+            return this.weaponDamageCost;
+        };
+        Platform.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            this.health = this.weaponDamageCost * 3;
+            this.dangerLevel = 1;
+        };
+        Platform.ID = 'PlatformBlock';
+        return Platform;
+    }(PCGGame.Sprite));
+    PCGGame.Platform = Platform;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
     var Player = (function (_super) {
         __extends(Player, _super);
         function Player(game) {
@@ -1066,6 +1105,7 @@ var PCGGame;
             var playerBody = this._body;
             this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
+            this._body.immovable = true;
             playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             return this;
         };
@@ -1497,7 +1537,7 @@ var Generator;
             NEW_PATTERN_COMPOSITION_PERCENTAGE: 50
         };
         Parameters.VELOCITY = {
-            X: 250
+            X: 180
         };
         return Parameters;
     }());
@@ -1669,8 +1709,6 @@ var PCGGame;
             this._gameGameStateText.visible = false;
             this._showExperientialPrompt(false);
             this.setPlayerLives(0);
-            this._player.x = Generator.Parameters.GRID.CELL.SIZE;
-            this._player.y = this.game.height / 2;
             this.setInvincible(this._player, Play.START_GAME_INVINCIBILITY_TIME);
             this._updateShieldBar(this._player.health);
         };
@@ -1807,7 +1845,7 @@ var PCGGame;
                 }
                 console.log(e);
             });
-            this._player.position.set(Generator.Parameters.GRID.CELL.SIZE, (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.PLAYER.BODY.HEIGHT) / 2);
+            this._player.reset();
             this._backgroundLayer = new PCGGame.BackgroundLayer(this.game, this.world);
             this._mainLayer = new PCGGame.MainLayer(this.game, this.world);
             this.world.add(this._player);
@@ -1874,6 +1912,7 @@ var PCGGame;
                 return;
             }
             this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
+            this.updatePhysics();
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X;
             var x = this.camera.x;
             this._gameScoreText.x = x;
@@ -1882,7 +1921,6 @@ var PCGGame;
             this._gameGameStateText.x = this.game.width / 2 + x;
             this._gameGamePowerUpText.x = x + this.game.width - 200;
             this._gameExperiencePromptText.x = x + this.game.width / 2;
-            this.updatePhysics();
             if (!(this._gameState.start || this._gameState.paused || this._gameState.end)) {
                 this.experientialGameManager.update();
             }
@@ -2025,7 +2063,7 @@ var PCGGame;
                 }
             }, this);
             this._showExperientialPrompt(shouldShowExperientialPrompt);
-            if (playerBody.velocity.x < Generator.Parameters.VELOCITY.X) {
+            if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X) {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
             this._player.minX = this.game.camera.x + Generator.Parameters.GRID.CELL.SIZE;
@@ -2095,40 +2133,5 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    var Platform = (function (_super) {
-        __extends(Platform, _super);
-        function Platform(game) {
-            _super.call(this, game, 0, 0, Platform.ID);
-            this.anchor.x = 0.5;
-            this.anchor.y = 0.5;
-            this.frame = 0;
-            this._killScoreVal = 20;
-            game.physics.arcade.enable(this, false);
-            var body = this.body;
-            body.allowGravity = false;
-            body.immovable = false;
-            body.moves = true;
-        }
-        Platform.prototype.render = function (player) {
-            _super.prototype.render.call(this, player);
-            if (this.died) {
-                return;
-            }
-        };
-        Platform.prototype.getDamageCost = function () {
-            return this.weaponDamageCost;
-        };
-        Platform.prototype.reset = function () {
-            _super.prototype.reset.call(this);
-            this.health = this.weaponDamageCost * 3;
-            this.dangerLevel = 1;
-        };
-        Platform.ID = 'PlatformBlock';
-        return Platform;
-    }(PCGGame.Sprite));
-    PCGGame.Platform = Platform;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

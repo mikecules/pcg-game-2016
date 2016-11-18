@@ -28,7 +28,7 @@ namespace PCGGame {
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
 
             body.allowGravity = false;
-            body.immovable = false;
+            body.immovable = true;
             body.moves = true;
 
 
