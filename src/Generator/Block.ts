@@ -18,6 +18,30 @@ namespace Generator {
 
         public type : number = blockTypeEnum.UNKNOWN_TYPE;
 
+
+        public static getMobEnumType(sprite : PCGGame.Sprite) : number {
+
+        let type : number = blockTypeEnum.UNKNOWN_TYPE;
+
+        if (sprite instanceof PCGGame.Notch) {
+            type = blockTypeEnum.MOB_NOTCH;
+        }
+        else if (sprite instanceof PCGGame.Meteor) {
+            type = blockTypeEnum.MOB_METEOR;
+        }
+        else if (sprite instanceof PCGGame.Invader) {
+            type = blockTypeEnum.MOB_INVADER;
+        }
+        else if (sprite instanceof PCGGame.Platform) {
+            type = blockTypeEnum.PLATFORM_TYPE
+        }
+        else {
+            type = blockTypeEnum.MOB_MEGA_HEAD;
+        }
+
+        return type;
+    }
+
         public reset() {
             this.length = 1;
             this.rows = 1;

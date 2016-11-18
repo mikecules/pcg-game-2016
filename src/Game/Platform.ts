@@ -50,7 +50,7 @@ namespace PCGGame {
 
         public reset() {
             super.reset();
-            this.health = this.weaponDamageCost * 2;
+            this.health = this.weaponDamageCost * 3;
             this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
 
         }

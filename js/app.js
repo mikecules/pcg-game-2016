@@ -26,6 +26,8 @@ var PCGGame;
             this._game = null;
             this._totalTimeElapsed = 0;
             this._currentSnapShotTime = 0;
+            this._mobGenerationEnabled = true;
+            this._platformGenerationEnabled = true;
             this._game = game;
         }
         ExperientialGameManager.instance = function (game, player) {
@@ -34,6 +36,20 @@ var PCGGame;
             }
             return ExperientialGameManager._instance;
         };
+        Object.defineProperty(ExperientialGameManager.prototype, "isMobGenerationEnabled", {
+            get: function () {
+                return this._mobGenerationEnabled;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(ExperientialGameManager.prototype, "isPlatformGenerationEnabled", {
+            get: function () {
+                return this._platformGenerationEnabled;
+            },
+            enumerable: true,
+            configurable: true
+        });
         ExperientialGameManager.prototype.takeMetricSnapShot = function () {
             console.warn(this._gameMetricSnapShots.current);
         };
@@ -78,7 +94,8 @@ var PCGGame;
                 'Notch': 0,
                 'Meteor': 0,
                 'Invader': 0,
-                'MegaHead': 0
+                'MegaHead': 0,
+                'Platform': 0
             };
             this.playerDamageReceivedCount = 0;
             this.playerDamageForMobType = {
@@ -108,23 +125,7 @@ var PCGGame;
             this.playerDeathCount++;
         };
         GameMetric.prototype._getMobType = function (sprite) {
-            var type = 0;
-            if (sprite instanceof PCGGame.Notch) {
-                type = 2;
-            }
-            else if (sprite instanceof PCGGame.Meteor) {
-                type = 3;
-            }
-            else if (sprite instanceof PCGGame.Invader) {
-                type = 4;
-            }
-            else if (sprite instanceof Generator.Block) {
-                type = 1;
-            }
-            else {
-                type = 5;
-            }
-            return type;
+            return Generator.Block.getMobEnumType(sprite);
         };
         GameMetric.prototype._getMobKeyForType = function (type) {
             var mobClass = 'UNKNOWN_MOB';
@@ -154,6 +155,7 @@ var PCGGame;
             this.mobDeathCountForType.Meteor = 0;
             this.mobDeathCountForType.Invader = 0;
             this.mobDeathCountForType.MegaHead = 0;
+            this.mobDeathCountForType.Platform = 0;
             this.playerDeathCountForType.Notch = 0;
             this.playerDeathCountForType.Meteor = 0;
             this.playerDeathCountForType.Invader = 0;
@@ -269,6 +271,7 @@ var PCGGame;
             this.canCollide = true;
             this.dangerLevel = 0;
             this.weaponDamageCost = 10;
+            this.aggressionProbability = 0;
             this._isInvincible = false;
             this._id = null;
             this._isDead = false;
@@ -289,9 +292,9 @@ var PCGGame;
             configurable: true
         });
         Sprite.prototype.render = function (player) {
-            if (this.hasLoot) {
+            if (this._isDead && this.hasLoot) {
                 this.angle = (this.angle - 1) % 360;
-                this.game.physics.arcade.moveToObject(this, player, 1000, 1800);
+                this.game.physics.arcade.moveToObject(this, player, 1000, 800);
             }
         };
         Sprite.prototype.fire = function (player) {
@@ -349,6 +352,7 @@ var PCGGame;
             this.tint = 0xffffff;
             this.dangerLevel = 0;
             this.canCollide = true;
+            this.aggressionProbability = 0;
             this.loadTexture(this._id);
         };
         Sprite.prototype.getKillScore = function () {
@@ -449,11 +453,6 @@ var PCGGame;
             }
             var body = this.body;
             body.velocity.x = -150;
-            var shouldFight = this.game.rnd.integerInRange(0, 100);
-            var AGGRESSION_LEVEL = 50;
-            if (shouldFight > AGGRESSION_LEVEL) {
-                this.fire(player);
-            }
         };
         Invader.prototype.fire = function (player) {
             var _this = this;
@@ -465,6 +464,7 @@ var PCGGame;
         Invader.prototype.reset = function () {
             _super.prototype.reset.call(this);
             this.health = this.weaponDamageCost;
+            this.aggressionProbability = 30;
             this.dangerLevel = 2;
             this.animations.add(Invader.ID, [0, 1, 2, 3], 20, true);
             this.play(Invader.ID);
@@ -611,71 +611,76 @@ var PCGGame;
             configurable: true
         });
         MainLayer.prototype.generate = function (leftTile, gameState) {
+            var experientialManager = PCGGame.ExperientialGameManager.instance();
             this._cleanTiles(leftTile);
             this._cleanMOBS(leftTile);
             var width = Math.ceil(this.game.width / Generator.Parameters.GRID.CELL.SIZE);
-            while (this._lastTile.x < leftTile + width) {
-                switch (this._platformGenerationState) {
-                    case 0:
-                        if (!this._generator.hasBlocks) {
-                            console.error("Blocks queue is empty!");
-                        }
-                        var block = this._generator.getBlockFromQueue();
-                        this._lastTile.copyFrom(block.position);
-                        var length_1 = block.length;
-                        var rows = block.rows;
-                        var isHollow = block.isHollow;
-                        console.warn(isHollow);
-                        for (var i = 0; i < length_1; i++) {
-                            rows = block.rows;
-                            for (var j = 0; j < rows; j++) {
-                                if (!isHollow || j === 0 || j == (rows - 1)) {
-                                    this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
-                                }
-                                else if (i === 0 || i === (length_1 - 1)) {
-                                    this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
-                                }
+            if (experientialManager.isPlatformGenerationEnabled) {
+                while (this._lastTile.x < leftTile + width) {
+                    switch (this._platformGenerationState) {
+                        case 0:
+                            if (!this._generator.hasBlocks) {
+                                console.error("Blocks queue is empty!");
                             }
-                            ++this._lastTile.x;
-                        }
-                        this._generator.destroyBlock(block);
-                        if (!this._generator.hasBlocks) {
-                            this._platformGenerationState = 1;
-                        }
-                        break;
-                    case 1:
-                        this._generator.generateBlocks(this._lastTile);
-                        this._platformGenerationState = 0;
-                        break;
+                            var block = this._generator.getBlockFromQueue();
+                            this._lastTile.copyFrom(block.position);
+                            var length_1 = block.length;
+                            var rows = block.rows;
+                            var isHollow = block.isHollow;
+                            console.warn(isHollow);
+                            for (var i = 0; i < length_1; i++) {
+                                rows = block.rows;
+                                for (var j = 0; j < rows; j++) {
+                                    if (!isHollow || j === 0 || j == (rows - 1)) {
+                                        this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
+                                    }
+                                    else if (i === 0 || i === (length_1 - 1)) {
+                                        this._addPlatformSprite(this._lastTile.x, this._lastTile.y + j);
+                                    }
+                                }
+                                ++this._lastTile.x;
+                            }
+                            this._generator.destroyBlock(block);
+                            if (!this._generator.hasBlocks) {
+                                this._platformGenerationState = 1;
+                            }
+                            break;
+                        case 1:
+                            this._generator.generateBlocks(this._lastTile);
+                            this._platformGenerationState = 0;
+                            break;
+                    }
                 }
             }
-            if (true || gameState.start) {
+            if (gameState.start) {
                 return;
             }
-            while (this._lastMOB.x < leftTile + width) {
-                switch (this._mobsGenerationState) {
-                    case 0:
-                        if (!this._MOBgenerator.hasBlocks) {
-                            console.error("Mob Blocks queue is empty!");
-                        }
-                        var block = this._MOBgenerator.getBlockFromQueue();
-                        this._lastMOB.copyFrom(block.position);
-                        var length_2 = block.length;
-                        while (length_2 > 0) {
-                            this._addMobSprite(this._lastMOB.x, this._lastMOB.y, block.type);
-                            if ((--length_2) > 0) {
-                                ++this._lastMOB.x;
+            if (experientialManager.isMobGenerationEnabled) {
+                while (this._lastMOB.x < leftTile + width) {
+                    switch (this._mobsGenerationState) {
+                        case 0:
+                            if (!this._MOBgenerator.hasBlocks) {
+                                console.error("Mob Blocks queue is empty!");
                             }
-                        }
-                        this._MOBgenerator.destroyBlock(block);
-                        if (!this._MOBgenerator.hasBlocks) {
-                            this._mobsGenerationState = 1;
-                        }
-                        break;
-                    case 1:
-                        this._MOBgenerator.generateMOBs(this._lastMOB);
-                        this._mobsGenerationState = 0;
-                        break;
+                            var block = this._MOBgenerator.getBlockFromQueue();
+                            this._lastMOB.copyFrom(block.position);
+                            var length_2 = block.length;
+                            while (length_2 > 0) {
+                                this._addMobSprite(this._lastMOB.x, this._lastMOB.y, block.type);
+                                if ((--length_2) > 0) {
+                                    ++this._lastMOB.x;
+                                }
+                            }
+                            this._MOBgenerator.destroyBlock(block);
+                            if (!this._MOBgenerator.hasBlocks) {
+                                this._mobsGenerationState = 1;
+                            }
+                            break;
+                        case 1:
+                            this._MOBgenerator.generateMOBs(this._lastMOB);
+                            this._mobsGenerationState = 0;
+                            break;
+                    }
                 }
             }
         };
@@ -771,11 +776,6 @@ var PCGGame;
                 return;
             }
             this.game.physics.arcade.moveToObject(this, player, 1500, 3000);
-            var shouldFight = this.game.rnd.integerInRange(0, 100);
-            var AGGRESSION_LEVEL = 50;
-            if (shouldFight > AGGRESSION_LEVEL) {
-                this.fire(player);
-            }
         };
         MegaHead.prototype.fire = function (player) {
             var _this = this;
@@ -788,14 +788,15 @@ var PCGGame;
             _super.prototype.reset.call(this);
             this.health = this.weaponDamageCost * 2;
             this.dangerLevel = 3;
+            this.aggressionProbability = 70;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);
             this.play(MegaHead.ID);
         };
         MegaHead.ID = 'MegaHead';
         MegaHead.BULLET_ID = 'Invader.Bullets';
-        MegaHead.NUM_BULLETS = 20;
+        MegaHead.NUM_BULLETS = 10;
         MegaHead.WEAPON_STATS = {
-            fireRate: 200,
+            fireRate: 400,
             variance: 0,
             bulletAngleVariance: 0
         };
@@ -1142,6 +1143,25 @@ var Generator;
             this.isHollow = false;
             this.type = 0;
         }
+        Block.getMobEnumType = function (sprite) {
+            var type = 0;
+            if (sprite instanceof PCGGame.Notch) {
+                type = 2;
+            }
+            else if (sprite instanceof PCGGame.Meteor) {
+                type = 3;
+            }
+            else if (sprite instanceof PCGGame.Invader) {
+                type = 4;
+            }
+            else if (sprite instanceof PCGGame.Platform) {
+                type = 1;
+            }
+            else {
+                type = 5;
+            }
+            return type;
+        };
         Block.prototype.reset = function () {
             this.length = 1;
             this.rows = 1;
@@ -1790,15 +1810,14 @@ var PCGGame;
             this._mainLayer.generate(this.camera.x / Generator.Parameters.GRID.CELL.SIZE, this._gameState);
             this._backgroundLayer.render(this.camera.x);
         };
-        Play.prototype.wallBulletCollisionHandler = function (bullet, wall) {
-            if (wall.died) {
+        Play.prototype.spriteBulletCollisionHandler = function (bullet, sprite) {
+            if (sprite.died) {
                 return;
             }
             bullet.kill();
-            wall.takeDamage(this._player.getDamageCost());
-            if (wall.health <= 0) {
-                wall.die(this._player);
-                this.experientialGameManager.mobKilled(wall);
+            sprite.takeDamage(this._player.getDamageCost());
+            if (sprite.health <= 0) {
+                sprite.die(this._player);
             }
         };
         Play.prototype.mobBulletCollisionHandler = function (bullet, mob) {
@@ -1832,10 +1851,13 @@ var PCGGame;
             this.experientialGameManager.playerCollidedWithPlatform();
         };
         Play.prototype.wallMobCollisionHandler = function (mob, wall) {
-            var damage = wall.getDamageCost();
-            mob.takeDamage(damage);
+            if (wall.died) {
+                wall.kill();
+                return;
+            }
+            mob.takeDamage(wall.getDamageCost());
             wall.takeDamage(mob.getDamageCost());
-            if (!wall.died && wall.health <= 0) {
+            if (wall.health <= 0) {
                 wall.die(this._player);
             }
             if (!mob.died && mob.health <= 0) {
@@ -1885,7 +1907,7 @@ var PCGGame;
                 _this.mobPlayerCollisionHandler(player, mob);
             });
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, function (bullet, wall) {
-                _this.wallBulletCollisionHandler(bullet, wall);
+                _this.mobBulletCollisionHandler(bullet, wall);
             }, null, this);
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, function (bullet, mob) {
                 _this.mobBulletCollisionHandler(bullet, mob);
@@ -1895,6 +1917,12 @@ var PCGGame;
                 wall.render(_this._player);
             }, this);
             this._mainLayer.mobs.forEachExists(function (mob) {
+                if (!mob.died) {
+                    var shouldFight = _this.game.rnd.integerInRange(0, 100);
+                    if (shouldFight >= mob.aggressionProbability) {
+                        mob.fire(_this._player);
+                    }
+                }
                 mob.render(_this._player);
                 _this.game.physics.arcade.collide(mob, _this._mainLayer.wallBlocks, function (mob, wall) {
                     _this.wallMobCollisionHandler(mob, wall);
@@ -1904,7 +1932,12 @@ var PCGGame;
                         _this.playerTookMobDamageHandler(player, bullet, mob);
                     });
                     _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.wallBlocks, function (bullet, mob) {
-                        _this.wallBulletCollisionHandler(bullet, mob);
+                        _this.spriteBulletCollisionHandler(bullet, mob);
+                    }, null, _this);
+                    _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.mobs, function (bullet, mob) {
+                        if (mob.dangerLevel < 2) {
+                            _this.spriteBulletCollisionHandler(bullet, mob);
+                        }
                     }, null, _this);
                     return;
                 }
@@ -2011,7 +2044,7 @@ var PCGGame;
         };
         Platform.prototype.reset = function () {
             _super.prototype.reset.call(this);
-            this.health = this.weaponDamageCost * 2;
+            this.health = this.weaponDamageCost * 3;
             this.dangerLevel = 1;
         };
         Platform.ID = 'PlatformBlock';

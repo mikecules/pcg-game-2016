@@ -15,6 +15,9 @@ namespace PCGGame {
         private _totalTimeElapsed : number = 0;
         private _currentSnapShotTime : number = 0;
 
+        private _mobGenerationEnabled : boolean = true;
+        private _platformGenerationEnabled : boolean = true;
+
         public constructor(game: Phaser.Game, player: Player) {
             this._game = game;
         }
@@ -26,6 +29,15 @@ namespace PCGGame {
             }
 
             return ExperientialGameManager._instance;
+        }
+
+        public get isMobGenerationEnabled() : boolean {
+            return this._mobGenerationEnabled;
+        }
+
+
+        public get isPlatformGenerationEnabled() : boolean {
+            return this._platformGenerationEnabled;
         }
 
         public takeMetricSnapShot() {
@@ -86,7 +98,8 @@ namespace PCGGame {
             'Notch': 0,
             'Meteor': 0,
             'Invader': 0,
-            'MegaHead': 0
+            'MegaHead': 0,
+            'Platform': 0
         };
 
         public playerDamageReceivedCount : number = 0;
@@ -134,27 +147,7 @@ namespace PCGGame {
         }
 
         private _getMobType(sprite : Sprite) : number {
-
-            let type : number = blockTypeEnum.UNKNOWN_TYPE;
-
-            if (sprite instanceof Notch) {
-                type = blockTypeEnum.MOB_NOTCH;
-            }
-            else if (sprite instanceof Meteor) {
-                type = blockTypeEnum.MOB_METEOR;
-
-            }
-            else if (sprite instanceof Invader) {
-                type = blockTypeEnum.MOB_INVADER;
-            }
-            else if (sprite instanceof Generator.Block) { //CHANGE ME!!
-                type = blockTypeEnum.PLATFORM_TYPE
-            }
-            else {
-                type = blockTypeEnum.MOB_MEGA_HEAD;
-            }
-
-            return type;
+            return Generator.Block.getMobEnumType(sprite);
         }
 
         private _getMobKeyForType(type : number) : string {
@@ -189,6 +182,7 @@ namespace PCGGame {
             this.mobDeathCountForType.Meteor = 0;
             this.mobDeathCountForType.Invader = 0;
             this.mobDeathCountForType.MegaHead = 0;
+            this.mobDeathCountForType.Platform = 0;
 
             this.playerDeathCountForType.Notch = 0;
             this.playerDeathCountForType.Meteor = 0;

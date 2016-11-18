@@ -482,20 +482,19 @@ namespace PCGGame {
             //this.game.debug.bodyInfo(this._player, 32, 32);
         }
 
-        public wallBulletCollisionHandler(bullet : Phaser.Sprite, wall : Sprite) {
+        public spriteBulletCollisionHandler(bullet : Phaser.Sprite, sprite : Sprite) {
 
 
-            if (wall.died) {
+            if (sprite.died) {
                 return;
             }
 
             bullet.kill();
 
-            wall.takeDamage(this._player.getDamageCost());
+            sprite.takeDamage(this._player.getDamageCost());
 
-            if (wall.health <= 0) {
-                wall.die(this._player);
-                this.experientialGameManager.mobKilled(wall);
+            if (sprite.health <= 0) {
+                sprite.die(this._player);
             }
         }
 
@@ -553,22 +552,22 @@ namespace PCGGame {
 
         public wallMobCollisionHandler(mob : Sprite, wall : Sprite) {
 
-            let damage = wall.getDamageCost();
+            if (wall.died) {
+                wall.kill();
+                return;
+            }
 
-            mob.takeDamage(damage);
+            mob.takeDamage(wall.getDamageCost());
             wall.takeDamage(mob.getDamageCost());
 
-            if (! wall.died && wall.health <= 0) {
+            if (wall.health <= 0) {
                 wall.die(this._player);
-                //this.experientialGameManager.mobKilled(mob);
             }
 
             if (! mob.died && mob.health <= 0) {
                 mob.die(this._player);
-               // this.experientialGameManager.mobKilled(wall);
             }
 
-            //wall.kill();
         }
 
 
@@ -642,7 +641,7 @@ namespace PCGGame {
             });
 
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Sprite) => {
-                this.wallBulletCollisionHandler(bullet, wall)
+                this.mobBulletCollisionHandler(bullet, wall)
             }, null, this);
 
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.mobs, (bullet : Phaser.Sprite, mob : Sprite) => {
@@ -658,6 +657,17 @@ namespace PCGGame {
             }, this);
 
             this._mainLayer.mobs.forEachExists((mob: any) => {
+
+                if (! mob.died) {
+                    let shouldFight = this.game.rnd.integerInRange(0, 100);
+
+
+                    if(shouldFight >= mob.aggressionProbability) {
+                        mob.fire(this._player);
+                    }
+                }
+
+
                 mob.render(this._player);
 
 
@@ -673,7 +683,13 @@ namespace PCGGame {
 
 
                     this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, mob : Sprite) => {
-                        this.wallBulletCollisionHandler(bullet, mob)
+                        this.spriteBulletCollisionHandler(bullet, mob);
+                    }, null, this);
+
+                    this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.mobs, (bullet : Phaser.Sprite, mob : Sprite) => {
+                        if (mob.dangerLevel < spriteDangerLevelEnum.MEDIUM_DANGER) {
+                            this.spriteBulletCollisionHandler(bullet, mob);
+                        }
                     }, null, this);
 
                     return;
@@ -682,6 +698,8 @@ namespace PCGGame {
                 if (mob instanceof Notch) {
                     shouldShowExperientialPrompt = true;
                 }
+
+
 
             }, this);
 
