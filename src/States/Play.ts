@@ -409,6 +409,10 @@ namespace PCGGame {
 
             this.game.input.addMoveCallback((pointer:Phaser.Pointer,x:number,y:number) => {
 
+                if (this._gameState.paused || this._gameState.end) {
+                    return;
+                }
+
                 if (lastX === null) {
                     lastX = x;
                 }
@@ -482,7 +486,7 @@ namespace PCGGame {
             this._backgroundLayer.render(this.camera.x);
 
 
-
+            //this.game.debug.body(this._player);
             //this.game.debug.bodyInfo(this._player, 32, 32);
         }
 

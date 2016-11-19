@@ -19,7 +19,7 @@ namespace PCGGame {
 
 
         public render(): void {
-            //return;
+            return;
             this._walls.forEachExists(function (sprite: Phaser.Sprite) {
                 this.game.debug.body(sprite);
             }, this);

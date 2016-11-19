@@ -476,14 +476,19 @@ var PCGGame;
         };
         Sprite.prototype._convertMobToLoot = function () {
             this.loadTexture(Sprite.LOOT_ID);
+            if (typeof this.body !== 'undefined') {
+                this.body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+            }
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
         };
         Sprite.prototype.getDamageCost = function () {
             return this.weaponDamageCost;
         };
-        Sprite.prototype.reset = function () {
-            _super.prototype.reset.call(this, 0, 0);
+        Sprite.prototype.reset = function (x, y, health) {
+            if (x === void 0) { x = 0; }
+            if (y === void 0) { y = 0; }
+            _super.prototype.reset.call(this, x, y);
             this._isDead = false;
             this.angle = 0;
             this._loot = null;
@@ -734,6 +739,7 @@ var PCGGame;
             this._mobsGenerationState = 0;
         }
         MainLayer.prototype.render = function () {
+            return;
             this._walls.forEachExists(function (sprite) {
                 this.game.debug.body(sprite);
             }, this);
@@ -1118,7 +1124,8 @@ var PCGGame;
             this._bulletFrameNumber = 0;
             this.anchor.x = 0.5;
             this.anchor.y = 0.5;
-            this.scale.set(1.5);
+            var scale = 1.5;
+            this.scale.set(scale);
             this.playerEvents = new Phaser.Signal();
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
@@ -1131,15 +1138,14 @@ var PCGGame;
             this._weapon.bulletSpeedVariance = Player.WEAPON_STATS.variance;
             this._weapon.trackSprite(this, 16, 0);
             game.physics.arcade.enable(this, false);
-            this._body = this.body;
-            this._body.allowGravity = false;
+            this.body.allowGravity = false;
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
         }
         Object.defineProperty(Player.prototype, "minX", {
             set: function (n) {
                 this._minX = n;
                 this.x = Math.max(this.position.x, this._minX);
-                this._body.velocity.y = 0;
+                this.body.velocity.y = 0;
             },
             enumerable: true,
             configurable: true
@@ -1153,7 +1159,7 @@ var PCGGame;
             configurable: true
         });
         Player.prototype._updateBulletSpeed = function (speed) {
-            var playerBody = this._body;
+            var playerBody = this.body;
             this._weapon.bulletSpeed = (speed || playerBody.velocity.x) + 200;
         };
         Player.prototype.moveRight = function () {
@@ -1213,8 +1219,8 @@ var PCGGame;
                     _this.playerEvents.dispatch(new PCGGame.GameEvent(3, _this));
                 }
                 else {
-                    _this._body.velocity.x = 0;
-                    _this._body.velocity.y = 0;
+                    _this.body.velocity.x = 0;
+                    _this.body.velocity.y = 0;
                     _this.visible = false;
                 }
             }, this);
@@ -1224,10 +1230,10 @@ var PCGGame;
             _super.prototype.reset.call(this);
             this.x = Generator.Parameters.GRID.CELL.SIZE;
             this.y = this.game.height / 2;
-            var playerBody = this._body;
+            var playerBody = this.body;
             this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
-            this._body.immovable = true;
+            this.body.immovable = true;
             playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             return this;
         };
@@ -2020,6 +2026,9 @@ var PCGGame;
             this._cursors = this.game.input.keyboard.createCursorKeys();
             var lastX = null;
             this.game.input.addMoveCallback(function (pointer, x, y) {
+                if (_this._gameState.paused || _this._gameState.end) {
+                    return;
+                }
                 if (lastX === null) {
                     lastX = x;
                 }

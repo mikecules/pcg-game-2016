@@ -91,6 +91,11 @@ namespace PCGGame {
 
         protected _convertMobToLoot() {
             this.loadTexture(Sprite.LOOT_ID);
+
+            if (typeof this.body !== 'undefined') {
+                this.body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+            }
+
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
         }
@@ -99,8 +104,8 @@ namespace PCGGame {
             return this.weaponDamageCost;
         }
 
-        public reset()  {
-            super.reset(0, 0);
+        public reset(x : number = 0, y : number = 0, health? : number)  {
+            super.reset(x, y);
             this._isDead = false;
             this.angle = 0;
             this._loot = null;
@@ -118,7 +123,7 @@ namespace PCGGame {
         }
 
 
-        public tweenSpriteTint(obj : Phaser.Sprite, startColor : number, endColor : number, time : number = 250, callback : Function = null) {
+        public tweenSpriteTint(obj : Sprite, startColor : number, endColor : number, time : number = 250, callback : Function = null) {
             if (obj) {
 
                 let colorBlend = { step: 0 };

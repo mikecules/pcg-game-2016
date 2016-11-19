@@ -17,7 +17,7 @@ namespace PCGGame {
         private _currentSnapShotTime : number = 0;
         private _adaptTimeElapsedMS : number = 0;
         private _player : Player = null;
-        private _randomGenerator : Phase.RandomDataGenerator;
+        private _randomGenerator : Phaser.RandomDataGenerator;
 
         private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;

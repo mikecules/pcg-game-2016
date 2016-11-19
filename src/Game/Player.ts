@@ -29,14 +29,13 @@ namespace PCGGame {
 
         public _minX : number = 0;
         public _maxX : number = 0;
-        private _body : Phaser.Physics.Arcade.Body;
         private _bulletFrameNumber : number = 0;
 
 
         public set minX(n : number) {
             this._minX = n;
             this.x = Math.max(this.position.x, this._minX);
-            this._body.velocity.y = 0;
+            this.body.velocity.y = 0;
         }
 
         public set maxX(n : number) {
@@ -55,7 +54,9 @@ namespace PCGGame {
             // center the sprite vertically
             this.anchor.y = 0.5;
 
-            this.scale.set(1.5);
+            let scale : number = 1.5;
+
+            this.scale.set(scale);
 
             this.playerEvents = new Phaser.Signal();
 
@@ -92,19 +93,15 @@ namespace PCGGame {
             game.physics.arcade.enable(this, false);
 
             // allow gravity
-            this._body = <Phaser.Physics.Arcade.Body>this.body;
+            this.body.allowGravity = false;
 
-            this._body.allowGravity = false;
 
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
-
-
-
 
         }
 
         private _updateBulletSpeed(speed? : number) {
-            let playerBody = this._body;
+            let playerBody = this.body;
 
             this._weapon.bulletSpeed = (speed || playerBody.velocity.x) + 200;
         }
@@ -197,8 +194,8 @@ namespace PCGGame {
                     this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_RESPAWNED, this));
                 }
                 else {
-                    this._body.velocity.x = 0;
-                    this._body.velocity.y = 0;
+                    this.body.velocity.x = 0;
+                    this.body.velocity.y = 0;
                     this.visible = false;
                 }
 
@@ -212,10 +209,10 @@ namespace PCGGame {
 
             this.x = Generator.Parameters.GRID.CELL.SIZE;
             this.y = this.game.height / 2;
-            let playerBody = this._body;
+            let playerBody = this.body;
             this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
-            this._body.immovable = true;
+            this.body.immovable = true;
 
             playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             return this;
