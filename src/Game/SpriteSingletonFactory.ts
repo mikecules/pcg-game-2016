@@ -21,18 +21,19 @@ namespace PCGGame {
         }
 
 
-        private _addCommonSpriteAttributes(sprite : Sprite) : Sprite {
+        private _addCommonSpriteAttributes(sprite : Sprite, shouldEnablePhysics = true) : Sprite {
             sprite.spriteFactoryParent = this;
 
-            this._game.physics.enable(sprite, Phaser.Physics.ARCADE);
-            //console.log('Sprite created: ', sprite);
+            if (shouldEnablePhysics) {
+                this._game.physics.enable(sprite, Phaser.Physics.ARCADE);
+                //console.log('Sprite created: ', sprite);
+                let body = <Phaser.Physics.Arcade.Body>sprite.body;
 
-            let body = <Phaser.Physics.Arcade.Body>sprite.body;
-
-            body.allowGravity = false;
-            body.immovable = false;
-            body.moves = true;
-            body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+                body.allowGravity = false;
+                body.immovable = false;
+                body.moves = true;
+                body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+            }
 
             //console.log(sprite);
 
@@ -85,7 +86,7 @@ namespace PCGGame {
 
         public getNullMob() {
             if (this._mobs.NULL_MOB === null) {
-                this._mobs.NULL_MOB = this._addCommonSpriteAttributes(new NullSprite(this._game));
+                this._mobs.NULL_MOB = this._addCommonSpriteAttributes(new NullSprite(this._game), false);
             }
 
             return this._mobs.NULL_MOB;

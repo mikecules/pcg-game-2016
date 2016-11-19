@@ -1054,18 +1054,15 @@ var PCGGame;
             this.anchor.y = 0.5;
             this.frame = 0;
             this._killScoreVal = 20;
-            game.physics.arcade.enable(this, false);
         }
         NullSprite.prototype.getDamageCost = function () {
             return this.weaponDamageCost;
         };
+        NullSprite.prototype.render = function (player) {
+        };
         NullSprite.prototype.reset = function () {
-            var body = this.body;
             _super.prototype.reset.call(this);
             this.canCollide = false;
-            body.allowGravity = false;
-            body.immovable = true;
-            body.moves = false;
             this.dangerLevel = 0;
         };
         NullSprite.ID = 'null';
@@ -1323,14 +1320,17 @@ var PCGGame;
             };
             this._game = game;
         }
-        SpriteSingletonFactory.prototype._addCommonSpriteAttributes = function (sprite) {
+        SpriteSingletonFactory.prototype._addCommonSpriteAttributes = function (sprite, shouldEnablePhysics) {
+            if (shouldEnablePhysics === void 0) { shouldEnablePhysics = true; }
             sprite.spriteFactoryParent = this;
-            this._game.physics.enable(sprite, Phaser.Physics.ARCADE);
-            var body = sprite.body;
-            body.allowGravity = false;
-            body.immovable = false;
-            body.moves = true;
-            body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+            if (shouldEnablePhysics) {
+                this._game.physics.enable(sprite, Phaser.Physics.ARCADE);
+                var body = sprite.body;
+                body.allowGravity = false;
+                body.immovable = false;
+                body.moves = true;
+                body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+            }
             return sprite;
         };
         SpriteSingletonFactory.instance = function (game) {
@@ -1365,7 +1365,7 @@ var PCGGame;
         };
         SpriteSingletonFactory.prototype.getNullMob = function () {
             if (this._mobs.NULL_MOB === null) {
-                this._mobs.NULL_MOB = this._addCommonSpriteAttributes(new PCGGame.NullSprite(this._game));
+                this._mobs.NULL_MOB = this._addCommonSpriteAttributes(new PCGGame.NullSprite(this._game), false);
             }
             return this._mobs.NULL_MOB;
         };

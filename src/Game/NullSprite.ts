@@ -21,7 +21,7 @@ namespace PCGGame {
             this._killScoreVal = 20;
 
             // enable physics for player
-            game.physics.arcade.enable(this, false);
+            //game.physics.arcade.enable(this, false);
 
         }
 
@@ -30,13 +30,20 @@ namespace PCGGame {
             return this.weaponDamageCost;
         }
 
+        public render(player : Player) {
+
+        }
+
         public reset() {
-            let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
+
             super.reset();
             this.canCollide = false;
+            /*
+            let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.allowGravity = false;
             body.immovable = true;
             body.moves = false;
+            */
             this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
 
         }
