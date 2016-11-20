@@ -94,6 +94,7 @@ namespace PCGGame {
 
             if (typeof this.body !== 'undefined') {
                 this.body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+                this.body.immovable = true;
             }
 
             this.alpha = 1;

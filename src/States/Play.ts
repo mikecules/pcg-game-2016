@@ -60,7 +60,7 @@ namespace PCGGame {
             this._extraLives += incDec;
 
 
-            if (this._extraLives <= 0) {
+            if (this._extraLives < 0) {
                 // Game over
                 this._gameOver();
             }
@@ -167,6 +167,9 @@ namespace PCGGame {
             let barWidth : number = this.game.width / 2;
             let barHeight = 10;
 
+            if (this._gameState.end) {
+                health = 0;
+            }
 
             if ( this._healthBarSprite === null) {
                 // create a plain black rectangle to use as the background of a health meter
@@ -306,7 +309,6 @@ namespace PCGGame {
                 switch(e.type) {
                     case gameEventTypeEnum.MOB_KILLED:
                         this.setPlayerLives(-1);
-                        this._updateShieldBar(0);
                         break;
                     case gameEventTypeEnum.MOB_TOOK_DAMAGE:
                         this._updateShieldBar(this._player.health);
@@ -657,7 +659,7 @@ namespace PCGGame {
             if (! this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, (player : Player, wall : Sprite) => {
 
-                    if (! wall.canCollide) {
+                    if (! wall.canCollide || (wall instanceof PushPlatform && ! wall.hasLoot)) {
                         return;
                     }
 
@@ -678,7 +680,14 @@ namespace PCGGame {
             // Check for collision between player and mobs (only the wall)
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Sprite) => {
 
-                if (! wall.canCollide) {
+                let friendlyWall = wall instanceof PushPlatform;
+
+                if (! wall.canCollide || friendlyWall) {
+
+                    if (friendlyWall) {
+                        bullet.kill();
+                    }
+
                     return;
                 }
 
@@ -707,6 +716,19 @@ namespace PCGGame {
                 }
 
                 wall.render(this._player);
+
+                this.game.physics.arcade.collide(wall,  this._mainLayer.wallBlocks, (targetWall : Sprite, wall : Sprite) => {
+
+                    if (!targetWall.canCollide) {
+                        return;
+                    }
+
+                    if ( wall !== targetWall && ! targetWall.died && ! wall.died && ! targetWall.hasLoot) {
+                        this.wallMobCollisionHandler(targetWall, wall);
+                    }
+                });
+
+
             }, this);
 
             // Lets do some mob logic as some of them are not nice and might attack the player or get converted to loot!
@@ -735,45 +757,44 @@ namespace PCGGame {
                         return;
                     }
 
-                    if (! mob.died && ! wall.died) {
+                    if (! mob.died && ! wall.died && ! mob.hasLoot) {
                         this.wallMobCollisionHandler(mob, wall);
                     }
                 });
 
-                // some mobs like to hurt things even their own
-                if (mob.bullets && mob.bullets.countLiving()) {
-
-                    this.game.physics.arcade.collide(this._player, mob.bullets, (player : Player, bullet : Phaser.Sprite) => {
-                        this.playerTookMobDamageHandler(player, bullet, mob);
-                    });
-
-
-                    // Yes mobs shoot walls too...
-                    this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Sprite) => {
-
-                        if (! wall.canCollide) {
-                            return;
-                        }
-
-                        if (! mob.died) {
-                            this.spriteBulletCollisionHandler(bullet, wall, mob);
-                        }
-                    }, null, this);
-
-                    // They also shoot other mobs...sad really...
-                    this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.mobs, (bullet : Phaser.Sprite, targetMob : Sprite) => {
-                        if (! targetMob.died && targetMob !== mob) {
-                            this.spriteBulletCollisionHandler(bullet, targetMob, mob);
-                        }
-                    }, null, this);
-
-                    return;
-                }
 
                 if (mob instanceof Notch) {
                     shouldShowExperientialPrompt = true;
                 }
 
+                // some mobs like to hurt things even their own
+                if (! mob.bullets || ! mob.bullets.countLiving()) {
+                    return;
+                }
+
+                this.game.physics.arcade.collide(this._player, mob.bullets, (player : Player, bullet : Phaser.Sprite) => {
+                    this.playerTookMobDamageHandler(player, bullet, mob);
+                });
+
+
+                // Yes mobs shoot walls too...
+                this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Sprite) => {
+
+                    if (! wall.canCollide) {
+                        return;
+                    }
+
+                    if (! mob.died) {
+                        this.spriteBulletCollisionHandler(bullet, wall, mob);
+                    }
+                }, null, this);
+
+                // They also shoot other mobs...sad really...
+                this.game.physics.arcade.overlap(mob.bullets, this._mainLayer.mobs, (bullet : Phaser.Sprite, targetMob : Sprite) => {
+                    if (! targetMob.died && targetMob !== mob) {
+                        this.spriteBulletCollisionHandler(bullet, targetMob, mob);
+                    }
+                }, null, this);
 
 
 

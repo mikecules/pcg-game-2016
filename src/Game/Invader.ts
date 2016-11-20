@@ -84,6 +84,7 @@ namespace PCGGame {
             super.reset();
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.setSize(32, 32 , -5, 0);
+            body.immovable = false;
             this.health = this.weaponDamageCost;
             this.aggressionProbability = 30;
             this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;

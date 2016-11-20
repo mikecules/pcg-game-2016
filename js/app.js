@@ -478,6 +478,7 @@ var PCGGame;
             this.loadTexture(Sprite.LOOT_ID);
             if (typeof this.body !== 'undefined') {
                 this.body.setSize(Generator.Parameters.GRID.CELL.SIZE, Generator.Parameters.GRID.CELL.SIZE, 0, 0);
+                this.body.immovable = true;
             }
             this.alpha = 1;
             this.tint = this._loot.spriteTint;
@@ -610,6 +611,7 @@ var PCGGame;
             _super.prototype.reset.call(this);
             var body = this.body;
             body.setSize(32, 32, -5, 0);
+            body.immovable = false;
             this.health = this.weaponDamageCost;
             this.aggressionProbability = 30;
             this.dangerLevel = 2;
@@ -962,6 +964,7 @@ var PCGGame;
             _super.prototype.reset.call(this);
             var body = this.body;
             body.setSize(78, 92);
+            body.immovable = false;
             this.health = this.weaponDamageCost * 2;
             this.dangerLevel = 3;
             this.aggressionProbability = 70;
@@ -1010,6 +1013,7 @@ var PCGGame;
             _super.prototype.reset.call(this);
             var body = this.body;
             body.setCircle(20, -5, -5);
+            body.immovable = true;
             this.health = this.weaponDamageCost;
             this.dangerLevel = 1;
         };
@@ -1048,6 +1052,7 @@ var PCGGame;
             this.health = this.weaponDamageCost;
             var body = this.body;
             body.setCircle(20, -5, -5);
+            body.immovable = true;
             this.dangerLevel = 0;
             this.animations.add(Notch.ID, [0, 1, 2, 3, 4, 5], 20, true);
             this.play(Notch.ID);
@@ -1317,6 +1322,43 @@ var PCGGame;
         return Player;
     }(PCGGame.Sprite));
     PCGGame.Player = Player;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var PushPlatform = (function (_super) {
+        __extends(PushPlatform, _super);
+        function PushPlatform(game) {
+            _super.call(this, game, 0, 0, PCGGame.Platform.ID);
+            this.anchor.x = 0.5;
+            this.anchor.y = 0.5;
+            this.frame = 11;
+            this._killScoreVal = 20;
+            game.physics.arcade.enable(this, false);
+        }
+        PushPlatform.prototype.render = function (player) {
+            _super.prototype.render.call(this, player);
+            if (this.died) {
+                return;
+            }
+        };
+        PushPlatform.prototype.getDamageCost = function () {
+            return this.weaponDamageCost;
+        };
+        PushPlatform.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            var body = this.body;
+            body.setSize(32, 32, -3, 0);
+            this.frame = 11;
+            body.allowGravity = false;
+            body.immovable = false;
+            body.moves = true;
+            this.health = this.weaponDamageCost * 3;
+            this.dangerLevel = 1;
+        };
+        PushPlatform.ID = 'PlatformBlock';
+        return PushPlatform;
+    }(PCGGame.Sprite));
+    PCGGame.PushPlatform = PushPlatform;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
@@ -1807,7 +1849,7 @@ var PCGGame;
         });
         Play.prototype.setPlayerLives = function (incDec) {
             this._extraLives += incDec;
-            if (this._extraLives <= 0) {
+            if (this._extraLives < 0) {
                 this._gameOver();
             }
             var liveShipIcon = this._playerLivesGroup.getFirstAlive();
@@ -1883,6 +1925,9 @@ var PCGGame;
         Play.prototype._updateShieldBar = function (health) {
             var barWidth = this.game.width / 2;
             var barHeight = 10;
+            if (this._gameState.end) {
+                health = 0;
+            }
             if (this._healthBarSprite === null) {
                 var meterBackgroundBitmap = this.game.add.bitmapData(barWidth, barHeight);
                 meterBackgroundBitmap.ctx.beginPath();
@@ -1969,7 +2014,6 @@ var PCGGame;
                 switch (e.type) {
                     case 1:
                         _this.setPlayerLives(-1);
-                        _this._updateShieldBar(0);
                         break;
                     case 2:
                         _this._updateShieldBar(_this._player.health);
@@ -2195,7 +2239,7 @@ var PCGGame;
             var playerBody = this._player.body;
             if (!this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, function (player, wall) {
-                    if (!wall.canCollide) {
+                    if (!wall.canCollide || (wall instanceof PCGGame.PushPlatform && !wall.hasLoot)) {
                         return;
                     }
                     _this.wallPlayerCollisionHandler(player, wall);
@@ -2208,7 +2252,11 @@ var PCGGame;
                 _this.mobPlayerCollisionHandler(player, mob);
             });
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, function (bullet, wall) {
-                if (!wall.canCollide) {
+                var friendlyWall = wall instanceof PCGGame.PushPlatform;
+                if (!wall.canCollide || friendlyWall) {
+                    if (friendlyWall) {
+                        bullet.kill();
+                    }
                     return;
                 }
                 _this.playerBulletHitMobHandler(bullet, wall);
@@ -2225,6 +2273,14 @@ var PCGGame;
                     return;
                 }
                 wall.render(_this._player);
+                _this.game.physics.arcade.collide(wall, _this._mainLayer.wallBlocks, function (targetWall, wall) {
+                    if (!targetWall.canCollide) {
+                        return;
+                    }
+                    if (wall !== targetWall && !targetWall.died && !wall.died && !targetWall.hasLoot) {
+                        _this.wallMobCollisionHandler(targetWall, wall);
+                    }
+                });
             }, this);
             this._mainLayer.mobs.forEachExists(function (mob) {
                 if (!mob.canCollide) {
@@ -2241,32 +2297,32 @@ var PCGGame;
                     if (!wall.canCollide) {
                         return;
                     }
-                    if (!mob.died && !wall.died) {
+                    if (!mob.died && !wall.died && !mob.hasLoot) {
                         _this.wallMobCollisionHandler(mob, wall);
                     }
                 });
-                if (mob.bullets && mob.bullets.countLiving()) {
-                    _this.game.physics.arcade.collide(_this._player, mob.bullets, function (player, bullet) {
-                        _this.playerTookMobDamageHandler(player, bullet, mob);
-                    });
-                    _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.wallBlocks, function (bullet, wall) {
-                        if (!wall.canCollide) {
-                            return;
-                        }
-                        if (!mob.died) {
-                            _this.spriteBulletCollisionHandler(bullet, wall, mob);
-                        }
-                    }, null, _this);
-                    _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.mobs, function (bullet, targetMob) {
-                        if (!targetMob.died && targetMob !== mob) {
-                            _this.spriteBulletCollisionHandler(bullet, targetMob, mob);
-                        }
-                    }, null, _this);
-                    return;
-                }
                 if (mob instanceof PCGGame.Notch) {
                     shouldShowExperientialPrompt = true;
                 }
+                if (!mob.bullets || !mob.bullets.countLiving()) {
+                    return;
+                }
+                _this.game.physics.arcade.collide(_this._player, mob.bullets, function (player, bullet) {
+                    _this.playerTookMobDamageHandler(player, bullet, mob);
+                });
+                _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.wallBlocks, function (bullet, wall) {
+                    if (!wall.canCollide) {
+                        return;
+                    }
+                    if (!mob.died) {
+                        _this.spriteBulletCollisionHandler(bullet, wall, mob);
+                    }
+                }, null, _this);
+                _this.game.physics.arcade.overlap(mob.bullets, _this._mainLayer.mobs, function (bullet, targetMob) {
+                    if (!targetMob.died && targetMob !== mob) {
+                        _this.spriteBulletCollisionHandler(bullet, targetMob, mob);
+                    }
+                }, null, _this);
             }, this);
             this._showExperientialPrompt(shouldShowExperientialPrompt);
             if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X) {
@@ -2339,42 +2395,5 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    var PushPlatform = (function (_super) {
-        __extends(PushPlatform, _super);
-        function PushPlatform(game) {
-            _super.call(this, game, 0, 0, PCGGame.Platform.ID);
-            this.anchor.x = 0.5;
-            this.anchor.y = 0.5;
-            this.frame = 11;
-            this._killScoreVal = 20;
-            game.physics.arcade.enable(this, false);
-        }
-        PushPlatform.prototype.render = function (player) {
-            _super.prototype.render.call(this, player);
-            if (this.died) {
-                return;
-            }
-        };
-        PushPlatform.prototype.getDamageCost = function () {
-            return this.weaponDamageCost;
-        };
-        PushPlatform.prototype.reset = function () {
-            _super.prototype.reset.call(this);
-            var body = this.body;
-            body.setSize(32, 32, -3, 0);
-            this.frame = 11;
-            body.allowGravity = false;
-            body.immovable = false;
-            body.moves = true;
-            this.health = this.weaponDamageCost * 3;
-            this.dangerLevel = 1;
-        };
-        PushPlatform.ID = 'PlatformBlock';
-        return PushPlatform;
-    }(PCGGame.Sprite));
-    PCGGame.PushPlatform = PushPlatform;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

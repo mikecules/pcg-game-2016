@@ -52,6 +52,7 @@ namespace PCGGame {
 
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.setCircle(20, -5 , -5);
+            body.immovable = true;
 
             this.dangerLevel = spriteDangerLevelEnum.NO_DANGER;
             this.animations.add(Notch.ID, [ 0, 1, 2, 3, 4, 5], 20, true);
