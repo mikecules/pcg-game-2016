@@ -1,6 +1,6 @@
 namespace Generator {
 
-    export const enum blockTypeEnum {PLATFORM_TYPE = 1, MOB_NULL, MOB_NOTCH, MOB_METEOR, MOB_INVADER, MOB_MEGA_HEAD};
+    export const enum blockTypeEnum {PLATFORM_TYPE = 1, PUSH_PLATFORM_TYPE, MOB_NULL, MOB_NOTCH, MOB_METEOR, MOB_INVADER, MOB_MEGA_HEAD};
 
     export class Block {
 
@@ -34,6 +34,9 @@ namespace Generator {
         }
         else if (sprite instanceof PCGGame.Platform) {
             type = blockTypeEnum.PLATFORM_TYPE
+        }
+        else if (sprite instanceof PCGGame.PushPlatform) {
+            type = blockTypeEnum.PUSH_PLATFORM_TYPE
         }
         else if (sprite instanceof PCGGame.MegaHead) {
             type = blockTypeEnum.MOB_MEGA_HEAD;

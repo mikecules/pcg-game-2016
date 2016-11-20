@@ -86,8 +86,8 @@ var PCGGame;
                     GENERATE_BLOCK_THRESHOLD: 10
                 },
                 MOBS: {
-                    MIN_MOB_TYPE: 2,
-                    MAX_MOB_TYPE: 3,
+                    MIN_MOB_TYPE: 3,
+                    MAX_MOB_TYPE: 4,
                     MIN_X_DISTANCE: 1,
                     MAX_X_DISTANCE: 5,
                     MIN_Y_DISTANCE: 1,
@@ -101,7 +101,7 @@ var PCGGame;
             this.calculateGridSpace();
             this.addAdaptationToQueue(5000, function () {
                 _this._mobGenerationEnabled = true;
-                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 4;
+                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 5;
             });
             this.addAdaptationToQueue(2500, function () {
                 _this.generatorParameters.PLATFORM.MIN_DISTANCE = 8;
@@ -110,10 +110,10 @@ var PCGGame;
             this.addAdaptationToQueue(5000, function () {
                 _this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
                 _this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
-                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 5;
+                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 6;
             });
             this.addAdaptationToQueue(15000, function () {
-                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 6;
+                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 7;
             });
         }
         Object.defineProperty(ExperientialGameManager.prototype, "lootDistributionFn", {
@@ -126,7 +126,7 @@ var PCGGame;
         Object.defineProperty(ExperientialGameManager.prototype, "platformDistributionFn", {
             get: function () {
                 var _this = this;
-                return function () { return _this._randomGenerator.integerInRange(1, 2); };
+                return function () { return _this._randomGenerator.integerInRange(1, 3); };
             },
             enumerable: true,
             configurable: true
@@ -270,16 +270,16 @@ var PCGGame;
         GameMetric.prototype._getMobKeyForType = function (type) {
             var mobClass = 'MOB_NULL';
             switch (type) {
-                case 3:
+                case 4:
                     mobClass = 'Notch';
                     break;
-                case 4:
+                case 5:
                     mobClass = 'Meteor';
                     break;
-                case 5:
+                case 6:
                     mobClass = 'Invader';
                     break;
-                case 6:
+                case 7:
                     mobClass = 'MegaHead';
                     break;
                 case 1:
@@ -862,15 +862,17 @@ var PCGGame;
             }
         };
         MainLayer.prototype._changeSpriteBlockTexture = function (sprite) {
-            sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
+            sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 2);
         };
         MainLayer.prototype._addPlatformSprite = function (x, y, platformType) {
             var spriteFactory = this._wallSpritePool.createItem();
             var sprite = null;
             switch (platformType) {
-                case 2:
+                case 1:
                     sprite = spriteFactory.getPlatformMob();
-                    this._changeSpriteBlockTexture(sprite);
+                    break;
+                case 2:
+                    sprite = spriteFactory.getPushPlatformMob();
                     break;
                 default:
                     sprite = spriteFactory.getNullMob();
@@ -878,7 +880,12 @@ var PCGGame;
             }
             sprite.reset();
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
-            this._changeSpriteBlockTexture(sprite);
+            if (platformType === 1) {
+                this._changeSpriteBlockTexture(sprite);
+            }
+            else {
+                sprite.frame = Generator.Parameters.SPRITE.FRAMES - 1;
+            }
             if (sprite.parent === null) {
                 this._walls.add(sprite);
             }
@@ -887,16 +894,16 @@ var PCGGame;
             var spriteFactory = this._MOBSpritePool.createItem();
             var sprite = null;
             switch (mobType) {
-                case 3:
+                case 4:
                     sprite = spriteFactory.getNotchMob();
                     break;
-                case 5:
+                case 6:
                     sprite = spriteFactory.getInvaderMob();
                     break;
-                case 6:
+                case 7:
                     sprite = spriteFactory.getMegaHeadMob();
                     break;
-                case 2:
+                case 3:
                     sprite = spriteFactory.getNullMob();
                     break;
                 default:
@@ -1322,7 +1329,8 @@ var PCGGame;
                 METEOR: null,
                 MEGAHEAD: null,
                 NULL_MOB: null,
-                PLATFORM_TYPE: null
+                PLATFORM_TYPE: null,
+                PUSH_PLATFORM_TYPE: null
             };
             this._game = game;
         }
@@ -1381,6 +1389,12 @@ var PCGGame;
             }
             return this._mobs.PLATFORM_TYPE;
         };
+        SpriteSingletonFactory.prototype.getPushPlatformMob = function () {
+            if (this._mobs.PUSH_PLATFORM_TYPE === null) {
+                this._mobs.PUSH_PLATFORM_TYPE = this._addCommonSpriteAttributes(new PCGGame.PushPlatform(this._game));
+            }
+            return this._mobs.PUSH_PLATFORM_TYPE;
+        };
         SpriteSingletonFactory._instance = null;
         return SpriteSingletonFactory;
     }());
@@ -1394,24 +1408,27 @@ var Generator;
             this.position = new Phaser.Point(0, 0);
             this.offset = new Phaser.Point(0, 0);
             this.isHollow = false;
-            this.type = 2;
+            this.type = 3;
         }
         Block.getMobEnumType = function (sprite) {
-            var type = 2;
+            var type = 3;
             if (sprite instanceof PCGGame.Notch) {
-                type = 3;
-            }
-            else if (sprite instanceof PCGGame.Meteor) {
                 type = 4;
             }
-            else if (sprite instanceof PCGGame.Invader) {
+            else if (sprite instanceof PCGGame.Meteor) {
                 type = 5;
+            }
+            else if (sprite instanceof PCGGame.Invader) {
+                type = 6;
             }
             else if (sprite instanceof PCGGame.Platform) {
                 type = 1;
             }
+            else if (sprite instanceof PCGGame.PushPlatform) {
+                type = 2;
+            }
             else if (sprite instanceof PCGGame.MegaHead) {
-                type = 6;
+                type = 7;
             }
             return type;
         };
@@ -1664,7 +1681,7 @@ var Generator;
         Parameters.SPRITE = {
             WIDTH: 32,
             HEIGHT: 32,
-            FRAMES: 10
+            FRAMES: 11
         };
         Parameters.PLAYER = {
             BODY: {
@@ -2322,5 +2339,42 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var PushPlatform = (function (_super) {
+        __extends(PushPlatform, _super);
+        function PushPlatform(game) {
+            _super.call(this, game, 0, 0, PCGGame.Platform.ID);
+            this.anchor.x = 0.5;
+            this.anchor.y = 0.5;
+            this.frame = 11;
+            this._killScoreVal = 20;
+            game.physics.arcade.enable(this, false);
+        }
+        PushPlatform.prototype.render = function (player) {
+            _super.prototype.render.call(this, player);
+            if (this.died) {
+                return;
+            }
+        };
+        PushPlatform.prototype.getDamageCost = function () {
+            return this.weaponDamageCost;
+        };
+        PushPlatform.prototype.reset = function () {
+            _super.prototype.reset.call(this);
+            var body = this.body;
+            body.setSize(32, 32, -3, 0);
+            this.frame = 11;
+            body.allowGravity = false;
+            body.immovable = false;
+            body.moves = true;
+            this.health = this.weaponDamageCost * 3;
+            this.dangerLevel = 1;
+        };
+        PushPlatform.ID = 'PlatformBlock';
+        return PushPlatform;
+    }(PCGGame.Sprite));
+    PCGGame.PushPlatform = PushPlatform;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

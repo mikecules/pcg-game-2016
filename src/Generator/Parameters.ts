@@ -13,7 +13,7 @@ namespace Generator {
         public static SPRITE : any = {
             WIDTH: 32,
             HEIGHT: 32,
-            FRAMES: 10
+            FRAMES: 11
         };
 
         public static PLAYER : any = {

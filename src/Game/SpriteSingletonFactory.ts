@@ -13,7 +13,8 @@ namespace PCGGame {
             METEOR: null,
             MEGAHEAD: null,
             NULL_MOB: null,
-            PLATFORM_TYPE: null
+            PLATFORM_TYPE: null,
+            PUSH_PLATFORM_TYPE: null
         };
 
         public constructor(game: Phaser.Game) {
@@ -98,6 +99,14 @@ namespace PCGGame {
             }
 
             return this._mobs.PLATFORM_TYPE;
+        }
+
+        public getPushPlatformMob() {
+            if (this._mobs.PUSH_PLATFORM_TYPE === null) {
+                this._mobs.PUSH_PLATFORM_TYPE = this._addCommonSpriteAttributes(new PushPlatform(this._game));
+            }
+
+            return this._mobs.PUSH_PLATFORM_TYPE;
         }
 
 

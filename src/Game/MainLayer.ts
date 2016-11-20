@@ -248,7 +248,7 @@ namespace PCGGame {
         }
 
         private _changeSpriteBlockTexture(sprite : any) {
-            sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 1);
+            sprite.frame = this._randomGenerator.integerInRange(0, Generator.Parameters.SPRITE.FRAMES - 2);
         }
 
         private _addPlatformSprite(x: number, y: number, platformType: number): void {
@@ -258,9 +258,11 @@ namespace PCGGame {
 
 
             switch (platformType) {
-                case blockTypeEnum.MOB_NULL:
+                case blockTypeEnum.PLATFORM_TYPE:
                     sprite = spriteFactory.getPlatformMob();
-                    this._changeSpriteBlockTexture(sprite);
+                    break;
+                case blockTypeEnum.PUSH_PLATFORM_TYPE:
+                    sprite = spriteFactory.getPushPlatformMob();
                     break;
                 default:
                     sprite = spriteFactory.getNullMob();
@@ -271,7 +273,12 @@ namespace PCGGame {
 
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
 
-            this._changeSpriteBlockTexture(sprite);
+            if (platformType === blockTypeEnum.PLATFORM_TYPE) {
+                this._changeSpriteBlockTexture(sprite);
+            }
+            else {
+                sprite.frame = Generator.Parameters.SPRITE.FRAMES - 1;
+            }
 
             // add into walls group
             if (sprite.parent === null) {
