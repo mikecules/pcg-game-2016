@@ -38,6 +38,7 @@ namespace PCGGame {
         private _shouldShowExperientialPrompt : boolean = false;
         private _invincibilityTime : number = 0;
         private _musicTrack : Phaser.Sound;
+        private _soundEnabled : boolean = null;
 
 
         private _gameState : any = {
@@ -48,6 +49,7 @@ namespace PCGGame {
 
         private _fireKey : Phaser.Key;
         private _pauseKey : Phaser.Key;
+        private _toggleSoundKey : Phaser.Key;
         private _invokeExperientialKey : Phaser.Key;
 
         private _keysPressed : any = {
@@ -297,11 +299,15 @@ namespace PCGGame {
             if (this._gameState.paused) {
                 this._gameGameStateText.text = 'Game Paused...';
                 this._gameGameStateText.visible = true;
-                this._musicTrack.pause();
+                if ( this._soundEnabled ) {
+                    this._musicTrack.pause();
+                }
             }
             else {
                 this._gameGameStateText.visible = false;
-                this._musicTrack.resume();
+                if ( this._soundEnabled ) {
+                    this._musicTrack.resume();
+                }
             }
 
 
@@ -321,12 +327,6 @@ namespace PCGGame {
             this._musicTrack = this.game.add.audio(Play.MUSIC_ID);
 
             this._musicTrack.loop = true;
-
-
-            if (navigator.userAgent.toLowerCase().indexOf('firefox') < 0) {
-                //this._musicTrack.play();
-            }
-
 
             this.experientialGameManager = ExperientialGameManager.instance(this.game, this._player);
 
@@ -404,6 +404,27 @@ namespace PCGGame {
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SHIFT);
             this._invokeExperientialKey = this.game.input.keyboard.addKey(Phaser.Keyboard.C);
+            this._toggleSoundKey  = this.game.input.keyboard.addKey(Phaser.Keyboard.S);
+
+            this._toggleSoundKey.onDown.add(() => {
+
+                if (this._soundEnabled === null) {
+                    this._musicTrack.play();
+                    this._soundEnabled = true;
+                    return;
+                }
+
+
+                if (this._musicTrack.isPlaying) {
+                    this._musicTrack.pause();
+                }
+                else {
+                    this._musicTrack.resume();
+                }
+
+                this._soundEnabled = ! this._soundEnabled;
+
+            }, this);
 
             this._invokeExperientialKey.onDown.add(() => {
                 console.log('Invoke Experiential Dialogue');

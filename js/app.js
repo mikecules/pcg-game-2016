@@ -1939,6 +1939,7 @@ var PCGGame;
             this._healthBarSprite = null;
             this._shouldShowExperientialPrompt = false;
             this._invincibilityTime = 0;
+            this._soundEnabled = null;
             this._gameState = {
                 start: true,
                 end: false,
@@ -2113,11 +2114,15 @@ var PCGGame;
             if (this._gameState.paused) {
                 this._gameGameStateText.text = 'Game Paused...';
                 this._gameGameStateText.visible = true;
-                this._musicTrack.pause();
+                if (this._soundEnabled) {
+                    this._musicTrack.pause();
+                }
             }
             else {
                 this._gameGameStateText.visible = false;
-                this._musicTrack.resume();
+                if (this._soundEnabled) {
+                    this._musicTrack.resume();
+                }
             }
         };
         Play.prototype.create = function () {
@@ -2129,8 +2134,6 @@ var PCGGame;
             this._player = new PCGGame.Player(this.game);
             this._musicTrack = this.game.add.audio(Play.MUSIC_ID);
             this._musicTrack.loop = true;
-            if (navigator.userAgent.toLowerCase().indexOf('firefox') < 0) {
-            }
             this.experientialGameManager = PCGGame.ExperientialGameManager.instance(this.game, this._player);
             this.experientialGameManager.surveyManager.modalEvent.add(function (event) {
                 _this._shouldShowExperientialPrompt = event.isOpen;
@@ -2190,6 +2193,21 @@ var PCGGame;
             this._fireKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
             this._pauseKey = this.game.input.keyboard.addKey(Phaser.Keyboard.SHIFT);
             this._invokeExperientialKey = this.game.input.keyboard.addKey(Phaser.Keyboard.C);
+            this._toggleSoundKey = this.game.input.keyboard.addKey(Phaser.Keyboard.S);
+            this._toggleSoundKey.onDown.add(function () {
+                if (_this._soundEnabled === null) {
+                    _this._musicTrack.play();
+                    _this._soundEnabled = true;
+                    return;
+                }
+                if (_this._musicTrack.isPlaying) {
+                    _this._musicTrack.pause();
+                }
+                else {
+                    _this._musicTrack.resume();
+                }
+                _this._soundEnabled = !_this._soundEnabled;
+            }, this);
             this._invokeExperientialKey.onDown.add(function () {
                 console.log('Invoke Experiential Dialogue');
                 _this._invokeExperientialSurvey();
