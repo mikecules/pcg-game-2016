@@ -219,7 +219,11 @@ var PCGGame;
             configurable: true
         });
         ExperientialGameManager.prototype.takeMetricSnapShot = function () {
-            console.warn(ExperientialGameManager.gameMetricSnapShots.current);
+            ExperientialGameManager.gameMetricSnapShots.overall.mergeStats(this._currentSnapShot);
+            ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
+            ExperientialGameManager.gameMetricSnapShots.current = new PCGGame.GameMetric();
+            this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
+            console.warn(ExperientialGameManager.gameMetricSnapShots);
         };
         ExperientialGameManager.prototype.update = function () {
             var lastTime = this._game.time.elapsedMS;
@@ -263,7 +267,7 @@ var PCGGame;
             this._currentSnapShot.mobKilled(mob);
         };
         ExperientialGameManager._instance = null;
-        ExperientialGameManager.INTERVAL_MS = 5000;
+        ExperientialGameManager.INTERVAL_MS = 1000 * 30;
         ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS = 1000 * 30;
         ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED = true;
         ExperientialGameManager.gameMetricSnapShots = {
@@ -339,6 +343,20 @@ var PCGGame;
                     break;
             }
             return mobClass;
+        };
+        GameMetric.prototype.mergeStats = function (gameMetric) {
+            for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
+                var mob = GameMetric.MOB_TYPES[i];
+                this.mobDeathCountForType[mob] += gameMetric.mobDeathCountForType[mob];
+                this.playerDeathCountForMobType[mob] += gameMetric.playerDeathCountForMobType[mob];
+                this.playerDamageForMobType[mob] += gameMetric.playerDamageForMobType[mob];
+                this.mobDamagedByPlayer[mob] += gameMetric.mobDamagedByPlayer[mob];
+            }
+            this.playerDeathCount += gameMetric.playerDeathCount;
+            this.playerDamageReceivedCount += gameMetric.playerDamageReceivedCount;
+            this.mobDeathCount += gameMetric.mobDeathCount;
+            this.numberOfPlatformCollisions += gameMetric.numberOfPlatformCollisions;
+            return this;
         };
         GameMetric.prototype.reset = function () {
             for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {

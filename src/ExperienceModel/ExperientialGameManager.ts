@@ -3,7 +3,7 @@ namespace PCGGame {
 
     export class ExperientialGameManager {
         public static _instance : ExperientialGameManager = null;
-        public static INTERVAL_MS : number = 5000;
+        public static INTERVAL_MS : number = 1000 * 30;
         public static MIN_SURVEY_TIME_INTERVAL_MS : number = 1000 * 30;
         public static IS_EXPERIENCE_MODEL_ENABLED : boolean = true;
 
@@ -280,7 +280,14 @@ namespace PCGGame {
         }
 
         public takeMetricSnapShot() {
-            console.warn(ExperientialGameManager.gameMetricSnapShots.current);
+
+            ExperientialGameManager.gameMetricSnapShots.overall.mergeStats(this._currentSnapShot);
+            ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
+
+            ExperientialGameManager.gameMetricSnapShots.current = new GameMetric();
+            this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
+
+            console.warn(ExperientialGameManager.gameMetricSnapShots);
         }
 
 
@@ -321,7 +328,6 @@ namespace PCGGame {
             }
 
             this._totalTimeElapsed += lastTime;
-
 
         }
 

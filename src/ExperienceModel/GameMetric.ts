@@ -1,5 +1,6 @@
 namespace PCGGame {
     import blockTypeEnum = Generator.blockTypeEnum;
+    import game = PIXI.game;
 
     export class GameMetric {
 
@@ -102,6 +103,27 @@ namespace PCGGame {
             }
 
             return mobClass;
+        }
+
+        public mergeStats(gameMetric : GameMetric) : GameMetric {
+
+            for (let i = 0; i < GameMetric.MOB_TYPES.length; i++) {
+                let mob = GameMetric.MOB_TYPES[i];
+
+                this.mobDeathCountForType[mob] += gameMetric.mobDeathCountForType[mob];
+                this.playerDeathCountForMobType[mob] += gameMetric.playerDeathCountForMobType[mob];
+                this.playerDamageForMobType[mob] += gameMetric.playerDamageForMobType[mob];
+                this.mobDamagedByPlayer[mob] += gameMetric.mobDamagedByPlayer[mob];
+            }
+
+
+            this.playerDeathCount += gameMetric.playerDeathCount;
+            this.playerDamageReceivedCount += gameMetric.playerDamageReceivedCount;
+            this.mobDeathCount += gameMetric.mobDeathCount;
+
+            this.numberOfPlatformCollisions += gameMetric.numberOfPlatformCollisions;
+
+            return this;
         }
 
         public reset() {
