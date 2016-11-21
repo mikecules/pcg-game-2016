@@ -36,13 +36,13 @@ namespace PCGGame {
 
         public set minX(n : number) {
             this._minX = n;
-            this.x = Math.max(this.position.x, this._minX);
+            this.x = Math.max(this.x, this._minX);
             this.body.velocity.y = 0;
         }
 
         public set maxX(n : number) {
             this._maxX = n;
-            this.x = Math.min(this.position.x, this._maxX);
+            this.x = Math.min(this.x, this._maxX);
         }
 
 
@@ -111,9 +111,8 @@ namespace PCGGame {
 
 
         public moveRight() : void {
-            this.x += Player.VELOCITY_INC;
 
-            this.x = Math.min(this.x, this._maxX);
+            this.x = Math.min(this.x + Player.VELOCITY_INC, this._maxX);
 
             this._updateBulletSpeed();
         }
@@ -121,8 +120,7 @@ namespace PCGGame {
 
         public moveLeft() : void {
 
-            this.x -= Player.VELOCITY_INC;
-            this.x = Math.max(this.x, this._minX);
+            this.x = Math.max(this.x - Player.VELOCITY_INC, this._minX);
 
             this._updateBulletSpeed();
         }

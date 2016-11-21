@@ -1162,7 +1162,7 @@ var PCGGame;
         Object.defineProperty(Player.prototype, "minX", {
             set: function (n) {
                 this._minX = n;
-                this.x = Math.max(this.position.x, this._minX);
+                this.x = Math.max(this.x, this._minX);
                 this.body.velocity.y = 0;
             },
             enumerable: true,
@@ -1171,7 +1171,7 @@ var PCGGame;
         Object.defineProperty(Player.prototype, "maxX", {
             set: function (n) {
                 this._maxX = n;
-                this.x = Math.min(this.position.x, this._maxX);
+                this.x = Math.min(this.x, this._maxX);
             },
             enumerable: true,
             configurable: true
@@ -1181,13 +1181,11 @@ var PCGGame;
             this._weapon.bulletSpeed = (speed || playerBody.velocity.x) + 200;
         };
         Player.prototype.moveRight = function () {
-            this.x += Player.VELOCITY_INC;
-            this.x = Math.min(this.x, this._maxX);
+            this.x = Math.min(this.x + Player.VELOCITY_INC, this._maxX);
             this._updateBulletSpeed();
         };
         Player.prototype.moveLeft = function () {
-            this.x -= Player.VELOCITY_INC;
-            this.x = Math.max(this.x, this._minX);
+            this.x = Math.max(this.x - Player.VELOCITY_INC, this._minX);
             this._updateBulletSpeed();
         };
         Player.prototype.fire = function () {
@@ -2282,10 +2280,10 @@ var PCGGame;
             }, null, this);
             var shouldShowExperientialPrompt = false;
             this._mainLayer.wallBlocks.forEachExists(function (wall) {
-                if (!wall.canCollide) {
+                wall.render(_this._player);
+                if (!wall.canCollide || wall.mobType === 1) {
                     return;
                 }
-                wall.render(_this._player);
                 _this.game.physics.arcade.collide(wall, _this._mainLayer.wallBlocks, function (targetWall, wall) {
                     if (!targetWall.canCollide) {
                         return;

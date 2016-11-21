@@ -720,11 +720,11 @@ namespace PCGGame {
             // Since walls are now destructable we treat them like mobs
             this._mainLayer.wallBlocks.forEachExists((wall: any) => {
 
-                if (! wall.canCollide) {
+                wall.render(this._player);
+
+                if (! wall.canCollide || wall.mobType === blockTypeEnum.PUSH_PLATFORM_TYPE) {
                     return;
                 }
-
-                wall.render(this._player);
 
                 this.game.physics.arcade.collide(wall,  this._mainLayer.wallBlocks, (targetWall : Sprite, wall : Sprite) => {
 
@@ -811,8 +811,6 @@ namespace PCGGame {
 
 
             this._showExperientialPrompt(shouldShowExperientialPrompt);
-
-
 
             if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X)  {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
