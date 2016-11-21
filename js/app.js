@@ -367,6 +367,68 @@ var PCGGame;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
+    var SurveyManager = (function () {
+        function SurveyManager(id) {
+            this._modal = null;
+            this._modal = new Modal(id);
+        }
+        SurveyManager.prototype.showSurvey = function () {
+            this._modal.open();
+        };
+        Object.defineProperty(SurveyManager.prototype, "modalEvent", {
+            get: function () {
+                return this._modal.modalCompleteSignal;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(SurveyManager.prototype, "isShowing", {
+            get: function () {
+                return this._modal.isOpen;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return SurveyManager;
+    }());
+    PCGGame.SurveyManager = SurveyManager;
+    var Modal = (function () {
+        function Modal(id) {
+            var _this = this;
+            this._isOpen = false;
+            this._modalEl = null;
+            this.modalCompleteSignal = null;
+            this._modalEl = $('#' + id);
+            this._modalEl.on('show.bs.modal', function () {
+                _this._isOpen = true;
+                _this._dispatchEvent();
+            });
+            this._modalEl.on('hidden.bs.modal', function () {
+                _this._isOpen = false;
+                _this._dispatchEvent();
+            });
+            this.modalCompleteSignal = new Phaser.Signal();
+        }
+        Modal.prototype.open = function (shouldOpen) {
+            if (shouldOpen === void 0) { shouldOpen = true; }
+            this._isOpen = shouldOpen || !this._isOpen;
+            this._modalEl.modal((this._isOpen ? 'show' : 'hide'));
+        };
+        Object.defineProperty(Modal.prototype, "isOpen", {
+            get: function () {
+                return this._isOpen;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Modal.prototype._dispatchEvent = function () {
+            this.modalCompleteSignal.dispatch({ isOpen: this._isOpen, values: {} });
+        };
+        return Modal;
+    }());
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
     var Animation = (function () {
         function Animation() {
         }
@@ -2391,9 +2453,6 @@ var PCGGame;
             if (isNotchFound && this.experientialGameManager.isEligibleForSurvey) {
                 this._shouldShowExperientialPrompt = true;
             }
-            else {
-                this._shouldShowExperientialPrompt = false;
-            }
             this._showExperientialPrompt(this._shouldShowExperientialPrompt);
             if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X) {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
@@ -2466,67 +2525,5 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    var SurveyManager = (function () {
-        function SurveyManager(id) {
-            this._modal = null;
-            this._modal = new Modal(id);
-        }
-        SurveyManager.prototype.showSurvey = function () {
-            this._modal.open();
-        };
-        Object.defineProperty(SurveyManager.prototype, "modalEvent", {
-            get: function () {
-                return this._modal.modalCompleteSignal;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(SurveyManager.prototype, "isShowing", {
-            get: function () {
-                return this._modal.isOpen;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return SurveyManager;
-    }());
-    PCGGame.SurveyManager = SurveyManager;
-    var Modal = (function () {
-        function Modal(id) {
-            var _this = this;
-            this._isOpen = false;
-            this._modalEl = null;
-            this.modalCompleteSignal = null;
-            this._modalEl = $('#' + id);
-            this._modalEl.on('show.bs.modal', function () {
-                _this._isOpen = true;
-                _this._dispatchEvent();
-            });
-            this._modalEl.on('hidden.bs.modal', function () {
-                _this._isOpen = false;
-                _this._dispatchEvent();
-            });
-            this.modalCompleteSignal = new Phaser.Signal();
-        }
-        Modal.prototype.open = function (shouldOpen) {
-            if (shouldOpen === void 0) { shouldOpen = true; }
-            this._isOpen = shouldOpen || !this._isOpen;
-            this._modalEl.modal((this._isOpen ? 'show' : 'hide'));
-        };
-        Object.defineProperty(Modal.prototype, "isOpen", {
-            get: function () {
-                return this._isOpen;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Modal.prototype._dispatchEvent = function () {
-            this.modalCompleteSignal.dispatch({ isOpen: this._isOpen, values: {} });
-        };
-        return Modal;
-    }());
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map
