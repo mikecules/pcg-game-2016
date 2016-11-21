@@ -31,8 +31,14 @@ canvas {
     margin-top: 10px;
 }
 
-.game-instructions > strong  {
-    color: #ffa49a;
+.game-instructions > strong {
+    color: #ffc8c8;
+
+}
+
+.game-instructions > strong > span  {
+    color: #ff6388;
+    margin-right: 5px;
 }
 
 .game-instructions ul {
@@ -42,12 +48,17 @@ canvas {
     padding-left: 10px;
 }
 
+.game-instructions ul > li strong {
+    color: #92cc9f;
+}
+
 .game-instructions ul > li {
     line-height: 20px;
 }
 
 .game-instructions ul span:first-child {
     margin-right: 10px;
+    color: #a1ceeb;
 }
 
 .game-instructions ul span:last-child {
@@ -56,5 +67,5 @@ canvas {
 
 .game-instructions ul span {
     margin-left: 10px;
-    color: #a1ceeb;
+    color: #c2abeb;
 }
