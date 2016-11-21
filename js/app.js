@@ -11,9 +11,9 @@ var PCGGame;
     }());
     PCGGame.Global = Global;
 })(PCGGame || (PCGGame = {}));
-window.onload = function () {
+$(document).ready(function () {
     PCGGame.Global.game = new PCGGame.Game();
-};
+});
 var PCGGame;
 (function (PCGGame) {
     var ExperientialGameManager = (function () {
@@ -251,6 +251,96 @@ var PCGGame;
         return ExperientialGameManager;
     }());
     PCGGame.ExperientialGameManager = ExperientialGameManager;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var GameMetric = (function () {
+        function GameMetric() {
+            this.playerDeathCount = 0;
+            this.playerDeathCountForType = {};
+            this.mobDeathCount = 0;
+            this.mobDeathCountForType = {};
+            this.playerDamageReceivedCount = 0;
+            this.playerDamageForMobType = {};
+            this.mobDamagedByPlayer = {};
+            this.numberOfPlatformCollisions = 0;
+            this.reset();
+        }
+        GameMetric.prototype.mobKilled = function (sprite) {
+            var mobType = this._getMobType(sprite);
+            this.mobDeathCountForType[this._getMobKeyForType(mobType)]++;
+            this.mobDeathCount++;
+        };
+        GameMetric.prototype.playerDamagedBy = function (sprite, damage) {
+            console.log('MM !!! Player damaged by ', sprite);
+            var mobType = this._getMobType(sprite);
+            this.playerDamageForMobType[this._getMobKeyForType(mobType)] += damage;
+            this.playerDamageReceivedCount += damage;
+        };
+        GameMetric.prototype.mobDamagedReceieved = function (sprite, damage) {
+            console.log('MM !!! Mob damaged by Player ', sprite);
+            var mobType = this._getMobType(sprite);
+            this.mobDamagedByPlayer[this._getMobKeyForType(mobType)] += damage;
+        };
+        GameMetric.prototype.playerKilledBy = function (sprite) {
+            console.log('!!! Player killed by ', sprite);
+            var mobType = this._getMobType(sprite);
+            this.playerDeathCountForType[this._getMobKeyForType(mobType)]++;
+            this.playerDeathCount++;
+        };
+        GameMetric.prototype._getMobType = function (sprite) {
+            return Generator.Block.getMobEnumType(sprite);
+        };
+        GameMetric.prototype._getMobKeyForType = function (type) {
+            var mobClass = 'MOB_NULL';
+            switch (type) {
+                case 3:
+                    mobClass = 'Notch';
+                    break;
+                case 4:
+                    mobClass = 'Meteor';
+                    break;
+                case 5:
+                    mobClass = 'Invader';
+                    break;
+                case 6:
+                    mobClass = 'MegaHead';
+                    break;
+                case 0:
+                    mobClass = 'Platform';
+                    break;
+                case 1:
+                    mobClass = 'PushPlatform';
+                    break;
+                default:
+                    break;
+            }
+            return mobClass;
+        };
+        GameMetric.prototype.reset = function () {
+            for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
+                var mob = GameMetric.MOB_TYPES[i];
+                this.mobDeathCountForType[mob] = 0;
+                this.playerDeathCountForType[mob] = 0;
+                this.playerDamageForMobType[mob] = 0;
+                this.mobDamagedByPlayer[mob] = 0;
+            }
+            this.playerDeathCount = 0;
+            this.playerDamageReceivedCount = 0;
+            this.mobDeathCount = 0;
+            this.numberOfPlatformCollisions = 0;
+        };
+        GameMetric.MOB_TYPES = [
+            'Notch',
+            'Meteor',
+            'Invader',
+            'MegaHead',
+            'Platform',
+            'PushPlatform'
+        ];
+        return GameMetric;
+    }());
+    PCGGame.GameMetric = GameMetric;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
@@ -2318,95 +2408,5 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    var GameMetric = (function () {
-        function GameMetric() {
-            this.playerDeathCount = 0;
-            this.playerDeathCountForType = {};
-            this.mobDeathCount = 0;
-            this.mobDeathCountForType = {};
-            this.playerDamageReceivedCount = 0;
-            this.playerDamageForMobType = {};
-            this.mobDamagedByPlayer = {};
-            this.numberOfPlatformCollisions = 0;
-            this.reset();
-        }
-        GameMetric.prototype.mobKilled = function (sprite) {
-            var mobType = this._getMobType(sprite);
-            this.mobDeathCountForType[this._getMobKeyForType(mobType)]++;
-            this.mobDeathCount++;
-        };
-        GameMetric.prototype.playerDamagedBy = function (sprite, damage) {
-            console.log('MM !!! Player damaged by ', sprite);
-            var mobType = this._getMobType(sprite);
-            this.playerDamageForMobType[this._getMobKeyForType(mobType)] += damage;
-            this.playerDamageReceivedCount += damage;
-        };
-        GameMetric.prototype.mobDamagedReceieved = function (sprite, damage) {
-            console.log('MM !!! Mob damaged by Player ', sprite);
-            var mobType = this._getMobType(sprite);
-            this.mobDamagedByPlayer[this._getMobKeyForType(mobType)] += damage;
-        };
-        GameMetric.prototype.playerKilledBy = function (sprite) {
-            console.log('!!! Player killed by ', sprite);
-            var mobType = this._getMobType(sprite);
-            this.playerDeathCountForType[this._getMobKeyForType(mobType)]++;
-            this.playerDeathCount++;
-        };
-        GameMetric.prototype._getMobType = function (sprite) {
-            return Generator.Block.getMobEnumType(sprite);
-        };
-        GameMetric.prototype._getMobKeyForType = function (type) {
-            var mobClass = 'MOB_NULL';
-            switch (type) {
-                case 3:
-                    mobClass = 'Notch';
-                    break;
-                case 4:
-                    mobClass = 'Meteor';
-                    break;
-                case 5:
-                    mobClass = 'Invader';
-                    break;
-                case 6:
-                    mobClass = 'MegaHead';
-                    break;
-                case 0:
-                    mobClass = 'Platform';
-                    break;
-                case 1:
-                    mobClass = 'PushPlatform';
-                    break;
-                default:
-                    break;
-            }
-            return mobClass;
-        };
-        GameMetric.prototype.reset = function () {
-            for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
-                var mob = GameMetric.MOB_TYPES[i];
-                this.mobDeathCountForType[mob] = 0;
-                this.playerDeathCountForType[mob] = 0;
-                this.playerDamageForMobType[mob] = 0;
-                this.mobDamagedByPlayer[mob] = 0;
-            }
-            this.playerDeathCount = 0;
-            this.playerDamageReceivedCount = 0;
-            this.mobDeathCount = 0;
-            this.numberOfPlatformCollisions = 0;
-        };
-        GameMetric.MOB_TYPES = [
-            'Notch',
-            'Meteor',
-            'Invader',
-            'MegaHead',
-            'Platform',
-            'PushPlatform'
-        ];
-        return GameMetric;
-    }());
-    PCGGame.GameMetric = GameMetric;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

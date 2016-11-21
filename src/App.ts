@@ -1,3 +1,7 @@
+/// <reference path="./../lib/jquery.d.ts" />
+/// <reference path="./../lib/bootstrap.d.ts" />
+
+
 namespace PCGGame {
     export class Global {
         public static game : Phaser.Game;
@@ -11,6 +15,6 @@ namespace PCGGame {
 
 }
 
-window.onload = () => {
+$(document).ready(() => {
     PCGGame.Global.game = new PCGGame.Game();
-};
+});
