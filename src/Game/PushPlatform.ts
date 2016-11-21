@@ -2,6 +2,8 @@
 
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
+
     export class PushPlatform extends Sprite {
 
         public static ID : string = 'PlatformBlock';
@@ -19,6 +21,8 @@ namespace PCGGame {
             this.frame = 11;
 
             this._killScoreVal = 20;
+
+            this.mobType = blockTypeEnum.PUSH_PLATFORM_TYPE;
 
             // enable physics for player
             game.physics.arcade.enable(this, false);

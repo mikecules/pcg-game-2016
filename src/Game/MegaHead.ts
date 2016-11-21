@@ -2,6 +2,8 @@
 
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
+
     export class MegaHead extends Sprite {
 
         public static ID : string = 'MegaHead';
@@ -29,6 +31,8 @@ namespace PCGGame {
             this.scale.set(1.5);
 
             this._killScoreVal = 1000;
+
+            this.mobType = blockTypeEnum.MOB_MEGA_HEAD;
 
             this._weapon = game.add.weapon(MegaHead.NUM_BULLETS, MegaHead.BULLET_ID);
 

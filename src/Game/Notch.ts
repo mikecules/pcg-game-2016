@@ -2,6 +2,7 @@
 
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
     export class Notch extends Sprite {
 
         public static ID : string = 'Notch';
@@ -19,6 +20,8 @@ namespace PCGGame {
             this.scale.set(1.5);
 
             this._killScoreVal = 250;
+
+            this.mobType = blockTypeEnum.MOB_NOTCH;
 
             // enable physics for player
             game.physics.arcade.enable(this, false);

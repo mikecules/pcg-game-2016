@@ -1,6 +1,8 @@
 /// <reference path="Sprite.ts" />
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
+
     export class Invader extends Sprite {
 
         public static ID : string = 'Invader';
@@ -20,6 +22,8 @@ namespace PCGGame {
             this.scale.set(1.2);
 
             this._killScoreVal = 500;
+
+            this.mobType = blockTypeEnum.MOB_INVADER;
 
             // enable physics for player
             game.physics.arcade.enable(this, false);

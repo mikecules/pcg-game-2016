@@ -5,12 +5,14 @@ namespace PCGGame {
         public static _instance : ExperientialGameManager = null;
         public static INTERVAL_MS : number = 5000;
 
-
-        private _gameMetricSnapShots : any = {
-            overall: new GameMetric(),
-            previous: new GameMetric(),
-            current: new GameMetric()
+        public static gameMetricSnapShots : any = {
+            overall: null,
+            previous: null,
+            current: null
         };
+
+        public lastPlayerDeathDeltaTimeMS : number = 0;
+        public lastPlayerDamagedDeltaTimeMS : number = 0;
 
         private _game : Phaser.Game = null;
         private _totalTimeElapsed : number = 0;
@@ -18,6 +20,7 @@ namespace PCGGame {
         private _adaptTimeElapsedMS : number = 0;
         private _player : Player = null;
         private _randomGenerator : Phaser.RandomDataGenerator;
+        private _currentSnapShot : GameMetric = null;
 
         private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;
@@ -100,7 +103,13 @@ namespace PCGGame {
         public constructor(game: Phaser.Game, player: Player) {
             this._game = game;
             this._player = player;
-            this._randomGenerator = game.rnd;
+            this._randomGenerator = game.rnd
+
+            ExperientialGameManager.gameMetricSnapShots.current = new GameMetric();
+            ExperientialGameManager.gameMetricSnapShots.overall = new GameMetric();
+
+
+            this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
 
             for (let probType in this._probabilityDistributions) {
                 if (this._probabilityDistributions.hasOwnProperty(probType)) {
@@ -133,7 +142,7 @@ namespace PCGGame {
 
         }
 
-
+        //
         private _updateProbabilityBoundaries(probabilityType : string) : any[] {
             let len = this._probabilityDistributionBoundaries[probabilityType].length;
 
@@ -152,6 +161,7 @@ namespace PCGGame {
             return this._probabilityDistributionBoundaries[probabilityType];
         }
 
+        //
         private calcType(minType : number, maxType: number, typeProbabilitiesUpperBoundary : any[]) : number {
             let p = this._randomGenerator.integerInRange(0, 100);
             let type = minType;
@@ -167,20 +177,24 @@ namespace PCGGame {
 
         }
 
+        //
         private  _distributionCalcFn(minType : number, maxType: number, typeProbabilitiesUpperBoundary : any[]) : Function {
             return () => {
                 return this.calcType(minType, maxType, typeProbabilitiesUpperBoundary);
             }
         }
 
+        //
         public get lootDistributionFn() : Function {
             return this._distributionCalcFn(lootTypeEnum.DEFAULT, lootTypeEnum.NEW_LIFE, this._probabilityDistributionBoundaries.LOOT);
         }
 
+        //
         public get platformDistributionFn() : Function {
             return () => this._randomGenerator.integerInRange(blockTypeEnum.PLATFORM_TYPE, blockTypeEnum.MOB_NULL);
         }
 
+        //
         public get mobDistributionFn() : Function {
             return () => {};
         }
@@ -243,7 +257,7 @@ namespace PCGGame {
         }
 
         public takeMetricSnapShot() {
-            console.warn(this._gameMetricSnapShots.current);
+            console.warn(ExperientialGameManager.gameMetricSnapShots.current);
         }
 
 
@@ -252,6 +266,9 @@ namespace PCGGame {
             let lastTime = this._game.time.elapsedMS;
             this._currentSnapShotTime += lastTime;
             this._adaptTimeElapsedMS += lastTime;
+
+            this.lastPlayerDeathDeltaTimeMS += lastTime;
+            this.lastPlayerDamagedDeltaTimeMS += lastTime;
 
 
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
@@ -275,135 +292,26 @@ namespace PCGGame {
 
 
         public playerDamageReceived(damage: number, sprite : Sprite) {
-            this._gameMetricSnapShots.current.playerDamagedBy(sprite, damage);
+            this._currentSnapShot.playerDamagedBy(sprite, damage);
+            this.lastPlayerDamagedDeltaTimeMS = 0;
         }
 
         public playerDamageGiven(damage: number, sprite: Sprite) {
-
+            this._currentSnapShot.mobDamagedReceieved(sprite, damage);
         }
 
         public playerKilled(sprite: Sprite) {
-            this._gameMetricSnapShots.current.playerKilledBy(sprite);
+            this._currentSnapShot.playerKilledBy(sprite);
+            this.lastPlayerDeathDeltaTimeMS = 0;
         }
 
         public playerCollidedWithPlatform() {
-            this._gameMetricSnapShots.current.numberOfPlatformCollisions++;
+            this._currentSnapShot.numberOfPlatformCollisions++;
         }
 
         public mobKilled(mob: Sprite) {
-            this._gameMetricSnapShots.current.mobKilled(mob);
+            this._currentSnapShot.mobKilled(mob);
         }
 
-    }
-
-    class GameMetric {
-
-        public static MOB_TYPES = [
-            'Notch',
-            'Meteor',
-            'Invader',
-            'MegaHead',
-            'Platform',
-            'PushPlatform'
-        ];
-
-        public playerDeathCount : number = 0;
-
-        public playerDeathCountForType : any = {};
-
-        public mobDeathCount : number = 0;
-        public mobDeathCountForType : any = {};
-
-        public playerDamageReceivedCount : number = 0;
-
-        public playerDamageForMobType : any = {};
-
-
-        public numberOfPlatformCollisions : number = 0;
-
-
-        public constructor() {
-            this.reset();
-        }
-
-
-
-        public mobKilled(sprite : Sprite) {
-
-            let mobType : number = this._getMobType(sprite);
-
-            this.mobDeathCountForType[this._getMobKeyForType(mobType)]++;
-
-            this.mobDeathCount++;
-        }
-
-        public playerDamagedBy(sprite : Sprite, damage : number) {
-            console.log('MM !!! Player damaged by ', sprite);
-
-            let mobType : number = this._getMobType(sprite);
-
-            this.playerDamageForMobType[this._getMobKeyForType(mobType)] += damage;
-
-            this.playerDamageReceivedCount += damage;
-        }
-
-        public playerKilledBy(sprite : Sprite) {
-            console.log('!!! Player killed by ', sprite);
-
-            let mobType : number = this._getMobType(sprite);
-
-            this.playerDeathCountForType[this._getMobKeyForType(mobType)]++;
-
-            this.playerDeathCount++;
-        }
-
-        private _getMobType(sprite : Sprite) : number {
-            return Generator.Block.getMobEnumType(sprite);
-        }
-
-        private _getMobKeyForType(type : number) : string {
-            let mobClass : string = 'MOB_NULL';
-
-            switch (type) {
-                case blockTypeEnum.MOB_NOTCH:
-                    mobClass = 'Notch';
-                    break;
-                case blockTypeEnum.MOB_METEOR:
-                    mobClass = 'Meteor';
-                    break;
-                case blockTypeEnum.MOB_INVADER:
-                    mobClass = 'Invader';
-                    break;
-                case blockTypeEnum.MOB_MEGA_HEAD:
-                    mobClass = 'MegaHead';
-                    break;
-                case blockTypeEnum.PLATFORM_TYPE:
-                    mobClass = 'Platform';
-                    break;
-                default:
-                    break;
-            }
-
-            return mobClass;
-        }
-
-        public reset() {
-
-            for (let i = 0; i < GameMetric.MOB_TYPES.length; i++) {
-                let mob = GameMetric.MOB_TYPES[i];
-
-                this.mobDeathCountForType[mob] = 0;
-                this.playerDeathCountForType[mob] = 0;
-                this.playerDamageForMobType[mob] = 0;
-            }
-
-
-            this.playerDeathCount = 0;
-            this.playerDamageReceivedCount = 0;
-            this.mobDeathCount = 0;
-
-            this.numberOfPlatformCollisions = 0;
-
-        }
     }
 }

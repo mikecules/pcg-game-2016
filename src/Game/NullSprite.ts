@@ -2,6 +2,8 @@
 
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
+
     export class NullSprite extends Sprite {
 
         public static ID : string = 'null';
@@ -18,7 +20,9 @@ namespace PCGGame {
 
             this.frame = 0;
 
-            this._killScoreVal = 20;
+            this._killScoreVal = 0;
+
+            this.mobType = blockTypeEnum.MOB_NULL;
 
             // enable physics for player
             //game.physics.arcade.enable(this, false);

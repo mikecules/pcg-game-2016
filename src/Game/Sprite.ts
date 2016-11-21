@@ -1,10 +1,13 @@
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
     export const enum spriteDangerLevelEnum {NO_DANGER, LOW_DANGER, MEDIUM_DANGER, HIGH_DANGER}
 
     export class Sprite extends Phaser.Sprite {
 
         public static LOOT_ID : string = 'mob.loot';
+
+        public mobType : number = blockTypeEnum.MOB_NULL;
 
         public spriteFactoryParent : SpriteSingletonFactory = null;
         public canCollide : boolean = true;

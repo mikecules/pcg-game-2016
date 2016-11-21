@@ -1,5 +1,7 @@
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
+
     export class Player extends Sprite {
 
         public static ID : string = 'Player';
@@ -60,6 +62,7 @@ namespace PCGGame {
 
             this.playerEvents = new Phaser.Signal();
 
+            this.mobType = -1;
 
             this._weapon = game.add.weapon(Player.NUM_BULLETS, Player.BULLET_ID);
 

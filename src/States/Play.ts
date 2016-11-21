@@ -1,4 +1,5 @@
 namespace PCGGame {
+    import blockTypeEnum = Generator.blockTypeEnum;
     export class Play extends Phaser.State {
 
         public static GAME_INTRO_TEXT : string = 'Press fire button to start.';
@@ -562,6 +563,9 @@ namespace PCGGame {
                 this.experientialGameManager.playerDamageGiven(wallDamage, wall);
             }
 
+            if (player.died) {
+                this.experientialGameManager.playerKilled(wall);
+            }
 
 
             if (wall.health <= 0) {
@@ -606,12 +610,17 @@ namespace PCGGame {
                     mob.takeDamage(mobDamage);
 
 
+
                     if (damage) {
                         this.experientialGameManager.playerDamageReceived(damage, mob);
                     }
 
                     if (mobDamage) {
                         this.experientialGameManager.playerDamageGiven(mobDamage, mob);
+                    }
+
+                    if (player.died) {
+                        this.experientialGameManager.playerKilled(mob);
                     }
 
                 }
@@ -633,7 +642,7 @@ namespace PCGGame {
         }
 
 
-        public playerTookMobDamageHandler(player : Player, bullet : Phaser.Sprite, mob: Sprite) {
+        public playerTookMobBulletDamageHandler(player : Player, bullet : Phaser.Sprite, mob: Sprite) {
 
             if (player.died) {
                 return;
@@ -659,7 +668,7 @@ namespace PCGGame {
             if (! this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, (player : Player, wall : Sprite) => {
 
-                    if (! wall.canCollide || (wall instanceof PushPlatform && ! wall.hasLoot)) {
+                    if (! wall.canCollide || (wall.mobType === blockTypeEnum.PUSH_PLATFORM_TYPE && ! wall.hasLoot) || player.died) {
                         return;
                     }
 
@@ -670,7 +679,7 @@ namespace PCGGame {
             // Check for collision between player and mobs (not the wall)
             this.physics.arcade.collide(this._player, this._mainLayer.mobs, (player : Player, mob : Sprite) => {
 
-                if (! mob.canCollide) {
+                if (! mob.canCollide || player.died) {
                     return;
                 }
 
@@ -680,7 +689,7 @@ namespace PCGGame {
             // Check for collision between player and mobs (only the wall)
             this.game.physics.arcade.overlap(this._player.bullets, this._mainLayer.wallBlocks, (bullet : Phaser.Sprite, wall : Sprite) => {
 
-                let friendlyWall = wall instanceof PushPlatform;
+                let friendlyWall = wall.mobType === blockTypeEnum.PUSH_PLATFORM_TYPE;
 
                 if (! wall.canCollide || friendlyWall) {
 
@@ -773,7 +782,7 @@ namespace PCGGame {
                 }
 
                 this.game.physics.arcade.collide(this._player, mob.bullets, (player : Player, bullet : Phaser.Sprite) => {
-                    this.playerTookMobDamageHandler(player, bullet, mob);
+                    this.playerTookMobBulletDamageHandler(player, bullet, mob);
                 });
 
 

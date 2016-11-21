@@ -2,6 +2,8 @@
 
 namespace PCGGame {
 
+    import blockTypeEnum = Generator.blockTypeEnum;
+
     export class Meteor extends Sprite {
 
         public static ID : string = 'Meteor';
@@ -22,6 +24,8 @@ namespace PCGGame {
             this.scale.set(1.2);
 
             this._killScoreVal = 200;
+
+            this.mobType = blockTypeEnum.MOB_METEOR;
 
             // enable physics for player
             game.physics.arcade.enable(this, false);
