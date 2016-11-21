@@ -9,6 +9,7 @@ namespace PCGGame {
         public constructor() {
             // initialize the game
             super(Global.SCREEN.WIDTH, Global.SCREEN.HEIGHT, Phaser.AUTO, 'pcg-content');
+            //super(Global.SCREEN.WIDTH, Global.SCREEN.HEIGHT, Phaser.CANVAS, 'pcg-content');
 
             // add states to state manager
             this.state.add('Boot', Boot);

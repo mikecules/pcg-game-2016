@@ -22,6 +22,10 @@ namespace PCGGame {
             this.load.image(Meteor.ID, 'assets/meteor.png');
             this.load.image(BackgroundLayer.STAR_ID, 'assets/star.png');
 
+
+            // Source: http://soundimage.org/
+            this.load.audio(Play.MUSIC_ID, ['assets/game-music.mp3', 'assets/game-music.ogg'])
+
         }
 
         public update() {

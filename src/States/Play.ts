@@ -5,6 +5,7 @@ namespace PCGGame {
         public static GAME_INTRO_TEXT : string = 'Press fire button to start.';
         public static GAME_OVER_TEXT : string = 'Game Over...\n\nPress fire button to continue.';
         public static SHIELD_ID : string = 'Shield';
+        public static MUSIC_ID : string = 'GameMusic';
         public static START_GAME_INVINCIBILITY_TIME : number = 10000;
 
         public static POWER_UP_MESSAGE : any = {
@@ -36,6 +37,7 @@ namespace PCGGame {
         private _healthBarSprite : Phaser.Sprite = null;
         private _shouldShowExperientialPrompt : boolean = false;
         private _invincibilityTime : number = 0;
+        private _musicTrack : Phaser.Sound;
 
 
         private _gameState : any = {
@@ -295,9 +297,11 @@ namespace PCGGame {
             if (this._gameState.paused) {
                 this._gameGameStateText.text = 'Game Paused...';
                 this._gameGameStateText.visible = true;
+                this._musicTrack.pause();
             }
             else {
                 this._gameGameStateText.visible = false;
+                this._musicTrack.resume();
             }
 
 
@@ -313,6 +317,16 @@ namespace PCGGame {
             PCGGame.SpriteSingletonFactory.instance(this.game);
 
             this._player = new Player(this.game);
+
+            this._musicTrack = this.game.add.audio(Play.MUSIC_ID);
+
+            this._musicTrack.loop = true;
+
+
+            if (navigator.userAgent.toLowerCase().indexOf('firefox') < 0) {
+                //this._musicTrack.play();
+            }
+
 
             this.experientialGameManager = ExperientialGameManager.instance(this.game, this._player);
 

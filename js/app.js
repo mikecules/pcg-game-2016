@@ -2113,9 +2113,11 @@ var PCGGame;
             if (this._gameState.paused) {
                 this._gameGameStateText.text = 'Game Paused...';
                 this._gameGameStateText.visible = true;
+                this._musicTrack.pause();
             }
             else {
                 this._gameGameStateText.visible = false;
+                this._musicTrack.resume();
             }
         };
         Play.prototype.create = function () {
@@ -2125,6 +2127,10 @@ var PCGGame;
             this.camera.bounds = null;
             PCGGame.SpriteSingletonFactory.instance(this.game);
             this._player = new PCGGame.Player(this.game);
+            this._musicTrack = this.game.add.audio(Play.MUSIC_ID);
+            this._musicTrack.loop = true;
+            if (navigator.userAgent.toLowerCase().indexOf('firefox') < 0) {
+            }
             this.experientialGameManager = PCGGame.ExperientialGameManager.instance(this.game, this._player);
             this.experientialGameManager.surveyManager.modalEvent.add(function (event) {
                 _this._shouldShowExperientialPrompt = event.isOpen;
@@ -2496,6 +2502,7 @@ var PCGGame;
         Play.GAME_INTRO_TEXT = 'Press fire button to start.';
         Play.GAME_OVER_TEXT = 'Game Over...\n\nPress fire button to continue.';
         Play.SHIELD_ID = 'Shield';
+        Play.MUSIC_ID = 'GameMusic';
         Play.START_GAME_INVINCIBILITY_TIME = 10000;
         Play.POWER_UP_MESSAGE = {
             LIFE: 'Extra Life Gained!',
@@ -2533,6 +2540,7 @@ var PCGGame;
             this.load.image(PCGGame.Invader.BULLET_ID, 'assets/enemy-bullet.png');
             this.load.image(PCGGame.Meteor.ID, 'assets/meteor.png');
             this.load.image(PCGGame.BackgroundLayer.STAR_ID, 'assets/star.png');
+            this.load.audio(PCGGame.Play.MUSIC_ID, ['assets/game-music.mp3', 'assets/game-music.ogg']);
         };
         Preload.prototype.update = function () {
             if (this._isGameReady === false) {
