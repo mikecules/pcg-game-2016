@@ -21,6 +21,9 @@ var PCGGame;
             var _this = this;
             this.lastPlayerDeathDeltaTimeMS = 0;
             this.lastPlayerDamagedDeltaTimeMS = 0;
+            this.lastSurveyShownTimeMS = 0;
+            this.surveyManager = null;
+            this.isEligibleForSurvey = false;
             this._game = null;
             this._totalTimeElapsed = 0;
             this._currentSnapShotTime = 0;
@@ -74,14 +77,20 @@ var PCGGame;
                     MAX_MOB_TYPE: 3,
                     MIN_X_DISTANCE: 1,
                     MAX_X_DISTANCE: 5,
-                    MIN_Y_DISTANCE: 1,
-                    MAX_Y_DISTANCE: 20
+                    MIN_Y_DISTANCE: 2,
+                    MAX_Y_DISTANCE: 19
                 }
             };
             this.mobTransitionTimelineAdaptationQueue = [];
             this._game = game;
             this._player = player;
             this._randomGenerator = game.rnd;
+            this.surveyManager = new PCGGame.SurveyManager('experience-survey');
+            this.surveyManager.modalEvent.add(function (event) {
+                if (!event.isOpen) {
+                    _this.isEligibleForSurvey = false;
+                }
+            });
             ExperientialGameManager.gameMetricSnapShots.current = new PCGGame.GameMetric();
             ExperientialGameManager.gameMetricSnapShots.overall = new PCGGame.GameMetric();
             this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
@@ -108,6 +117,11 @@ var PCGGame;
                 _this.generatorParameters.MOBS.MAX_MOB_TYPE = 6;
             });
         }
+        ExperientialGameManager.prototype.showSurvey = function () {
+            if (this.isEligibleForSurvey) {
+                this.surveyManager.showSurvey();
+            }
+        };
         ExperientialGameManager.prototype._updateProbabilityBoundaries = function (probabilityType) {
             var len = this._probabilityDistributionBoundaries[probabilityType].length;
             for (var i = 0; i < len; i++) {
@@ -216,11 +230,18 @@ var PCGGame;
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
                 var adaptationToMake = this.getNextAdaptationInQueue();
                 adaptationToMake.f.call(this);
-                this._adaptTimeElapsedMS = this._adaptTimeElapsedMS - adaptationToMake.deltaMS;
+                this._adaptTimeElapsedMS -= adaptationToMake.deltaMS;
             }
             if (this._currentSnapShotTime >= ExperientialGameManager.INTERVAL_MS) {
                 this.takeMetricSnapShot();
-                this._currentSnapShotTime = this._currentSnapShotTime - ExperientialGameManager.INTERVAL_MS;
+                this._currentSnapShotTime -= ExperientialGameManager.INTERVAL_MS;
+            }
+            if (ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED && !this.isEligibleForSurvey) {
+                this.lastSurveyShownTimeMS += lastTime;
+                if (this.lastSurveyShownTimeMS >= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS) {
+                    this.isEligibleForSurvey = true;
+                    this.lastSurveyShownTimeMS -= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS;
+                }
             }
             this._totalTimeElapsed += lastTime;
         };
@@ -243,6 +264,8 @@ var PCGGame;
         };
         ExperientialGameManager._instance = null;
         ExperientialGameManager.INTERVAL_MS = 5000;
+        ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS = 1000 * 30;
+        ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED = true;
         ExperientialGameManager.gameMetricSnapShots = {
             overall: null,
             previous: null,
@@ -257,7 +280,7 @@ var PCGGame;
     var GameMetric = (function () {
         function GameMetric() {
             this.playerDeathCount = 0;
-            this.playerDeathCountForType = {};
+            this.playerDeathCountForMobType = {};
             this.mobDeathCount = 0;
             this.mobDeathCountForType = {};
             this.playerDamageReceivedCount = 0;
@@ -285,7 +308,7 @@ var PCGGame;
         GameMetric.prototype.playerKilledBy = function (sprite) {
             console.log('!!! Player killed by ', sprite);
             var mobType = this._getMobType(sprite);
-            this.playerDeathCountForType[this._getMobKeyForType(mobType)]++;
+            this.playerDeathCountForMobType[this._getMobKeyForType(mobType)]++;
             this.playerDeathCount++;
         };
         GameMetric.prototype._getMobType = function (sprite) {
@@ -321,7 +344,7 @@ var PCGGame;
             for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
                 var mob = GameMetric.MOB_TYPES[i];
                 this.mobDeathCountForType[mob] = 0;
-                this.playerDeathCountForType[mob] = 0;
+                this.playerDeathCountForMobType[mob] = 0;
                 this.playerDamageForMobType[mob] = 0;
                 this.mobDamagedByPlayer[mob] = 0;
             }
@@ -1834,6 +1857,8 @@ var PCGGame;
             this._extraLives = PCGGame.Player.PLAYER_LIVES - 1;
             this._healthBarSpriteBG = null;
             this._healthBarSprite = null;
+            this._shouldShowExperientialPrompt = false;
+            this._invincibilityTime = 0;
             this._gameState = {
                 start: true,
                 end: false,
@@ -1879,7 +1904,10 @@ var PCGGame;
             this._updateShieldBar(0);
         };
         Play.prototype._invokeExperientialSurvey = function () {
-            this.togglePause();
+            if (this._shouldShowExperientialPrompt && !this.experientialGameManager.surveyManager.isShowing) {
+                this.togglePause();
+                this.experientialGameManager.showSurvey();
+            }
         };
         Play.prototype._experiencePromptFlasher = function () {
             var _this = this;
@@ -1922,10 +1950,13 @@ var PCGGame;
             this._updateShieldBar(this._player.health);
         };
         Play.prototype.setInvincible = function (player, duration) {
+            if (duration === void 0) { duration = 2000; }
+            if (player.isInvincible) {
+                return;
+            }
             player.isInvincible = true;
-            setTimeout(function () {
-                player.isInvincible = false;
-            }, (duration || 2000));
+            this._updatePowerUpText(Play.POWER_UP_MESSAGE.INVINCIBLE + ' for ' + (duration / 1000) + ' seconds!', '#fff');
+            this._invincibilityTime = duration;
         };
         Play.prototype._updateShieldBar = function (health) {
             var barWidth = this.game.width / 2;
@@ -2015,6 +2046,13 @@ var PCGGame;
             PCGGame.SpriteSingletonFactory.instance(this.game);
             this._player = new PCGGame.Player(this.game);
             this.experientialGameManager = PCGGame.ExperientialGameManager.instance(this.game, this._player);
+            this.experientialGameManager.surveyManager.modalEvent.add(function (event) {
+                _this._shouldShowExperientialPrompt = event.isOpen;
+                if (!_this._shouldShowExperientialPrompt) {
+                    _this.togglePause();
+                    _this.setInvincible(_this._player, 10000);
+                }
+            });
             this._player.playerEvents.add(function (e) {
                 switch (e.type) {
                     case 1:
@@ -2025,6 +2063,7 @@ var PCGGame;
                         break;
                     case 3:
                         _this._updateShieldBar(_this._player.health);
+                        _this.setInvincible(_this._player, 3000);
                         break;
                     case 4:
                         var loot = e.payload;
@@ -2105,6 +2144,9 @@ var PCGGame;
             }, this);
         };
         Play.prototype.startPlayerAttack = function (shouldStartAttacking) {
+            if (this.experientialGameManager.surveyManager.isShowing) {
+                return;
+            }
             if (shouldStartAttacking) {
                 if (this._gameState.end || this._gameState.start) {
                     this._startNewGame();
@@ -2126,6 +2168,13 @@ var PCGGame;
                 return;
             }
             this.game.debug.text((this.game.time.fps.toString() || '--') + 'fps', 2, 14, "#00ff00");
+            if (this._player.isInvincible) {
+                this._invincibilityTime -= this.time.physicsElapsedMS;
+                if (this._invincibilityTime <= 0) {
+                    this._invincibilityTime = 0;
+                    this._player.isInvincible = false;
+                }
+            }
             this.updatePhysics();
             this.camera.x += this.time.physicsElapsed * Generator.Parameters.VELOCITY.X;
             var x = this.camera.x;
@@ -2175,24 +2224,26 @@ var PCGGame;
                 wall.kill();
                 return;
             }
-            var playerDamage = wall.getDamageCost();
             var wallDamage = player.getDamageCost();
-            player.takeDamage(playerDamage);
             wall.takeDamage(wallDamage);
-            if (playerDamage) {
-                this.experientialGameManager.playerDamageReceived(playerDamage, wall);
-            }
             if (wallDamage) {
                 this.experientialGameManager.playerDamageGiven(wallDamage, wall);
-            }
-            if (player.died) {
-                this.experientialGameManager.playerKilled(wall);
             }
             if (wall.health <= 0) {
                 wall.die(this._player);
                 this.experientialGameManager.mobKilled(wall);
             }
-            this.experientialGameManager.playerCollidedWithPlatform();
+            if (!player.isInvincible) {
+                var playerDamage = wall.getDamageCost();
+                player.takeDamage(playerDamage);
+                if (playerDamage) {
+                    this.experientialGameManager.playerDamageReceived(playerDamage, wall);
+                }
+                if (player.died) {
+                    this.experientialGameManager.playerKilled(wall);
+                }
+                this.experientialGameManager.playerCollidedWithPlatform();
+            }
         };
         Play.prototype.wallMobCollisionHandler = function (mob, wall) {
             mob.takeDamage(wall.getDamageCost());
@@ -2206,24 +2257,24 @@ var PCGGame;
         };
         Play.prototype.mobPlayerCollisionHandler = function (player, mob) {
             if (!mob.died) {
-                if (!player.isInvincible) {
-                    var damage = mob.getDamageCost();
-                    var mobDamage = player.getDamageCost();
-                    player.takeDamage(damage);
-                    mob.takeDamage(mobDamage);
-                    if (damage) {
-                        this.experientialGameManager.playerDamageReceived(damage, mob);
-                    }
-                    if (mobDamage) {
-                        this.experientialGameManager.playerDamageGiven(mobDamage, mob);
-                    }
-                    if (player.died) {
-                        this.experientialGameManager.playerKilled(mob);
-                    }
+                var mobDamage = player.getDamageCost();
+                mob.takeDamage(mobDamage);
+                if (mobDamage) {
+                    this.experientialGameManager.playerDamageGiven(mobDamage, mob);
                 }
                 if (mob.health <= 0) {
                     mob.die(player);
                     this.experientialGameManager.mobKilled(mob);
+                }
+                if (!player.isInvincible) {
+                    var damage = mob.getDamageCost();
+                    player.takeDamage(damage);
+                    if (damage) {
+                        this.experientialGameManager.playerDamageReceived(damage, mob);
+                    }
+                    if (player.died) {
+                        this.experientialGameManager.playerKilled(mob);
+                    }
                 }
             }
             else {
@@ -2237,17 +2288,20 @@ var PCGGame;
             if (player.died) {
                 return;
             }
-            var damage = mob.getDamageCost();
-            player.takeDamage(damage);
-            this.experientialGameManager.playerDamageReceived(damage, mob);
-            if (player.died) {
-                this.experientialGameManager.playerKilled(mob);
+            if (!player.isInvincible) {
+                var damage = mob.getDamageCost();
+                player.takeDamage(damage);
+                this.experientialGameManager.playerDamageReceived(damage, mob);
+                if (player.died) {
+                    this.experientialGameManager.playerKilled(mob);
+                }
             }
             bullet.kill();
         };
         Play.prototype.updatePhysics = function () {
             var _this = this;
             var playerBody = this._player.body;
+            var isNotchFound = false;
             if (!this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, function (player, wall) {
                     if (!wall.canCollide || (wall.mobType === 1 && !wall.hasLoot) || player.died) {
@@ -2278,7 +2332,6 @@ var PCGGame;
                 }
                 _this.playerBulletHitMobHandler(bullet, mob);
             }, null, this);
-            var shouldShowExperientialPrompt = false;
             this._mainLayer.wallBlocks.forEachExists(function (wall) {
                 wall.render(_this._player);
                 if (!wall.canCollide || wall.mobType === 1) {
@@ -2312,8 +2365,8 @@ var PCGGame;
                         _this.wallMobCollisionHandler(mob, wall);
                     }
                 });
-                if (mob instanceof PCGGame.Notch) {
-                    shouldShowExperientialPrompt = true;
+                if (!mob.died && mob.mobType === 3) {
+                    isNotchFound = true;
                 }
                 if (!mob.bullets || !mob.bullets.countLiving()) {
                     return;
@@ -2335,7 +2388,13 @@ var PCGGame;
                     }
                 }, null, _this);
             }, this);
-            this._showExperientialPrompt(shouldShowExperientialPrompt);
+            if (isNotchFound && this.experientialGameManager.isEligibleForSurvey) {
+                this._shouldShowExperientialPrompt = true;
+            }
+            else {
+                this._shouldShowExperientialPrompt = false;
+            }
+            this._showExperientialPrompt(this._shouldShowExperientialPrompt);
             if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X) {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
             }
@@ -2366,7 +2425,8 @@ var PCGGame;
             SHIELD: 'Shield Levels Up!',
             WEAPON: 'Weapon Power Upgraded!',
             BONUS_POINTS: 'Bonus Points Received!',
-            MYSTERY: 'Mystery Power Received!'
+            MYSTERY: 'Mystery Power Received!',
+            INVINCIBLE: 'You are Invincible'
         };
         Play.EXPERIENTIAL_PROMPT = 'Press the C key to configure your game!';
         return Play;
@@ -2406,5 +2466,67 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var SurveyManager = (function () {
+        function SurveyManager(id) {
+            this._modal = null;
+            this._modal = new Modal(id);
+        }
+        SurveyManager.prototype.showSurvey = function () {
+            this._modal.open();
+        };
+        Object.defineProperty(SurveyManager.prototype, "modalEvent", {
+            get: function () {
+                return this._modal.modalCompleteSignal;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(SurveyManager.prototype, "isShowing", {
+            get: function () {
+                return this._modal.isOpen;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return SurveyManager;
+    }());
+    PCGGame.SurveyManager = SurveyManager;
+    var Modal = (function () {
+        function Modal(id) {
+            var _this = this;
+            this._isOpen = false;
+            this._modalEl = null;
+            this.modalCompleteSignal = null;
+            this._modalEl = $('#' + id);
+            this._modalEl.on('show.bs.modal', function () {
+                _this._isOpen = true;
+                _this._dispatchEvent();
+            });
+            this._modalEl.on('hidden.bs.modal', function () {
+                _this._isOpen = false;
+                _this._dispatchEvent();
+            });
+            this.modalCompleteSignal = new Phaser.Signal();
+        }
+        Modal.prototype.open = function (shouldOpen) {
+            if (shouldOpen === void 0) { shouldOpen = true; }
+            this._isOpen = shouldOpen || !this._isOpen;
+            this._modalEl.modal((this._isOpen ? 'show' : 'hide'));
+        };
+        Object.defineProperty(Modal.prototype, "isOpen", {
+            get: function () {
+                return this._isOpen;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Modal.prototype._dispatchEvent = function () {
+            this.modalCompleteSignal.dispatch({ isOpen: this._isOpen, values: {} });
+        };
+        return Modal;
+    }());
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

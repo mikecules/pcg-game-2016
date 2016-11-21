@@ -12,7 +12,8 @@ namespace PCGGame {
             SHIELD: 'Shield Levels Up!',
             WEAPON: 'Weapon Power Upgraded!',
             BONUS_POINTS: 'Bonus Points Received!',
-            MYSTERY: 'Mystery Power Received!'
+            MYSTERY: 'Mystery Power Received!',
+            INVINCIBLE: 'You are Invincible'
         };
 
         public static EXPERIENTIAL_PROMPT : string = 'Press the C key to configure your game!';
@@ -33,6 +34,8 @@ namespace PCGGame {
         private _playerHealthGroup : Phaser.Group;
         private _healthBarSpriteBG : Phaser.Sprite = null;
         private _healthBarSprite : Phaser.Sprite = null;
+        private _shouldShowExperientialPrompt : boolean = false;
+        private _invincibilityTime : number = 0;
 
 
         private _gameState : any = {
@@ -101,7 +104,10 @@ namespace PCGGame {
 
 
         private _invokeExperientialSurvey() {
-            this.togglePause();
+            if (this._shouldShowExperientialPrompt && ! this.experientialGameManager.surveyManager.isShowing) {
+                this.togglePause();
+                this.experientialGameManager.showSurvey();
+            }
         }
 
         private _experiencePromptFlasher() {
@@ -154,13 +160,17 @@ namespace PCGGame {
 
         }
 
-        public setInvincible(player : Player, duration? : number) {
+        public setInvincible(player : Player, duration : number = 2000) {
+
+            if (player.isInvincible) {
+                return;
+            }
+
             player.isInvincible = true;
 
-            setTimeout(() => {
-                player.isInvincible = false;
-            }, (duration || 2000));
+            this._updatePowerUpText(Play.POWER_UP_MESSAGE.INVINCIBLE + ' for ' + (duration/1000) + ' seconds!', '#fff');
 
+            this._invincibilityTime = duration;
         }
 
         private _updateShieldBar(health : number) {
@@ -306,6 +316,15 @@ namespace PCGGame {
 
             this.experientialGameManager = ExperientialGameManager.instance(this.game, this._player);
 
+            this.experientialGameManager.surveyManager.modalEvent.add((event : any) => {
+                this._shouldShowExperientialPrompt = event.isOpen;
+
+                if (! this._shouldShowExperientialPrompt ) {
+                    this.togglePause();
+                    this.setInvincible(this._player, 10000);
+                }
+            });
+
             this._player.playerEvents.add((e : GameEvent) => {
                 switch(e.type) {
                     case gameEventTypeEnum.MOB_KILLED:
@@ -316,6 +335,7 @@ namespace PCGGame {
                         break;
                     case gameEventTypeEnum.MOB_RESPAWNED:
                         this._updateShieldBar(this._player.health);
+                        this.setInvincible(this._player, 3000);
                         break;
                     case gameEventTypeEnum.MOB_RECIEVED_LOOT:
 
@@ -432,6 +452,10 @@ namespace PCGGame {
 
         public startPlayerAttack(shouldStartAttacking : boolean) {
 
+            if (this.experientialGameManager.surveyManager.isShowing) {
+                return;
+            }
+
             if (shouldStartAttacking) {
                 if (this._gameState.end || this._gameState.start) {
                     this._startNewGame();
@@ -463,6 +487,15 @@ namespace PCGGame {
             //console.log((this.game.time.fps.toString() || '--') + 'fps');
 
 
+            if (this._player.isInvincible) {
+                this._invincibilityTime -= this.time.physicsElapsedMS;
+                //console.log(this._invincibilityTime);
+
+                if (this._invincibilityTime <= 0){
+                    this._invincibilityTime = 0;
+                    this._player.isInvincible = false;
+                }
+            }
 
             this.updatePhysics();
 
@@ -549,22 +582,12 @@ namespace PCGGame {
                 return;
             }
 
-            let playerDamage = wall.getDamageCost();
+
             let wallDamage = player.getDamageCost();
-
-            player.takeDamage(playerDamage);
             wall.takeDamage(wallDamage);
-
-            if (playerDamage) {
-                this.experientialGameManager.playerDamageReceived(playerDamage, wall);
-            }
 
             if (wallDamage) {
                 this.experientialGameManager.playerDamageGiven(wallDamage, wall);
-            }
-
-            if (player.died) {
-                this.experientialGameManager.playerKilled(wall);
             }
 
 
@@ -573,7 +596,22 @@ namespace PCGGame {
                 this.experientialGameManager.mobKilled(wall);
             }
 
-            this.experientialGameManager.playerCollidedWithPlatform();
+
+            if (! player.isInvincible) {
+                let playerDamage = wall.getDamageCost();
+                player.takeDamage(playerDamage);
+
+                if (playerDamage) {
+                    this.experientialGameManager.playerDamageReceived(playerDamage, wall);
+                }
+
+                if (player.died) {
+                    this.experientialGameManager.playerKilled(wall);
+                }
+
+                this.experientialGameManager.playerCollidedWithPlatform();
+            }
+
 
             //wall.kill();
         }
@@ -601,34 +639,34 @@ namespace PCGGame {
 
             if (! mob.died) {
 
-                if (! player.isInvincible) {
+                let mobDamage = player.getDamageCost();
+                mob.takeDamage(mobDamage);
 
+
+                if (mobDamage) {
+                    this.experientialGameManager.playerDamageGiven(mobDamage, mob);
+                }
+
+                if (mob.health <= 0) {
+                    mob.die(player);
+                    this.experientialGameManager.mobKilled(mob);
+                }
+
+
+                if (! player.isInvincible) {
                     let damage = mob.getDamageCost();
-                    let mobDamage = player.getDamageCost();
 
                     player.takeDamage(damage);
-                    mob.takeDamage(mobDamage);
-
-
 
                     if (damage) {
                         this.experientialGameManager.playerDamageReceived(damage, mob);
                     }
 
-                    if (mobDamage) {
-                        this.experientialGameManager.playerDamageGiven(mobDamage, mob);
-                    }
-
                     if (player.died) {
                         this.experientialGameManager.playerKilled(mob);
                     }
-
                 }
 
-                if (mob.health <= 0) {
-                        mob.die(player);
-                        this.experientialGameManager.mobKilled(mob);
-                }
             }
             else {
 
@@ -648,14 +686,16 @@ namespace PCGGame {
                 return;
             }
 
-            let damage : number = mob.getDamageCost();
+            if (! player.isInvincible) {
+                let damage : number = mob.getDamageCost();
 
-            player.takeDamage(damage);
+                player.takeDamage(damage);
 
-            this.experientialGameManager.playerDamageReceived(damage, mob);
+                this.experientialGameManager.playerDamageReceived(damage, mob);
 
-            if (player.died) {
-                this.experientialGameManager.playerKilled(mob);
+                if (player.died) {
+                    this.experientialGameManager.playerKilled(mob);
+                }
             }
 
             bullet.kill();
@@ -664,6 +704,7 @@ namespace PCGGame {
 
         public updatePhysics() {
             let playerBody = <Phaser.Physics.Arcade.Body>this._player.body;
+            let isNotchFound : boolean = false;
 
             if (! this._gameState.start) {
                 this.physics.arcade.collide(this._player, this._mainLayer.wallBlocks, (player : Player, wall : Sprite) => {
@@ -683,7 +724,7 @@ namespace PCGGame {
                     return;
                 }
 
-                this.mobPlayerCollisionHandler(player, mob)
+                this.mobPlayerCollisionHandler(player, mob);
             });
 
             // Check for collision between player and mobs (only the wall)
@@ -700,7 +741,7 @@ namespace PCGGame {
                     return;
                 }
 
-                this.playerBulletHitMobHandler(bullet, wall)
+                this.playerBulletHitMobHandler(bullet, wall);
             }, null, this);
 
 
@@ -710,11 +751,11 @@ namespace PCGGame {
                     return;
                 }
 
-                this.playerBulletHitMobHandler(bullet, mob)
+                this.playerBulletHitMobHandler(bullet, mob);
             }, null, this);
 
 
-            let shouldShowExperientialPrompt = false;
+
 
 
             // Since walls are now destructable we treat them like mobs
@@ -772,8 +813,8 @@ namespace PCGGame {
                 });
 
 
-                if (mob instanceof Notch) {
-                    shouldShowExperientialPrompt = true;
+                if (! mob.died && mob.mobType === blockTypeEnum.MOB_NOTCH) {
+                    isNotchFound = true
                 }
 
                 // some mobs like to hurt things even their own
@@ -810,7 +851,14 @@ namespace PCGGame {
             }, this);
 
 
-            this._showExperientialPrompt(shouldShowExperientialPrompt);
+            if (isNotchFound && this.experientialGameManager.isEligibleForSurvey) {
+                this._shouldShowExperientialPrompt = true;
+            }
+            else {
+                this._shouldShowExperientialPrompt = false;
+            }
+
+            this._showExperientialPrompt(this._shouldShowExperientialPrompt);
 
             if (playerBody.velocity.x !== Generator.Parameters.VELOCITY.X)  {
                 playerBody.velocity.x = Generator.Parameters.VELOCITY.X;

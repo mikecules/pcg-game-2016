@@ -4,6 +4,8 @@ namespace PCGGame {
     export class ExperientialGameManager {
         public static _instance : ExperientialGameManager = null;
         public static INTERVAL_MS : number = 5000;
+        public static MIN_SURVEY_TIME_INTERVAL_MS : number = 1000 * 30;
+        public static IS_EXPERIENCE_MODEL_ENABLED : boolean = true;
 
         public static gameMetricSnapShots : any = {
             overall: null,
@@ -13,6 +15,9 @@ namespace PCGGame {
 
         public lastPlayerDeathDeltaTimeMS : number = 0;
         public lastPlayerDamagedDeltaTimeMS : number = 0;
+        public lastSurveyShownTimeMS : number = 0;
+        public surveyManager : SurveyManager = null;
+        public isEligibleForSurvey : boolean = false;
 
         private _game : Phaser.Game = null;
         private _totalTimeElapsed : number = 0;
@@ -87,8 +92,8 @@ namespace PCGGame {
                 MAX_MOB_TYPE: Generator.blockTypeEnum.MOB_NOTCH,
                 MIN_X_DISTANCE: 1,
                 MAX_X_DISTANCE: 5,
-                MIN_Y_DISTANCE: 1,
-                MAX_Y_DISTANCE: 20
+                MIN_Y_DISTANCE: 2,
+                MAX_Y_DISTANCE: 19
             }
         };
 
@@ -103,7 +108,18 @@ namespace PCGGame {
         public constructor(game: Phaser.Game, player: Player) {
             this._game = game;
             this._player = player;
-            this._randomGenerator = game.rnd
+            this._randomGenerator = game.rnd;
+
+            this.surveyManager = new SurveyManager('experience-survey');
+
+            this.surveyManager.modalEvent.add((event : any) => {
+
+                // start counting the delta time for the next survey interval after closing
+                if (! event.isOpen) {
+                    this.isEligibleForSurvey = false;
+                }
+
+            });
 
             ExperientialGameManager.gameMetricSnapShots.current = new GameMetric();
             ExperientialGameManager.gameMetricSnapShots.overall = new GameMetric();
@@ -140,6 +156,13 @@ namespace PCGGame {
                 this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_MEGA_HEAD;
             });
 
+        }
+
+        //
+        public showSurvey() {
+            if (this.isEligibleForSurvey) {
+                this.surveyManager.showSurvey();
+            }
         }
 
         //
@@ -261,6 +284,7 @@ namespace PCGGame {
         }
 
 
+        // UPDATE!!
         public update() {
 
             let lastTime = this._game.time.elapsedMS;
@@ -271,18 +295,29 @@ namespace PCGGame {
             this.lastPlayerDamagedDeltaTimeMS += lastTime;
 
 
+
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
                 let adaptationToMake = this.getNextAdaptationInQueue();
 
                 adaptationToMake.f.call(this);
 
-                this._adaptTimeElapsedMS = this._adaptTimeElapsedMS - adaptationToMake.deltaMS;
+                this._adaptTimeElapsedMS -= adaptationToMake.deltaMS;
             }
 
 
             if (this._currentSnapShotTime >= ExperientialGameManager.INTERVAL_MS) {
                 this.takeMetricSnapShot();
-                this._currentSnapShotTime = this._currentSnapShotTime - ExperientialGameManager.INTERVAL_MS;
+                this._currentSnapShotTime -= ExperientialGameManager.INTERVAL_MS;
+            }
+
+            if (ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED && ! this.isEligibleForSurvey) {
+
+                this.lastSurveyShownTimeMS += lastTime;
+
+                if (this.lastSurveyShownTimeMS >= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS) {
+                    this.isEligibleForSurvey = true;
+                    this.lastSurveyShownTimeMS -= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS
+                }
             }
 
             this._totalTimeElapsed += lastTime;

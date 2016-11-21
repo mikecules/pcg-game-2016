@@ -14,7 +14,7 @@ namespace PCGGame {
 
         public playerDeathCount: number = 0;
 
-        public playerDeathCountForType: any = {};
+        public playerDeathCountForMobType: any = {};
 
         public mobDeathCount: number = 0;
         public mobDeathCountForType: any = {};
@@ -66,7 +66,7 @@ namespace PCGGame {
 
             let mobType: number = this._getMobType(sprite);
 
-            this.playerDeathCountForType[this._getMobKeyForType(mobType)]++;
+            this.playerDeathCountForMobType[this._getMobKeyForType(mobType)]++;
 
             this.playerDeathCount++;
         }
@@ -110,7 +110,7 @@ namespace PCGGame {
                 let mob = GameMetric.MOB_TYPES[i];
 
                 this.mobDeathCountForType[mob] = 0;
-                this.playerDeathCountForType[mob] = 0;
+                this.playerDeathCountForMobType[mob] = 0;
                 this.playerDamageForMobType[mob] = 0;
                 this.mobDamagedByPlayer[mob] = 0;
             }
