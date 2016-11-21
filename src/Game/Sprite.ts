@@ -86,7 +86,7 @@ namespace PCGGame {
 
         protected _generateLoot() {
             console.log('Base Sprite get loot!');
-            this._loot = new Loot(this.game.rnd);
+            this._loot = new Loot();
         }
 
         protected _convertMobToLoot() {

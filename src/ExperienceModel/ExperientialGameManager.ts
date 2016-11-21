@@ -23,45 +23,31 @@ namespace PCGGame {
         private _platformGenerationEnabled : boolean = true;
 
         private _probabilityDistributions : any = {
-            LOOT: {
-                DEFAULT: 33,
-                WEAPON: 30,
-                SHIELD: 30,
-                MYSTERY_LOOT: 2,
-                NEW_LIFE: 5
-            },
-            PLATFORM: {
-                NULL_BLOCKS: 50,
-                BLOCKS: 50
-            },
-            MOB: {
-                NULL_MOB: 20,
-                NOTCH: 25,
-                METEOR: 15,
-                INVADER: 25,
-                MEGAHEAD: 15
-            }
+            LOOT: [
+                53, // DEFAULT
+                20, // WEAPON
+                20, // SHIELD
+                2,  // MYSTERY_LOOT
+                5   // NEW_LIFE
+            ],
+            PLATFORM: [
+                40, // PLATFORM_TYPE
+                20, // PUSH_PLATFORM_TYPE
+                40  // MOB_NULL
+            ],
+            MOB: [
+                20, // NULL_MOB: 20,
+                25, // NOTCH: 25,
+                20, // METEOR: 15,
+                20, // INVADER: 25,
+                15  // MEGAHEAD: 15
+            ]
         };
 
-        private _probabilityDistributionBoundries : any = {
-            LOOT: {
-                DEFAULT: 0,
-                WEAPON: 0,
-                SHIELD: 0,
-                MYSTERY_LOOT: 0,
-                NEW_LIFE: 0
-            },
-            PLATFORM: {
-                NULL_BLOCKS: 0,
-                BLOCKS: 0
-            },
-            MOB: {
-                NULL_MOB: 0,
-                NOTCH: 0,
-                METEOR: 0,
-                INVADER: 0,
-                MEGAHEAD: 0
-            }
+        private _probabilityDistributionBoundaries : any = {
+            LOOT: [0, 0, 0, 0, 0],
+            PLATFORM: [0, 0, 0],
+            MOB: [0, 0, 0, 0, 0]
         };
 
         /*public generatorParameters : any = {
@@ -103,6 +89,7 @@ namespace PCGGame {
             }
         };
 
+
         /*
         * X = 32
         * Y = 24
@@ -114,6 +101,12 @@ namespace PCGGame {
             this._game = game;
             this._player = player;
             this._randomGenerator = game.rnd;
+
+            for (let probType in this._probabilityDistributions) {
+                if (this._probabilityDistributions.hasOwnProperty(probType)) {
+                    this._updateProbabilityBoundaries(probType);
+                }
+            }
 
             this.calculateGridSpace();
 
@@ -140,8 +133,48 @@ namespace PCGGame {
 
         }
 
+
+        private _updateProbabilityBoundaries(probabilityType : string) : any[] {
+            let len = this._probabilityDistributionBoundaries[probabilityType].length;
+
+            for (let i = 0; i < len; i++) {
+
+                if (i === 0) {
+                    this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributions[probabilityType][i];
+                }
+                else {
+                    this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributionBoundaries[probabilityType][i - 1] + this._probabilityDistributions[probabilityType][i];
+                }
+            }
+
+            console.log(this._probabilityDistributionBoundaries[probabilityType]);
+
+            return this._probabilityDistributionBoundaries[probabilityType];
+        }
+
+        private calcType(minType : number, maxType: number, typeProbabilitiesUpperBoundary : any[]) : number {
+            let p = this._randomGenerator.integerInRange(0, 100);
+            let type = minType;
+
+            for (let i = minType; i <= maxType; i++) {
+                if (p <= typeProbabilitiesUpperBoundary[i]) {
+                    type = i;
+                    break;
+                }
+            }
+
+            return type;
+
+        }
+
+        private  _distributionCalcFn(minType : number, maxType: number, typeProbabilitiesUpperBoundary : any[]) : Function {
+            return () => {
+                return this.calcType(minType, maxType, typeProbabilitiesUpperBoundary);
+            }
+        }
+
         public get lootDistributionFn() : Function {
-            return () => {};
+            return this._distributionCalcFn(lootTypeEnum.DEFAULT, lootTypeEnum.NEW_LIFE, this._probabilityDistributionBoundaries.LOOT);
         }
 
         public get platformDistributionFn() : Function {
@@ -265,37 +298,33 @@ namespace PCGGame {
 
     class GameMetric {
 
+        public static MOB_TYPES = [
+            'Notch',
+            'Meteor',
+            'Invader',
+            'MegaHead',
+            'Platform',
+            'PushPlatform'
+        ];
+
         public playerDeathCount : number = 0;
 
-        public playerDeathCountForType : any = {
-            'Notch': 0,
-            'Meteor': 0,
-            'Invader': 0,
-            'MegaHead': 0,
-            'Platform': 0
-        };
+        public playerDeathCountForType : any = {};
 
         public mobDeathCount : number = 0;
-        public mobDeathCountForType : any = {
-            'Notch': 0,
-            'Meteor': 0,
-            'Invader': 0,
-            'MegaHead': 0,
-            'Platform': 0
-        };
+        public mobDeathCountForType : any = {};
 
         public playerDamageReceivedCount : number = 0;
 
-        public playerDamageForMobType : any = {
-            'Notch': 0,
-            'Meteor': 0,
-            'Invader': 0,
-            'MegaHead': 0,
-            'Platform': 0
-        };
+        public playerDamageForMobType : any = {};
 
 
         public numberOfPlatformCollisions : number = 0;
+
+
+        public constructor() {
+            this.reset();
+        }
 
 
 
@@ -360,23 +389,13 @@ namespace PCGGame {
 
         public reset() {
 
-            this.mobDeathCountForType.Notch = 0;
-            this.mobDeathCountForType.Meteor = 0;
-            this.mobDeathCountForType.Invader = 0;
-            this.mobDeathCountForType.MegaHead = 0;
-            this.mobDeathCountForType.Platform = 0;
+            for (let i = 0; i < GameMetric.MOB_TYPES.length; i++) {
+                let mob = GameMetric.MOB_TYPES[i];
 
-            this.playerDeathCountForType.Notch = 0;
-            this.playerDeathCountForType.Meteor = 0;
-            this.playerDeathCountForType.Invader = 0;
-            this.playerDeathCountForType.MegaHead = 0;
-            this.playerDeathCountForType.Platform = 0;
-
-            this.playerDamageForMobType.Notch = 0;
-            this.playerDamageForMobType.Meteor = 0;
-            this.playerDamageForMobType.Invader = 0;
-            this.playerDamageForMobType.MegaHead = 0;
-            this.playerDamageForMobType.Platform = 0;
+                this.mobDeathCountForType[mob] = 0;
+                this.playerDeathCountForType[mob] = 0;
+                this.playerDamageForMobType[mob] = 0;
+            }
 
 
             this.playerDeathCount = 0;
