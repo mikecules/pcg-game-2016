@@ -5,7 +5,7 @@ namespace PCGGame {
         public static _instance : ExperientialGameManager = null;
         public static INTERVAL_MS : number = 1000 * 15; //30;
         public static MIN_SURVEY_TIME_INTERVAL_MS : number = 1000 * 30;
-        public static IS_EXPERIENCE_MODEL_ENABLED : boolean = true;
+        public static IS_EXPERIENCE_MODEL_ENABLED : boolean = true;//false;
         public static MAX_MOB_DIFFICULTY_LEVEL : number = 10;
 
         public static INCREASE_PLAYER_DIFFICULTY_MAX_NON_DEATH_DURATION = 60 * 1000; // 1 minute
@@ -416,15 +416,20 @@ namespace PCGGame {
 
 
 
+        }
 
-
-
+        public evaluateDifficultyWithPlayerModelAndCreateStrategy() {
 
         }
 
         public takeMetricSnapShot() {
 
-            this.evaluateDifficultyAndCreateStrategy();
+            if (! ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED) {
+                this.evaluateDifficultyAndCreateStrategy();
+            }
+            else {
+                this.evaluateDifficultyWithPlayerModelAndCreateStrategy();
+            }
 
             ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
             ExperientialGameManager.gameMetricSnapShots.current = new GameMetric();

@@ -13,6 +13,9 @@ var PCGGame;
 })(PCGGame || (PCGGame = {}));
 $(document).ready(function () {
     PCGGame.Global.game = new PCGGame.Game();
+    if (PCGGame.ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED) {
+        $('#player-survey-instruction').removeClass('hidden');
+    }
 });
 var PCGGame;
 (function (PCGGame) {
@@ -296,8 +299,15 @@ var PCGGame;
                 }
             }
         };
+        ExperientialGameManager.prototype.evaluateDifficultyWithPlayerModelAndCreateStrategy = function () {
+        };
         ExperientialGameManager.prototype.takeMetricSnapShot = function () {
-            this.evaluateDifficultyAndCreateStrategy();
+            if (!ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED) {
+                this.evaluateDifficultyAndCreateStrategy();
+            }
+            else {
+                this.evaluateDifficultyWithPlayerModelAndCreateStrategy();
+            }
             ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
             ExperientialGameManager.gameMetricSnapShots.current = new PCGGame.GameMetric();
             this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
