@@ -29,26 +29,27 @@ namespace PCGGame {
 
         private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;
+        private _maxMobAllowed : number = blockTypeEnum.MOB_METEOR;
 
         private _probabilityDistributions : any = {
             LOOT: [
-                53, // DEFAULT
+                56, // DEFAULT
                 20, // WEAPON
                 20, // SHIELD
                 2,  // MYSTERY_LOOT
-                5   // NEW_LIFE
+                2   // NEW_LIFE
             ],
             PLATFORM: [
-                40, // PLATFORM_TYPE
-                20, // PUSH_PLATFORM_TYPE
-                40  // MOB_NULL
+                25, // PLATFORM_TYPE
+                25, // PUSH_PLATFORM_TYPE
+                50  // MOB_NULL
             ],
             MOB: [
-                20, // NULL_MOB: 20,
-                25, // NOTCH: 25,
-                20, // METEOR: 15,
-                20, // INVADER: 25,
-                15  // MEGAHEAD: 15
+                50, // NULL_MOB: 20,
+                30, // NOTCH: 25,
+                20, // METEOR: 20,
+                0, // INVADER: 20,
+                0  // MEGAHEAD: 15
             ]
         };
 
@@ -57,6 +58,14 @@ namespace PCGGame {
             PLATFORM: [0, 0, 0],
             MOB: [0, 0, 0, 0, 0]
         };
+
+        private _cachedProbabilityFunctions : any  = {
+            LOOT: null,
+            PLATFORM: null,
+            MOB: null
+        };
+
+        private _mobDifficultyLevel : number = 0;
 
         /*public generatorParameters : any = {
             PLATFORM: {
@@ -137,7 +146,6 @@ namespace PCGGame {
 
             this.addAdaptationToQueue(5000, () => {
                 this._mobGenerationEnabled = true;
-                this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_METEOR;
             });
 
 
@@ -149,12 +157,22 @@ namespace PCGGame {
             this.addAdaptationToQueue(5000, () => {
                 this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
                 this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
-                this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_INVADER;
+                this._maxMobAllowed++;
+                this._updateMobDistribution([30, 25, 25, 20]);
             });
 
             this.addAdaptationToQueue(15000, () => {
-                this.generatorParameters.MOBS.MAX_MOB_TYPE = Generator.blockTypeEnum.MOB_MEGA_HEAD;
+                this._maxMobAllowed++;
+                this._updateMobDistribution([15, 25, 20, 20, 20]);
             });
+
+
+            this.addAdaptationToQueue(15000, () => {
+                this._mobDifficultyLevel += 5;
+            });
+
+
+
 
         }
 
@@ -174,8 +192,11 @@ namespace PCGGame {
                 if (i === 0) {
                     this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributions[probabilityType][i];
                 }
-                else {
+                else if (this._probabilityDistributionBoundaries[probabilityType][i - 1] < 100){
                     this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributionBoundaries[probabilityType][i - 1] + this._probabilityDistributions[probabilityType][i];
+                }
+                else {
+                    this._probabilityDistributionBoundaries[probabilityType][i] = Number.POSITIVE_INFINITY;
                 }
             }
 
@@ -189,7 +210,10 @@ namespace PCGGame {
             let p = this._randomGenerator.integerInRange(0, 100);
             let type = minType;
 
+            console.log(p, typeProbabilitiesUpperBoundary, type, maxType);
+
             for (let i = minType; i <= maxType; i++) {
+                console.log(typeProbabilitiesUpperBoundary[i]);
                 if (p <= typeProbabilitiesUpperBoundary[i]) {
                     type = i;
                     break;
@@ -201,37 +225,57 @@ namespace PCGGame {
         }
 
         //
-        private  _distributionCalcFn(minType : number, maxType: number, typeProbabilitiesUpperBoundary : any[]) : Function {
-            return () => {
-                return this.calcType(minType, maxType, typeProbabilitiesUpperBoundary);
+        private  _distributionCalcFn(minType : number, maxType: number, type: string) : Function {
+
+            let typeProbabilitiesUpperBoundary = this._probabilityDistributionBoundaries[type];
+
+            if (this._cachedProbabilityFunctions[type]) {
+                return this._cachedProbabilityFunctions[type];
             }
+
+            this._cachedProbabilityFunctions[type] = () => {
+                let mobType = this.calcType(minType, maxType, typeProbabilitiesUpperBoundary);
+                console.log('Type generated value = ', mobType, ' for type ', type);
+                return mobType;
+            };
+
+            return this._cachedProbabilityFunctions[type];
         }
 
         //
         public get lootDistributionFn() : Function {
-            return this._distributionCalcFn(lootTypeEnum.DEFAULT, lootTypeEnum.NEW_LIFE, this._probabilityDistributionBoundaries.LOOT);
+            return this._distributionCalcFn(lootTypeEnum.DEFAULT, lootTypeEnum.NEW_LIFE, 'LOOT');
         }
 
         //
         public get platformDistributionFn() : Function {
-            return () => this._randomGenerator.integerInRange(blockTypeEnum.PLATFORM_TYPE, blockTypeEnum.MOB_NULL);
+            return this._distributionCalcFn(blockTypeEnum.PLATFORM_TYPE, blockTypeEnum.MOB_NULL, 'PLATFORM');
+            //() => this._randomGenerator.integerInRange(blockTypeEnum.PLATFORM_TYPE, blockTypeEnum.MOB_NULL);
         }
 
         //
         public get mobDistributionFn() : Function {
-            return () => {};
+            return this._distributionCalcFn(blockTypeEnum.MOB_NULL - 2, this._maxMobAllowed - 2, 'MOB');
         }
 
-        private _updateLootDistribution() {
+        private _setProbabilityDistributions(type: string, distributionRange : any[]) {
+
+            this._cachedProbabilityFunctions[type] = null;
+            this._probabilityDistributions[type] = distributionRange;
+            this._updateProbabilityBoundaries(type);
 
         }
 
-        private _updateMobDistribution() {
-
+        private _updateLootDistribution(distributionRange : any[]) {
+           this._setProbabilityDistributions('LOOT', distributionRange);
         }
 
-        private _updatePlatformDistribution() {
+        private _updateMobDistribution(distributionRange : any[]) {
+            this._setProbabilityDistributions('MOB', distributionRange);
+        }
 
+        private _updatePlatformDistribution(distributionRange : any[]) {
+            this._setProbabilityDistributions('PLATFORM', distributionRange);
         }
 
 
@@ -243,6 +287,10 @@ namespace PCGGame {
             }
 
             return ExperientialGameManager._instance;
+        }
+
+        public get mobDifficultyLevel() : number {
+            return this._mobDifficultyLevel;
         }
 
         public calculateGridSpace() {

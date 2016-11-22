@@ -7,7 +7,7 @@ namespace PCGGame {
 
         public static ID : string = 'Invader';
         public static BULLET_ID : string = 'Invader.Bullets';
-        public static NUM_BULLETS : number = 20;
+        public static NUM_BULLETS : number = 30;
 
         public constructor(game : Phaser.Game) {
 
@@ -89,7 +89,8 @@ namespace PCGGame {
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.setSize(32, 32 , -5, 0);
             body.immovable = false;
-            this.health = this.weaponDamageCost;
+            this.health = this.weaponDamageCost + (this.weaponDamageCost * this.difficultyLevel);
+            this.upgradeWeapon();
             this.aggressionProbability = 30;
             this.dangerLevel = spriteDangerLevelEnum.MEDIUM_DANGER;
             this.animations.add(Invader.ID, [ 0, 1, 2, 3 ], 20, true);

@@ -32,25 +32,26 @@ var PCGGame;
             this._currentSnapShot = null;
             this._mobGenerationEnabled = true;
             this._platformGenerationEnabled = true;
+            this._maxMobAllowed = 4;
             this._probabilityDistributions = {
                 LOOT: [
-                    53,
+                    56,
                     20,
                     20,
                     2,
-                    5
+                    2
                 ],
                 PLATFORM: [
-                    40,
-                    20,
-                    40
+                    25,
+                    25,
+                    50
                 ],
                 MOB: [
+                    50,
+                    30,
                     20,
-                    25,
-                    20,
-                    20,
-                    15
+                    0,
+                    0
                 ]
             };
             this._probabilityDistributionBoundaries = {
@@ -58,6 +59,12 @@ var PCGGame;
                 PLATFORM: [0, 0, 0],
                 MOB: [0, 0, 0, 0, 0]
             };
+            this._cachedProbabilityFunctions = {
+                LOOT: null,
+                PLATFORM: null,
+                MOB: null
+            };
+            this._mobDifficultyLevel = 0;
             this.generatorParameters = {
                 GRID: {
                     X_TOTAL: 0,
@@ -102,7 +109,6 @@ var PCGGame;
             this.calculateGridSpace();
             this.addAdaptationToQueue(5000, function () {
                 _this._mobGenerationEnabled = true;
-                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 4;
             });
             this.addAdaptationToQueue(2500, function () {
                 _this.generatorParameters.PLATFORM.MIN_DISTANCE = 8;
@@ -111,10 +117,15 @@ var PCGGame;
             this.addAdaptationToQueue(5000, function () {
                 _this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
                 _this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
-                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 5;
+                _this._maxMobAllowed++;
+                _this._updateMobDistribution([30, 25, 25, 20]);
             });
             this.addAdaptationToQueue(15000, function () {
-                _this.generatorParameters.MOBS.MAX_MOB_TYPE = 6;
+                _this._maxMobAllowed++;
+                _this._updateMobDistribution([15, 25, 20, 20, 20]);
+            });
+            this.addAdaptationToQueue(15000, function () {
+                _this._mobDifficultyLevel += 5;
             });
         }
         ExperientialGameManager.prototype.showSurvey = function () {
@@ -128,8 +139,11 @@ var PCGGame;
                 if (i === 0) {
                     this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributions[probabilityType][i];
                 }
-                else {
+                else if (this._probabilityDistributionBoundaries[probabilityType][i - 1] < 100) {
                     this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributionBoundaries[probabilityType][i - 1] + this._probabilityDistributions[probabilityType][i];
+                }
+                else {
+                    this._probabilityDistributionBoundaries[probabilityType][i] = Number.POSITIVE_INFINITY;
                 }
             }
             console.log(this._probabilityDistributionBoundaries[probabilityType]);
@@ -138,7 +152,9 @@ var PCGGame;
         ExperientialGameManager.prototype.calcType = function (minType, maxType, typeProbabilitiesUpperBoundary) {
             var p = this._randomGenerator.integerInRange(0, 100);
             var type = minType;
+            console.log(p, typeProbabilitiesUpperBoundary, type, maxType);
             for (var i = minType; i <= maxType; i++) {
+                console.log(typeProbabilitiesUpperBoundary[i]);
                 if (p <= typeProbabilitiesUpperBoundary[i]) {
                     type = i;
                     break;
@@ -146,39 +162,53 @@ var PCGGame;
             }
             return type;
         };
-        ExperientialGameManager.prototype._distributionCalcFn = function (minType, maxType, typeProbabilitiesUpperBoundary) {
+        ExperientialGameManager.prototype._distributionCalcFn = function (minType, maxType, type) {
             var _this = this;
-            return function () {
-                return _this.calcType(minType, maxType, typeProbabilitiesUpperBoundary);
+            var typeProbabilitiesUpperBoundary = this._probabilityDistributionBoundaries[type];
+            if (this._cachedProbabilityFunctions[type]) {
+                return this._cachedProbabilityFunctions[type];
+            }
+            this._cachedProbabilityFunctions[type] = function () {
+                var mobType = _this.calcType(minType, maxType, typeProbabilitiesUpperBoundary);
+                console.log('Type generated value = ', mobType, ' for type ', type);
+                return mobType;
             };
+            return this._cachedProbabilityFunctions[type];
         };
         Object.defineProperty(ExperientialGameManager.prototype, "lootDistributionFn", {
             get: function () {
-                return this._distributionCalcFn(0, 4, this._probabilityDistributionBoundaries.LOOT);
+                return this._distributionCalcFn(0, 4, 'LOOT');
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(ExperientialGameManager.prototype, "platformDistributionFn", {
             get: function () {
-                var _this = this;
-                return function () { return _this._randomGenerator.integerInRange(0, 2); };
+                return this._distributionCalcFn(0, 2, 'PLATFORM');
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(ExperientialGameManager.prototype, "mobDistributionFn", {
             get: function () {
-                return function () { };
+                return this._distributionCalcFn(2 - 2, this._maxMobAllowed - 2, 'MOB');
             },
             enumerable: true,
             configurable: true
         });
-        ExperientialGameManager.prototype._updateLootDistribution = function () {
+        ExperientialGameManager.prototype._setProbabilityDistributions = function (type, distributionRange) {
+            this._cachedProbabilityFunctions[type] = null;
+            this._probabilityDistributions[type] = distributionRange;
+            this._updateProbabilityBoundaries(type);
         };
-        ExperientialGameManager.prototype._updateMobDistribution = function () {
+        ExperientialGameManager.prototype._updateLootDistribution = function (distributionRange) {
+            this._setProbabilityDistributions('LOOT', distributionRange);
         };
-        ExperientialGameManager.prototype._updatePlatformDistribution = function () {
+        ExperientialGameManager.prototype._updateMobDistribution = function (distributionRange) {
+            this._setProbabilityDistributions('MOB', distributionRange);
+        };
+        ExperientialGameManager.prototype._updatePlatformDistribution = function (distributionRange) {
+            this._setProbabilityDistributions('PLATFORM', distributionRange);
         };
         ExperientialGameManager.instance = function (game, player) {
             if (ExperientialGameManager._instance === null && game && player) {
@@ -186,6 +216,13 @@ var PCGGame;
             }
             return ExperientialGameManager._instance;
         };
+        Object.defineProperty(ExperientialGameManager.prototype, "mobDifficultyLevel", {
+            get: function () {
+                return this._mobDifficultyLevel;
+            },
+            enumerable: true,
+            configurable: true
+        });
         ExperientialGameManager.prototype.calculateGridSpace = function () {
             this.generatorParameters.GRID.X_TOTAL = this._game.width / Generator.Parameters.GRID.CELL.SIZE;
             this.generatorParameters.GRID.Y_TOTAL = this._game.height / Generator.Parameters.GRID.CELL.SIZE;
@@ -544,6 +581,7 @@ var PCGGame;
             this.dangerLevel = 0;
             this.weaponDamageCost = 10;
             this.aggressionProbability = 0;
+            this.difficultyLevel = 0;
             this._isInvincible = false;
             this._id = null;
             this._isDead = false;
@@ -669,6 +707,13 @@ var PCGGame;
             enumerable: true,
             configurable: true
         });
+        Sprite.prototype.upgradeWeapon = function () {
+            if (!this._weapon) {
+                return;
+            }
+            this._weapon.fireRate = Math.max(this._weapon.fireRate - (this.difficultyLevel * 100), 200);
+            this._weapon.bulletSpeedVariance = Math.min(this._weapon.bulletSpeedVariance + this.difficultyLevel, PCGGame.Player.MAX_WEAPON_STATS.variance);
+        };
         Sprite.LOOT_ID = 'mob.loot';
         return Sprite;
     }(Phaser.Sprite));
@@ -745,7 +790,8 @@ var PCGGame;
             var body = this.body;
             body.setSize(32, 32, -5, 0);
             body.immovable = false;
-            this.health = this.weaponDamageCost;
+            this.health = this.weaponDamageCost + (this.weaponDamageCost * this.difficultyLevel);
+            this.upgradeWeapon();
             this.aggressionProbability = 30;
             this.dangerLevel = 2;
             this.animations.add(Invader.ID, [0, 1, 2, 3], 20, true);
@@ -753,7 +799,7 @@ var PCGGame;
         };
         Invader.ID = 'Invader';
         Invader.BULLET_ID = 'Invader.Bullets';
-        Invader.NUM_BULLETS = 20;
+        Invader.NUM_BULLETS = 30;
         return Invader;
     }(PCGGame.Sprite));
     PCGGame.Invader = Invader;
@@ -789,7 +835,6 @@ var PCGGame;
         });
         Loot.prototype._calcType = function () {
             var type = PCGGame.ExperientialGameManager.instance().lootDistributionFn.call(this);
-            console.log('TYPE CHOSEN:', type);
             return type;
         };
         Loot.prototype._calcLootTint = function () {
@@ -825,10 +870,12 @@ var PCGGame;
             _super.call(this, game, parent);
             this._lastTile = new Phaser.Point(0, 0);
             this._lastMOB = new Phaser.Point(0, 0);
+            this._experientialGameManager = null;
             this._game = game;
             this._randomGenerator = game.rnd;
             this._generator = new Generator.Generator(this._randomGenerator);
             this._MOBgenerator = new Generator.MOBGenerator(this._randomGenerator);
+            this._experientialGameManager = PCGGame.ExperientialGameManager.instance();
             this._MOBSpritePool = new Helper.Pool(PCGGame.SpriteSingletonFactory, Generator.Parameters.GRID.CELL.SIZE, function () {
                 return new PCGGame.SpriteSingletonFactory(game);
             });
@@ -837,7 +884,7 @@ var PCGGame;
             });
             this._walls = new Phaser.Group(game, this);
             this._mobs = new Phaser.Group(game, this);
-            var experientialManager = PCGGame.ExperientialGameManager.instance();
+            var experientialManager = this._experientialGameManager;
             this._generator.addBlock(0, this._randomGenerator.integerInRange(0, Generator.Parameters.GRID.CELL.SIZE), this._randomGenerator.integerInRange(experientialManager.generatorParameters.PLATFORM.MIN_DISTANCE, experientialManager.generatorParameters.PLATFORM.MAX_DISTANCE), this._randomGenerator.integerInRange(experientialManager.generatorParameters.PLATFORM.MIN_DISTANCE, experientialManager.generatorParameters.PLATFORM.MAX_DISTANCE));
             this._MOBgenerator.addMob(32 * 3, this._randomGenerator.integerInRange(experientialManager.generatorParameters.MOBS.MIN_X_DISTANCE, experientialManager.generatorParameters.MOBS.MAX_X_DISTANCE), this._randomGenerator.integerInRange(experientialManager.generatorParameters.MOBS.MIN_X_DISTANCE, experientialManager.generatorParameters.MOBS.MAX_X_DISTANCE));
             this._platformGenerationState = 0;
@@ -867,7 +914,7 @@ var PCGGame;
             configurable: true
         });
         MainLayer.prototype.generate = function (leftTile, gameState) {
-            var experientialManager = PCGGame.ExperientialGameManager.instance();
+            var experientialManager = this._experientialGameManager;
             this._cleanTiles(leftTile);
             this._cleanMOBS(leftTile);
             var width = Math.ceil(this.game.width / Generator.Parameters.GRID.CELL.SIZE);
@@ -1015,6 +1062,7 @@ var PCGGame;
                     sprite = spriteFactory.getMeteorMob();
                     break;
             }
+            sprite.difficultyLevel = this._experientialGameManager.mobDifficultyLevel;
             sprite.reset();
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
             console.warn(x, y, sprite.position);
@@ -1039,7 +1087,7 @@ var PCGGame;
             this.mobType = 6;
             this._weapon = game.add.weapon(MegaHead.NUM_BULLETS, MegaHead.BULLET_ID);
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
-            this._weapon.bulletKillDistance = this.game.width;
+            this._weapon.bulletKillDistance = this.game.width * 2;
             this._weapon.bulletAngleOffset = 0;
             this._weapon.bulletAngleVariance = MegaHead.WEAPON_STATS.bulletAngleVariance;
             this._weapon.fireAngle = Phaser.ANGLE_LEFT;
@@ -1069,7 +1117,8 @@ var PCGGame;
             var body = this.body;
             body.setSize(78, 92);
             body.immovable = false;
-            this.health = this.weaponDamageCost * 2;
+            this.health = Math.min(100, 2 * (this.weaponDamageCost + (this.weaponDamageCost * this.difficultyLevel)));
+            this.upgradeWeapon();
             this.dangerLevel = 3;
             this.aggressionProbability = 70;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);
@@ -1077,7 +1126,7 @@ var PCGGame;
         };
         MegaHead.ID = 'MegaHead';
         MegaHead.BULLET_ID = 'Invader.Bullets';
-        MegaHead.NUM_BULLETS = 10;
+        MegaHead.NUM_BULLETS = 60;
         MegaHead.WEAPON_STATS = {
             fireRate: 400,
             variance: 0,
@@ -1790,7 +1839,7 @@ var Generator;
         MOBGenerator.prototype._generate = function (lastPosition) {
             var generatorParams = this._experientialGameManager.generatorParameters;
             var block = this._createBlock();
-            block.type = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_MOB_TYPE, generatorParams.MOBS.MAX_MOB_TYPE);
+            block.type = 2 + this._experientialGameManager.mobDistributionFn.call(this);
             var upperBlockBound = 1;
             var lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.GRID.CELL.SIZE) / Generator.Parameters.GRID.CELL.SIZE;
             var deltaGridY = lowerBlockBound - upperBlockBound;

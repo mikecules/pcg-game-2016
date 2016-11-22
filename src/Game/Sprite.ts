@@ -14,6 +14,7 @@ namespace PCGGame {
         public dangerLevel : number = spriteDangerLevelEnum.NO_DANGER;
         public weaponDamageCost : number = 10;
         public aggressionProbability : number = 0;
+        public difficultyLevel : number = 0;
 
         protected _isInvincible : boolean = false;
         protected _id : string = null;
@@ -165,6 +166,18 @@ namespace PCGGame {
             }
 
             return bullets;
+        }
+
+        public upgradeWeapon() {
+            if (! this._weapon ) {
+                return;
+            }
+
+            this._weapon.fireRate = Math.max(this._weapon.fireRate - (this.difficultyLevel * 100), 200);
+
+            //  Add a variance to the bullet speed by +- this value
+            this._weapon.bulletSpeedVariance = Math.min(this._weapon.bulletSpeedVariance + this.difficultyLevel, Player.MAX_WEAPON_STATS.variance);
+
         }
     }
 }

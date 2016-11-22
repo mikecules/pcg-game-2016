@@ -93,7 +93,7 @@ namespace Generator {
             let generatorParams =  this._experientialGameManager.generatorParameters;
 
             let block = this._createBlock();
-            block.type = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_MOB_TYPE, generatorParams.MOBS.MAX_MOB_TYPE);
+            block.type = 2 + this._experientialGameManager.mobDistributionFn.call(this);
 
             let upperBlockBound = 1;
             let lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT -  Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;

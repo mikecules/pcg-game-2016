@@ -16,6 +16,7 @@ namespace PCGGame {
         private _mobsGenerationState: generateStateEnum;
         private _randomGenerator: Phaser.RandomDataGenerator;
         private _game : Phaser.Game;
+        private _experientialGameManager : ExperientialGameManager = null;
 
 
         public render(): void {
@@ -45,6 +46,8 @@ namespace PCGGame {
             this._generator = new Generator.Generator(this._randomGenerator);
             this._MOBgenerator = new Generator.MOBGenerator(this._randomGenerator);
 
+            this._experientialGameManager = ExperientialGameManager.instance();
+
             this._MOBSpritePool = new Helper.Pool<SpriteSingletonFactory>(SpriteSingletonFactory, Generator.Parameters.GRID.CELL.SIZE,  ()  => { // add empty sprite with body
                 return new SpriteSingletonFactory(game);
             });
@@ -59,7 +62,7 @@ namespace PCGGame {
 
             this._mobs = new Phaser.Group(game, this);
 
-            let experientialManager : ExperientialGameManager = ExperientialGameManager.instance();
+            let experientialManager : ExperientialGameManager = this._experientialGameManager;
 
             // set initial tile for generating
 
@@ -90,7 +93,7 @@ namespace PCGGame {
 
         public generate(leftTile: number, gameState: any): void {
 
-            let experientialManager : ExperientialGameManager = ExperientialGameManager.instance();
+            let experientialManager : ExperientialGameManager = this._experientialGameManager;
 
             // remove tiles too far to left
             this._cleanTiles(leftTile);
@@ -311,7 +314,9 @@ namespace PCGGame {
             }
 
 
+            sprite.difficultyLevel = this._experientialGameManager.mobDifficultyLevel;
             sprite.reset();
+
 
             // convert grid space of blog into 2D X,Y space used by the engine
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);

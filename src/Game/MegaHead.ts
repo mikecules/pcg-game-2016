@@ -8,7 +8,7 @@ namespace PCGGame {
 
         public static ID : string = 'MegaHead';
         public static BULLET_ID : string = 'Invader.Bullets';
-        public static NUM_BULLETS : number = 10;
+        public static NUM_BULLETS : number = 60;
 
 
         public static WEAPON_STATS : any = {
@@ -37,7 +37,7 @@ namespace PCGGame {
             this._weapon = game.add.weapon(MegaHead.NUM_BULLETS, MegaHead.BULLET_ID);
 
             this._weapon.bulletKillType = Phaser.Weapon.KILL_DISTANCE;
-            this._weapon.bulletKillDistance = this.game.width;
+            this._weapon.bulletKillDistance = this.game.width * 2;
 
 
 
@@ -98,7 +98,8 @@ namespace PCGGame {
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.setSize(78, 92);
             body.immovable = false;
-            this.health = this.weaponDamageCost * 2;
+            this.health = Math.min(100, 2 * (this.weaponDamageCost + (this.weaponDamageCost * this.difficultyLevel)));
+            this.upgradeWeapon();
             this.dangerLevel = spriteDangerLevelEnum.HIGH_DANGER;
             this.aggressionProbability = 70;
             this.animations.add(MegaHead.ID, [0, 1, 2, 3], 1, true);

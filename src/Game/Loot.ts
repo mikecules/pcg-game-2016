@@ -32,7 +32,7 @@ namespace PCGGame {
         private _calcType() : number {
             let type = ExperientialGameManager.instance().lootDistributionFn.call(this);
 
-            console.log('TYPE CHOSEN:', type);
+            //console.log('TYPE CHOSEN:', type);
             return type;
         }
 
