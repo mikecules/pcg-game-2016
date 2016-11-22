@@ -13,19 +13,17 @@ namespace PCGGame {
             current: null
         };
 
-        public lastPlayerDeathDeltaTimeMS : number = 0;
-        public lastPlayerDamagedDeltaTimeMS : number = 0;
         public lastSurveyShownTimeMS : number = 0;
         public surveyManager : SurveyManager = null;
         public isEligibleForSurvey : boolean = false;
 
         private _game : Phaser.Game = null;
-        private _totalTimeElapsed : number = 0;
         private _currentSnapShotTime : number = 0;
         private _adaptTimeElapsedMS : number = 0;
         private _player : Player = null;
         private _randomGenerator : Phaser.RandomDataGenerator;
         private _currentSnapShot : GameMetric = null;
+        private _overallSnapShot : GameMetric = null;
 
         private _mobGenerationEnabled : boolean = true;
         private _platformGenerationEnabled : boolean = true;
@@ -135,6 +133,7 @@ namespace PCGGame {
 
 
             this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
+            this._overallSnapShot = ExperientialGameManager.gameMetricSnapShots.overall;
 
             for (let probType in this._probabilityDistributions) {
                 if (this._probabilityDistributions.hasOwnProperty(probType)) {
@@ -347,7 +346,6 @@ namespace PCGGame {
 
         public takeMetricSnapShot() {
 
-            ExperientialGameManager.gameMetricSnapShots.overall.mergeStats(this._currentSnapShot);
             ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
 
             ExperientialGameManager.gameMetricSnapShots.current = new GameMetric();
@@ -360,13 +358,13 @@ namespace PCGGame {
         // UPDATE!!
         public update() {
 
-            let lastTime = this._game.time.elapsedMS;
-            this._currentSnapShotTime += lastTime;
-            this._adaptTimeElapsedMS += lastTime;
+            let lastTimeMS = this._game.time.elapsedMS;
+            this._currentSnapShotTime += lastTimeMS;
+            this._adaptTimeElapsedMS += lastTimeMS;
 
-            this.lastPlayerDeathDeltaTimeMS += lastTime;
-            this.lastPlayerDamagedDeltaTimeMS += lastTime;
 
+            this._currentSnapShot.tick(lastTimeMS);
+            this._overallSnapShot.tick(lastTimeMS);
 
 
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
@@ -385,7 +383,7 @@ namespace PCGGame {
 
             if (ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED && ! this.isEligibleForSurvey) {
 
-                this.lastSurveyShownTimeMS += lastTime;
+                this.lastSurveyShownTimeMS += lastTimeMS;
 
                 if (this.lastSurveyShownTimeMS >= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS) {
                     this.isEligibleForSurvey = true;
@@ -393,31 +391,32 @@ namespace PCGGame {
                 }
             }
 
-            this._totalTimeElapsed += lastTime;
-
         }
 
 
         public playerDamageReceived(damage: number, sprite : Sprite) {
             this._currentSnapShot.playerDamagedBy(sprite, damage);
-            this.lastPlayerDamagedDeltaTimeMS = 0;
+            this._overallSnapShot.playerDamagedBy(sprite, damage)
         }
 
         public playerDamageGiven(damage: number, sprite: Sprite) {
             this._currentSnapShot.mobDamagedReceieved(sprite, damage);
+            this._overallSnapShot.mobDamagedReceieved(sprite, damage);
         }
 
         public playerKilled(sprite: Sprite) {
             this._currentSnapShot.playerKilledBy(sprite);
-            this.lastPlayerDeathDeltaTimeMS = 0;
+            this._overallSnapShot.playerKilledBy(sprite);
         }
 
         public playerCollidedWithPlatform() {
             this._currentSnapShot.numberOfPlatformCollisions++;
+            this._overallSnapShot.numberOfPlatformCollisions++;
         }
 
         public mobKilled(mob: Sprite) {
             this._currentSnapShot.mobKilled(mob);
+            this._overallSnapShot.mobKilled(mob);
         }
 
     }

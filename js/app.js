@@ -19,17 +19,15 @@ var PCGGame;
     var ExperientialGameManager = (function () {
         function ExperientialGameManager(game, player) {
             var _this = this;
-            this.lastPlayerDeathDeltaTimeMS = 0;
-            this.lastPlayerDamagedDeltaTimeMS = 0;
             this.lastSurveyShownTimeMS = 0;
             this.surveyManager = null;
             this.isEligibleForSurvey = false;
             this._game = null;
-            this._totalTimeElapsed = 0;
             this._currentSnapShotTime = 0;
             this._adaptTimeElapsedMS = 0;
             this._player = null;
             this._currentSnapShot = null;
+            this._overallSnapShot = null;
             this._mobGenerationEnabled = true;
             this._platformGenerationEnabled = true;
             this._maxMobAllowed = 4;
@@ -101,6 +99,7 @@ var PCGGame;
             ExperientialGameManager.gameMetricSnapShots.current = new PCGGame.GameMetric();
             ExperientialGameManager.gameMetricSnapShots.overall = new PCGGame.GameMetric();
             this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
+            this._overallSnapShot = ExperientialGameManager.gameMetricSnapShots.overall;
             for (var probType in this._probabilityDistributions) {
                 if (this._probabilityDistributions.hasOwnProperty(probType)) {
                     this._updateProbabilityBoundaries(probType);
@@ -264,18 +263,17 @@ var PCGGame;
             configurable: true
         });
         ExperientialGameManager.prototype.takeMetricSnapShot = function () {
-            ExperientialGameManager.gameMetricSnapShots.overall.mergeStats(this._currentSnapShot);
             ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
             ExperientialGameManager.gameMetricSnapShots.current = new PCGGame.GameMetric();
             this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
             console.warn(ExperientialGameManager.gameMetricSnapShots);
         };
         ExperientialGameManager.prototype.update = function () {
-            var lastTime = this._game.time.elapsedMS;
-            this._currentSnapShotTime += lastTime;
-            this._adaptTimeElapsedMS += lastTime;
-            this.lastPlayerDeathDeltaTimeMS += lastTime;
-            this.lastPlayerDamagedDeltaTimeMS += lastTime;
+            var lastTimeMS = this._game.time.elapsedMS;
+            this._currentSnapShotTime += lastTimeMS;
+            this._adaptTimeElapsedMS += lastTimeMS;
+            this._currentSnapShot.tick(lastTimeMS);
+            this._overallSnapShot.tick(lastTimeMS);
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
                 var adaptationToMake = this.getNextAdaptationInQueue();
                 adaptationToMake.f.call(this);
@@ -286,30 +284,32 @@ var PCGGame;
                 this._currentSnapShotTime -= ExperientialGameManager.INTERVAL_MS;
             }
             if (ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED && !this.isEligibleForSurvey) {
-                this.lastSurveyShownTimeMS += lastTime;
+                this.lastSurveyShownTimeMS += lastTimeMS;
                 if (this.lastSurveyShownTimeMS >= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS) {
                     this.isEligibleForSurvey = true;
                     this.lastSurveyShownTimeMS -= ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS;
                 }
             }
-            this._totalTimeElapsed += lastTime;
         };
         ExperientialGameManager.prototype.playerDamageReceived = function (damage, sprite) {
             this._currentSnapShot.playerDamagedBy(sprite, damage);
-            this.lastPlayerDamagedDeltaTimeMS = 0;
+            this._overallSnapShot.playerDamagedBy(sprite, damage);
         };
         ExperientialGameManager.prototype.playerDamageGiven = function (damage, sprite) {
             this._currentSnapShot.mobDamagedReceieved(sprite, damage);
+            this._overallSnapShot.mobDamagedReceieved(sprite, damage);
         };
         ExperientialGameManager.prototype.playerKilled = function (sprite) {
             this._currentSnapShot.playerKilledBy(sprite);
-            this.lastPlayerDeathDeltaTimeMS = 0;
+            this._overallSnapShot.playerKilledBy(sprite);
         };
         ExperientialGameManager.prototype.playerCollidedWithPlatform = function () {
             this._currentSnapShot.numberOfPlatformCollisions++;
+            this._overallSnapShot.numberOfPlatformCollisions++;
         };
         ExperientialGameManager.prototype.mobKilled = function (mob) {
             this._currentSnapShot.mobKilled(mob);
+            this._overallSnapShot.mobKilled(mob);
         };
         ExperientialGameManager._instance = null;
         ExperientialGameManager.INTERVAL_MS = 1000 * 30;
@@ -336,6 +336,9 @@ var PCGGame;
             this.playerDamageForMobType = {};
             this.mobDamagedByPlayer = {};
             this.numberOfPlatformCollisions = 0;
+            this.lastPlayerDeathTimeMS = 0;
+            this.lastPlayerDamageTimeMS = 0;
+            this.timeElapsedMS = 0;
             this.reset();
         }
         GameMetric.prototype.mobKilled = function (sprite) {
@@ -348,6 +351,7 @@ var PCGGame;
             var mobType = this._getMobType(sprite);
             this.playerDamageForMobType[this._getMobKeyForType(mobType)] += damage;
             this.playerDamageReceivedCount += damage;
+            this.lastPlayerDamageTimeMS = 0;
         };
         GameMetric.prototype.mobDamagedReceieved = function (sprite, damage) {
             console.log('MM !!! Mob damaged by Player ', sprite);
@@ -359,6 +363,7 @@ var PCGGame;
             var mobType = this._getMobType(sprite);
             this.playerDeathCountForMobType[this._getMobKeyForType(mobType)]++;
             this.playerDeathCount++;
+            this.lastPlayerDeathTimeMS = 0;
         };
         GameMetric.prototype._getMobType = function (sprite) {
             return Generator.Block.getMobEnumType(sprite);
@@ -401,9 +406,33 @@ var PCGGame;
             this.playerDamageReceivedCount += gameMetric.playerDamageReceivedCount;
             this.mobDeathCount += gameMetric.mobDeathCount;
             this.numberOfPlatformCollisions += gameMetric.numberOfPlatformCollisions;
+            this.lastPlayerDeathTimeMS += gameMetric.lastPlayerDeathTimeMS;
+            this.lastPlayerDamageTimeMS += gameMetric.lastPlayerDamageTimeMS;
+            this.timeElapsedMS += gameMetric.timeElapsedMS;
             return this;
         };
+        GameMetric.prototype.tick = function (timeElapsedMS) {
+            this.lastPlayerDeathTimeMS += timeElapsedMS;
+            this.lastPlayerDamageTimeMS += timeElapsedMS;
+            this.timeElapsedMS += timeElapsedMS;
+        };
         GameMetric.prototype.getMostDangerousMobs = function () {
+            var killWeight = 2;
+            var damageWeight = 1;
+            var mobWeightVector = [];
+            for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
+                var mob = GameMetric.MOB_TYPES[i];
+                if (mob === 'Notch') {
+                    continue;
+                }
+                var mobObject = {
+                    'mob': mob,
+                    'dangerWeight': (this.playerDeathCountForMobType[mob] * killWeight) + (this.playerDamageForMobType[mob] * damageWeight)
+                };
+                mobWeightVector.push(mobObject);
+            }
+            mobWeightVector.sort(function (a, b) { return b.dangerWeight - a.dangerWeight; });
+            return mobWeightVector;
         };
         GameMetric.prototype.reset = function () {
             for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
@@ -417,6 +446,9 @@ var PCGGame;
             this.playerDamageReceivedCount = 0;
             this.mobDeathCount = 0;
             this.numberOfPlatformCollisions = 0;
+            this.timeElapsedMS = 0;
+            this.lastPlayerDeathTimeMS = 0;
+            this.lastPlayerDamageTimeMS = 0;
         };
         GameMetric.MOB_TYPES = [
             'Notch',
@@ -945,14 +977,13 @@ var PCGGame;
                     switch (this._platformGenerationState) {
                         case 0:
                             if (!this._generator.hasBlocks) {
-                                console.error("Blocks queue is empty!");
+                                console.error('Blocks queue is empty!');
                             }
                             var block = this._generator.getBlockFromQueue();
                             this._lastTile.copyFrom(block.position);
                             var length_1 = block.length;
                             var rows = block.rows;
                             var isHollow = block.isHollow;
-                            console.warn(isHollow);
                             for (var i = 0; i < length_1; i++) {
                                 rows = block.rows;
                                 for (var j = 0; j < rows; j++) {
@@ -988,7 +1019,7 @@ var PCGGame;
                     switch (this._mobsGenerationState) {
                         case 0:
                             if (!this._MOBgenerator.hasBlocks) {
-                                console.error("Mob Blocks queue is empty!");
+                                console.error('Mob Blocks queue is empty!');
                             }
                             var block = this._MOBgenerator.getBlockFromQueue();
                             this._lastMOB.copyFrom(block.position);
@@ -1005,7 +1036,6 @@ var PCGGame;
                             }
                             break;
                         case 1:
-                            console.warn('Generate Mobs!!!!!!!!');
                             this._MOBgenerator.generateMOBs(this._lastMOB);
                             this._mobsGenerationState = 0;
                             break;
@@ -1073,7 +1103,6 @@ var PCGGame;
                     break;
                 case 5:
                     sprite = spriteFactory.getInvaderMob();
-                    break;
                 case 6:
                     sprite = spriteFactory.getMegaHeadMob();
                     break;
@@ -1087,7 +1116,6 @@ var PCGGame;
             sprite.difficultyLevel = this._experientialGameManager.mobDifficultyLevel;
             sprite.reset();
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
-            console.warn(x, y, sprite.position);
             if (sprite.parent === null) {
                 this._mobs.add(sprite);
             }
@@ -1873,23 +1901,11 @@ var Generator;
             var generatorParams = this._experientialGameManager.generatorParameters;
             var block = this._createBlock();
             block.type = 2 + this._experientialGameManager.mobDistributionFn.call(this);
-            var upperBlockBound = 1;
-            var lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT - Generator.Parameters.GRID.CELL.SIZE) / Generator.Parameters.GRID.CELL.SIZE;
-            var deltaGridY = lowerBlockBound - upperBlockBound;
-            var minY = -generatorParams.MOBS.MIN_DISTANCE * 2;
-            var maxY = lowerBlockBound - upperBlockBound;
-            var currentY = lastPosition.y - upperBlockBound;
-            var shiftY = 0;
-            shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
-            shiftY -= currentY;
-            shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
-            var newY = Phaser.Math.clamp(currentY + shiftY, 0, deltaGridY);
             block.position.y = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_Y_DISTANCE, generatorParams.MOBS.MAX_Y_DISTANCE);
             var shiftX = this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_X_DISTANCE, generatorParams.MOBS.MAX_X_DISTANCE);
             block.position.x = lastPosition.x + shiftX;
             block.length = 1;
             this._lastGeneratedBlock = block;
-            console.warn(block);
             return block;
         };
         return MOBGenerator;
@@ -2235,7 +2251,6 @@ var PCGGame;
                         break;
                     case 4:
                         var loot = e.payload;
-                        console.log(e.payload);
                         var type = loot.subType || loot.type;
                         switch (type) {
                             case 2:
@@ -2262,7 +2277,6 @@ var PCGGame;
                     default:
                         break;
                 }
-                console.log(e);
             });
             this._player.reset();
             this._backgroundLayer = new PCGGame.BackgroundLayer(this.game, this.world);
@@ -2293,24 +2307,19 @@ var PCGGame;
                 _this._invokeExperientialSurvey();
             }, this);
             this._pauseKey.onUp.add(function () {
-                console.log('Pause Key pressed!');
                 _this.togglePause();
             }, this);
             this._fireKey.onDown.add(function () {
                 _this.startPlayerAttack(true);
-                console.log('Space Fire Key Down!');
             }, this);
             this._fireKey.onUp.add(function () {
                 _this.startPlayerAttack(false);
-                console.log('Space Fire Key Up!');
             }, this);
             this.game.input.onDown.add(function () {
                 _this.startPlayerAttack(true);
-                console.log('Mouse Fire Key Down!');
             }, this);
             this.game.input.onUp.add(function () {
                 _this.startPlayerAttack(false);
-                console.log('Mouse Fire Key Up!');
             }, this);
             this._cursors = this.game.input.keyboard.createCursorKeys();
             var lastX = null;

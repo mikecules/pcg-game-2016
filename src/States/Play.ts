@@ -352,7 +352,7 @@ namespace PCGGame {
 
                         let loot : Loot = <Loot> e.payload;
 
-                        console.log(e.payload);
+                        //console.log(e.payload);
 
                         let type = loot.subType || loot.type;
 
@@ -382,7 +382,7 @@ namespace PCGGame {
                         break;
                 }
                 
-                console.log(e);
+                //console.log(e);
 
             });
 
@@ -431,30 +431,30 @@ namespace PCGGame {
             }, this);
 
             this._pauseKey.onUp.add(() => {
-                console.log('Pause Key pressed!');
+                //console.log('Pause Key pressed!');
                 this.togglePause();
             }, this);
 
             this._fireKey.onDown.add(() => {
                 this.startPlayerAttack(true);
-                console.log('Space Fire Key Down!');
+                //console.log('Space Fire Key Down!');
             }, this);
 
 
             this._fireKey.onUp.add(() => {
                 this.startPlayerAttack(false);
-                console.log('Space Fire Key Up!');
+                //console.log('Space Fire Key Up!');
             }, this);
 
 
             this.game.input.onDown.add(() => {
                 this.startPlayerAttack(true);
-                console.log('Mouse Fire Key Down!');
+                //console.log('Mouse Fire Key Down!');
             }, this);
 
             this.game.input.onUp.add(() => {
                 this.startPlayerAttack(false);
-                console.log('Mouse Fire Key Up!');
+                //console.log('Mouse Fire Key Up!');
             }, this);
 
 

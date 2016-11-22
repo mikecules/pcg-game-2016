@@ -95,42 +95,7 @@ namespace Generator {
             let block = this._createBlock();
             block.type = 2 + this._experientialGameManager.mobDistributionFn.call(this);
 
-            let upperBlockBound = 1;
-            let lowerBlockBound = (PCGGame.Global.SCREEN.HEIGHT -  Parameters.GRID.CELL.SIZE) / Parameters.GRID.CELL.SIZE;
-
-            let deltaGridY = lowerBlockBound - upperBlockBound;
-
-
             // Y POSITION
-            let minY = -generatorParams.MOBS.MIN_DISTANCE * 2;
-
-
-            let maxY = lowerBlockBound - upperBlockBound;
-
-
-            // clear last y from upper bound, so it starts from 0
-            let currentY = lastPosition.y - upperBlockBound;
-            // new random y position - each y level on screen has the same probability
-
-            let shiftY = 0;
-
-
-            shiftY = this._randomGenerator.integerInRange(0, deltaGridY);
-
-            // substract currentY from shiftY - it will split possible y levels to negative
-            // (how much step up (-)) and positive (how much to step down (+))
-            shiftY -= currentY;
-
-            // clamp step to keep it inside interval given with maximum
-
-            // jump offset up (minY) and maximum fall down (maxX)
-            shiftY = Phaser.Math.clamp(shiftY, minY, maxY);
-
-
-            // new level for platform
-            // limit once more against game limits (2 free tiles on top, 1 water tile at bottom)
-            let newY = Phaser.Math.clamp(currentY + shiftY, 0, deltaGridY);
-
             // shift by upper bound to get right y level on screen
             block.position.y =  this._randomGenerator.integerInRange(generatorParams.MOBS.MIN_Y_DISTANCE, generatorParams.MOBS.MAX_Y_DISTANCE); //newY + upperBlockBound;
 
@@ -148,7 +113,7 @@ namespace Generator {
             // RESULT
             this._lastGeneratedBlock = block;
 
-            console.warn(block);
+            //console.warn(block);
 
             return block;
         }

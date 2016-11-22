@@ -30,6 +30,10 @@ namespace PCGGame {
 
 
         public numberOfPlatformCollisions: number = 0;
+        public lastPlayerDeathTimeMS: number = 0;
+        public lastPlayerDamageTimeMS: number = 0;
+
+        public timeElapsedMS : number = 0;
 
 
         public constructor() {
@@ -54,6 +58,8 @@ namespace PCGGame {
             this.playerDamageForMobType[this._getMobKeyForType(mobType)] += damage;
 
             this.playerDamageReceivedCount += damage;
+
+            this.lastPlayerDamageTimeMS = 0;
         }
 
         public mobDamagedReceieved(sprite: Sprite, damage: number) {
@@ -73,6 +79,7 @@ namespace PCGGame {
             this.playerDeathCountForMobType[this._getMobKeyForType(mobType)]++;
 
             this.playerDeathCount++;
+            this.lastPlayerDeathTimeMS = 0;
         }
 
         private _getMobType(sprite: Sprite): number {
@@ -126,13 +133,52 @@ namespace PCGGame {
 
             this.numberOfPlatformCollisions += gameMetric.numberOfPlatformCollisions;
 
+            this.lastPlayerDeathTimeMS += gameMetric.lastPlayerDeathTimeMS;
+            this.lastPlayerDamageTimeMS += gameMetric.lastPlayerDamageTimeMS;
+            this.timeElapsedMS += gameMetric.timeElapsedMS;
+
             return this;
         }
 
-        public getMostDangerousMobs() {
 
-            //this.playerDamageForMobType
+        public tick(timeElapsedMS : number) {
+            this.lastPlayerDeathTimeMS += timeElapsedMS;
+            this.lastPlayerDamageTimeMS += timeElapsedMS;
+            this.timeElapsedMS += timeElapsedMS;
         }
+
+        public getMostDangerousMobs() : any[] {
+
+            let killWeight = 2;
+            let damageWeight = 1;
+            let mobWeightVector : any[] = [];
+
+
+
+            for (let i = 0; i < GameMetric.MOB_TYPES.length; i++) {
+                let mob = GameMetric.MOB_TYPES[i];
+
+                // ignore notch as he is friendly
+                if (mob === 'Notch') {
+                    continue;
+                }
+
+                let mobObject : any = {
+                    'mob': mob,
+                    'dangerWeight': (this.playerDeathCountForMobType[mob] * killWeight) + (this.playerDamageForMobType[mob] * damageWeight)
+                };
+
+                mobWeightVector.push(mobObject);
+            }
+
+
+
+            mobWeightVector.sort((a : any, b: any) => b.dangerWeight - a.dangerWeight);
+
+
+            return mobWeightVector;
+        }
+
 
         public reset() {
 
@@ -151,6 +197,10 @@ namespace PCGGame {
             this.mobDeathCount = 0;
 
             this.numberOfPlatformCollisions = 0;
+
+            this.timeElapsedMS = 0;
+            this.lastPlayerDeathTimeMS = 0;
+            this.lastPlayerDamageTimeMS = 0;
 
         }
     }

@@ -110,7 +110,7 @@ namespace PCGGame {
                         case generateStateEnum.PROCESS_BLOCK:
                             // check if queue not empty - should never happen
                             if (!this._generator.hasBlocks) {
-                                console.error("Blocks queue is empty!");
+                                console.error('Blocks queue is empty!');
                             }
 
                             let block = this._generator.getBlockFromQueue();
@@ -121,7 +121,7 @@ namespace PCGGame {
                             let rows = block.rows;
                             let isHollow = block.isHollow;
 
-                            console.warn(isHollow);
+                            //console.warn(isHollow);
 
 
 
@@ -180,7 +180,7 @@ namespace PCGGame {
                         case generateStateEnum.PROCESS_BLOCK:
                             // check if queue not empty - should never happen
                             if (!this._MOBgenerator.hasBlocks) {
-                                console.error("Mob Blocks queue is empty!");
+                                console.error('Mob Blocks queue is empty!');
                             }
 
                             let block = this._MOBgenerator.getBlockFromQueue();
@@ -209,7 +209,7 @@ namespace PCGGame {
 
                         case generateStateEnum.GENERATE_BLOCK:
 
-                            console.warn('Generate Mobs!!!!!!!!');
+                            //console.warn('Generate Mobs!!!!!!!!');
                             this._MOBgenerator.generateMOBs(this._lastMOB);
                             this._mobsGenerationState = generateStateEnum.PROCESS_BLOCK;
                             break;
@@ -300,10 +300,9 @@ namespace PCGGame {
                     sprite = spriteFactory.getNotchMob();
                     break;
                 case  blockTypeEnum.MOB_INVADER:
-                    sprite = spriteFactory.getInvaderMob();//spriteFactory.getMeteorMob();//spriteFactory.getInvaderMob();
-                    break;
+                    sprite = spriteFactory.getInvaderMob();
                 case  blockTypeEnum.MOB_MEGA_HEAD:
-                    sprite = spriteFactory.getMegaHeadMob();//spriteFactory.getMeteorMob();//spriteFactory.getInvaderMob();
+                    sprite = spriteFactory.getMegaHeadMob();
                     break;
                 case blockTypeEnum.MOB_NULL:
                     sprite = spriteFactory.getNullMob();
@@ -321,7 +320,7 @@ namespace PCGGame {
             // convert grid space of blog into 2D X,Y space used by the engine
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
 
-            console.warn(x, y, sprite.position);
+            //console.warn(x, y, sprite.position);
 
             // add into mobs group
             if (sprite.parent === null) {
