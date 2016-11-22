@@ -3,10 +3,16 @@ namespace PCGGame {
 
     export class ExperientialGameManager {
         public static _instance : ExperientialGameManager = null;
-        public static INTERVAL_MS : number = 1000 * 30;
+        public static INTERVAL_MS : number = 1000 * 15; //30;
         public static MIN_SURVEY_TIME_INTERVAL_MS : number = 1000 * 30;
         public static IS_EXPERIENCE_MODEL_ENABLED : boolean = true;
-        public static MAX_MOB_DIFFICULTY_LEVEL : number = 5;
+        public static MAX_MOB_DIFFICULTY_LEVEL : number = 10;
+
+        public static INCREASE_PLAYER_DIFFICULTY_MAX_NON_DEATH_DURATION = 60 * 1000; // 1 minute
+        public static DIFFICULTY_DENSITY_PERCENT_INCREMENT = 5;//10; // 5
+        public static PLAYER_AVERAGE_HEALTH_THRESHOLD = 70; // if player is above this increment the difficulty
+
+
 
         public static gameMetricSnapShots : any = {
             overall: null,
@@ -88,7 +94,7 @@ namespace PCGGame {
             },
             PLATFORM: {
                 MIN_LENGTH: 1,
-                MAX_LENGTH: 5,
+                MAX_LENGTH: 3, //5
                 MIN_DISTANCE: 3,
                 MAX_DISTANCE: 6,
                 NEW_PATTERN_REPEAT_LENGTH: 2,
@@ -149,28 +155,22 @@ namespace PCGGame {
             });
 
 
-            this.addAdaptationToQueue(2500, () => {
+            /*this.addAdaptationToQueue(2500, () => {
                 this.generatorParameters.PLATFORM.MIN_DISTANCE = 8;
                 this.generatorParameters.PLATFORM.MAX_DISTANCE = 10;
+            });*/
+
+            this.addAdaptationToQueue(5000, () => {
+                //this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
+                //this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
+                this._maxMobAllowed++;
+                this._updateMobDistribution([35, 25, 20, 20, 0]);
             });
 
             this.addAdaptationToQueue(5000, () => {
-                this.generatorParameters.MOBS.MIN_X_DISTANCE = 5;
-                this.generatorParameters.MOBS.MAX_X_DISTANCE = 10;
                 this._maxMobAllowed++;
-                this._updateMobDistribution([30, 25, 25, 20]);
+                this._updateMobDistribution([35, 25, 10, 10, 20]);
             });
-
-            this.addAdaptationToQueue(15000, () => {
-                this._maxMobAllowed++;
-                this._updateMobDistribution([15, 25, 20, 20, 20]);
-            });
-
-
-           /* this.addAdaptationToQueue(15000, () => {
-                this._mobDifficultyLevel += 5;
-            });*/
-
 
 
 
@@ -187,33 +187,45 @@ namespace PCGGame {
         private _updateProbabilityBoundaries(probabilityType : string) : any[] {
             let len = this._probabilityDistributionBoundaries[probabilityType].length;
 
+            let prevProb = 0;
+
             for (let i = 0; i < len; i++) {
 
                 if (i === 0) {
                     this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributions[probabilityType][i];
                 }
-                else if (this._probabilityDistributionBoundaries[probabilityType][i - 1] < 100){
-                    this._probabilityDistributionBoundaries[probabilityType][i] = this._probabilityDistributionBoundaries[probabilityType][i - 1] + this._probabilityDistributions[probabilityType][i];
+                else if (prevProb >= 0 && prevProb < 100 && this._probabilityDistributions[probabilityType][i] > 0){
+                    this._probabilityDistributionBoundaries[probabilityType][i] = prevProb + this._probabilityDistributions[probabilityType][i];
                 }
                 else {
-                    this._probabilityDistributionBoundaries[probabilityType][i] = Number.POSITIVE_INFINITY;
+                    this._probabilityDistributionBoundaries[probabilityType][i] = Number.NEGATIVE_INFINITY;
+                }
+
+
+                if (this._probabilityDistributions[probabilityType][i] >= 0) {
+                    prevProb = this._probabilityDistributionBoundaries[probabilityType][i];
                 }
             }
 
-            console.log(this._probabilityDistributionBoundaries[probabilityType]);
+            console.warn(probabilityType, ' Distribution: ', this._probabilityDistributionBoundaries[probabilityType]);
 
             return this._probabilityDistributionBoundaries[probabilityType];
         }
 
         //
         private calcType(minType : number, maxType: number, typeProbabilitiesUpperBoundary : any[]) : number {
-            let p = this._randomGenerator.integerInRange(0, 100);
+            let p = this._randomGenerator.integerInRange(1, 100);
             let type = minType;
 
-            console.log(p, typeProbabilitiesUpperBoundary, type, maxType);
+            console.warn(`Probability Chosen: ${p}, Type Boundary ${typeProbabilitiesUpperBoundary} for type ${type} and ${maxType}`);
 
             for (let i = minType; i <= maxType; i++) {
-                console.log(typeProbabilitiesUpperBoundary[i]);
+                //console.log(typeProbabilitiesUpperBoundary[i]);
+
+                if (typeProbabilitiesUpperBoundary[i] === Number.NEGATIVE_INFINITY) {
+                    continue;
+                }
+
                 if (p <= typeProbabilitiesUpperBoundary[i]) {
                     type = i;
                     break;
@@ -304,13 +316,17 @@ namespace PCGGame {
 
                 if (loot.type === lootTypeEnum.MYSTERY_LOOT && loot.subType) {
                     loot.subType = this.lootDistributionFn.call(this);
+
+                    if (loot.subType === lootTypeEnum.MYSTERY_LOOT) {
+                        loot.subType = lootTypeEnum.DEFAULT;
+                    }
                 }
 
                 return loot.type;
             }
 
             loot.type = lootTypeEnum.MYSTERY_LOOT;
-            loot.subType = this._randomGenerator.integerInRange(0, 100) >= 40 ? lootTypeEnum.NEW_LIFE : lootTypeEnum.SHIELD;
+            loot.subType = this._randomGenerator.integerInRange(1, 10) >= 6 ? lootTypeEnum.NEW_LIFE : lootTypeEnum.SHIELD;
 
 
             return loot.type;
@@ -345,12 +361,76 @@ namespace PCGGame {
             return this._platformGenerationEnabled;
         }
 
+        public evaluateDifficultyAndCreateStrategy (){
+            let previousGameMetricSnapshot = ExperientialGameManager.gameMetricSnapShots.previous;
+
+            if (! previousGameMetricSnapshot) {
+                return;
+            }
+
+            let currentGameMetricSnapshot = this._currentSnapShot;
+            let overallGameMetricSnapshot = this._overallSnapShot;
+
+            let shouldIncreaseDifficulty : boolean = false;
+
+
+            shouldIncreaseDifficulty = shouldIncreaseDifficulty || overallGameMetricSnapshot.lastPlayerDeathTimeMS > ExperientialGameManager.INCREASE_PLAYER_DIFFICULTY_MAX_NON_DEATH_DURATION;
+            shouldIncreaseDifficulty = shouldIncreaseDifficulty || (currentGameMetricSnapshot.averagePlayerHealth() > ExperientialGameManager.PLAYER_AVERAGE_HEALTH_THRESHOLD &&
+                    previousGameMetricSnapshot.averagePlayerHealth() > ExperientialGameManager.PLAYER_AVERAGE_HEALTH_THRESHOLD);
+
+            shouldIncreaseDifficulty = shouldIncreaseDifficulty || (currentGameMetricSnapshot.playerDamageReceivedCount < previousGameMetricSnapshot.playerDamageReceivedCount);
+
+
+
+            if (shouldIncreaseDifficulty) {
+
+                let strategies : any[] = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformDifficultyStrategyFn(), this._increaseMobEnemyConcentrationStrategy()];
+
+
+                //
+
+                if (this._mobDifficultyLevel >= ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL) {
+                    strategies[0] = null;
+                }
+
+
+                if (this._probabilityDistributions['PLATFORM'][this._getMobNullIndexForType('PLATFORM')] <= 0) {
+                    strategies[1] = null
+                }
+
+                if (this._probabilityDistributions['MOB'][this._getMobNullIndexForType('MOB')] <= 0) {
+                    strategies[2] = null;
+                }
+
+                let leftOverStrategies : any[] = strategies.filter((fn : Function) => fn !== null);
+
+                if (leftOverStrategies.length) {
+
+                    let execIndex = this._randomGenerator.integerInRange(0, leftOverStrategies.length - 1);
+                    leftOverStrategies[execIndex].call(this);
+                    console.warn('!!!!!!!!!!!!!!!!!!! DIFFICULTY INCREASED!!!');
+                }
+
+
+            }
+
+
+
+
+
+
+
+        }
+
         public takeMetricSnapShot() {
 
-            ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
+            this.evaluateDifficultyAndCreateStrategy();
 
+            ExperientialGameManager.gameMetricSnapShots.previous = ExperientialGameManager.gameMetricSnapShots.current;
             ExperientialGameManager.gameMetricSnapShots.current = new GameMetric();
             this._currentSnapShot = ExperientialGameManager.gameMetricSnapShots.current;
+
+
 
             console.warn(ExperientialGameManager.gameMetricSnapShots);
         }
@@ -364,8 +444,10 @@ namespace PCGGame {
             this._adaptTimeElapsedMS += lastTimeMS;
 
 
-            this._currentSnapShot.tick(lastTimeMS);
-            this._overallSnapShot.tick(lastTimeMS);
+            this._currentSnapShot.tick(lastTimeMS, this._player.health);
+            this._overallSnapShot.tick(lastTimeMS, this._player.health);
+
+            console.warn(this._currentSnapShot.averagePlayerHealth());
 
 
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
@@ -408,6 +490,8 @@ namespace PCGGame {
         public playerKilled(sprite: Sprite) {
             this._currentSnapShot.playerKilledBy(sprite);
             this._overallSnapShot.playerKilledBy(sprite);
+            this._currentSnapShotTime = 0;
+            this.takeMetricSnapShot();
         }
 
         public playerCollidedWithPlatform() {
@@ -421,16 +505,161 @@ namespace PCGGame {
         }
 
 
+
+        /*
+         PLATFORM: [
+            PLATFORM_TYPE
+            PUSH_PLATFORM_TYPE
+            MOB_NULL
+         ]
+
+         MOB: [
+            NULL_MOB
+            NOTCH
+            METEOR
+            INVADER
+            MEGAHEAD
+         ]
+         */
+        private _reallocateProbFromNullSpace(mobType : string, deltaProbDistribution : number[], nullOverflow : boolean = true) {
+
+            let sumFn : Function = (total: number, num: number) : number => total + ((Number.NEGATIVE_INFINITY === num) ? 0 : num);
+            let overflowIndex = -1;
+
+            let overFlowAmount = deltaProbDistribution.reduce(sumFn, 0);
+
+            if (overFlowAmount !== 0 && nullOverflow) {
+                overflowIndex = this._getMobNullIndexForType(mobType);
+
+                let previousOverflowVal = this._probabilityDistributions[mobType][overflowIndex];
+
+                this._probabilityDistributions[mobType][overflowIndex] = (this._probabilityDistributions[mobType][overflowIndex] === Number.NEGATIVE_INFINITY) ? 0 : this._probabilityDistributions[mobType][overflowIndex];
+                this._probabilityDistributions[mobType][overflowIndex] -= overFlowAmount;
+
+
+                if (this._probabilityDistributions[mobType][overflowIndex] < 0) {
+                    console.error(`Cannot adjust probability distribution for type ${mobType} by the increments ${deltaProbDistribution} it would be ${this._probabilityDistributions[mobType]}.`);
+                    this._probabilityDistributions[mobType][overflowIndex] = previousOverflowVal;
+                    return;
+                }
+
+
+            }
+            else if (overFlowAmount !== 0) {
+                console.error(`Cannot adjust probability distribution for type ${mobType} by the increments ${deltaProbDistribution} no overflow specified.`);
+            }
+
+            for (let i = 0; i < deltaProbDistribution.length; i++) {
+
+                if (i === overflowIndex) {
+                    continue;
+                }
+
+                this._probabilityDistributions[mobType][i] = Math.max(0, deltaProbDistribution[i] + this._probabilityDistributions[mobType][i]);
+            }
+
+
+            let remainder = 100 - this._probabilityDistributions[mobType].reduce(sumFn, 0);
+
+            if (remainder !== 0 && (this._probabilityDistributions[mobType][overflowIndex] + remainder) >= 0) {
+                this._probabilityDistributions[mobType][overflowIndex] += remainder;
+                console.error(`adding ${remainder} overflow now ${this._probabilityDistributions[mobType][overflowIndex]}`);
+            }
+            else if (remainder !== 0) {
+                console.error(`Cannot adjust probability distribution for type ${mobType} by the increments ${deltaProbDistribution} adds up to more or less than 100!.`)
+            }
+
+
+            console.warn(`Probabability Distribution recalc = ${this._probabilityDistributions[mobType]}`);
+
+            this._cachedProbabilityFunctions[mobType] = null;
+            this._updateProbabilityBoundaries(mobType);
+
+        }
+
+        private _getMobNullIndexForType(type : string) : number {
+            let index : number = -1;
+
+            switch(type) {
+                case 'MOB':
+                    index = 0;
+                    break;
+                case 'PLATFORM':
+                    index = 2;
+                    break;
+                default:
+                    break;
+            }
+
+            return index;
+        }
+
+
         private _increaseMobDifficultyStrategyFn() : Function {
+
             return () => {
+                console.warn('_increaseMobDifficultyStrategyFn');
                 return this._mobDifficultyLevel = Math.min(ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL,  this._mobDifficultyLevel + 1);
             }
         }
+
+
 
         private _decreaseMobDifficultyStrategyFn() : Function {
             return () => {
                 return this._mobDifficultyLevel = Math.max(0,  this._mobDifficultyLevel - 1);
             }
+        }
+
+
+        private _increasePlatformDifficultyStrategyFn() : Function {
+            let type : string = 'PLATFORM';
+            let nullSpacePercentage : number = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
+
+            if (nullSpacePercentage <= 0) {
+                return () => {};
+            }
+
+
+            let maxPercent = Math.min(nullSpacePercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+
+            let pushPlatformProb  = this._randomGenerator.integerInRange(0, maxPercent);
+            let platformProb = maxPercent - pushPlatformProb;
+
+            return () => {
+                console.warn('_increasePlatformDifficultyStrategyFn');
+                return this._reallocateProbFromNullSpace(type, [platformProb, pushPlatformProb]);
+            }
+        }
+
+        /*
+        *   NULL_MOB
+         NOTCH
+         METEOR
+         INVADER
+         MEGAHEAD
+        * */
+
+        private _increaseMobEnemyConcentrationStrategy() : Function {
+
+
+            let type : string = 'MOB';
+            let nullSpacePercentage : number = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
+
+            if (nullSpacePercentage <= 0) {
+                return () => {};
+            }
+
+            let maxPercent = Math.min(nullSpacePercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+
+            let megaHeadProb  = this._randomGenerator.integerInRange(Math.round(maxPercent / 2), maxPercent);
+            let invaderProb = maxPercent - megaHeadProb;
+
+            return () => {
+                console.warn('_increaseMobEnemyConcentrationStrategy');
+                return this._reallocateProbFromNullSpace(type, [0, 0, 0, invaderProb, megaHeadProb]);
+            }
+
         }
 
     }

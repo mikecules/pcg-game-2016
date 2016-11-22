@@ -272,6 +272,7 @@ namespace PCGGame {
                     break;
             }
 
+            sprite.difficultyLevel = this._experientialGameManager.mobDifficultyLevel;
             sprite.reset();
 
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
@@ -301,7 +302,8 @@ namespace PCGGame {
                     break;
                 case  blockTypeEnum.MOB_INVADER:
                     sprite = spriteFactory.getInvaderMob();
-                case  blockTypeEnum.MOB_MEGA_HEAD:
+                    break;
+                case blockTypeEnum.MOB_MEGA_HEAD:
                     sprite = spriteFactory.getMegaHeadMob();
                     break;
                 case blockTypeEnum.MOB_NULL:
@@ -320,7 +322,7 @@ namespace PCGGame {
             // convert grid space of blog into 2D X,Y space used by the engine
             sprite.position.set(x * Generator.Parameters.GRID.CELL.SIZE, y * Generator.Parameters.GRID.CELL.SIZE);
 
-            //console.warn(x, y, sprite.position);
+            //console.warn(x, y, sprite);
 
             // add into mobs group
             if (sprite.parent === null) {

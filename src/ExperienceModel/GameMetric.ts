@@ -34,6 +34,10 @@ namespace PCGGame {
         public lastPlayerDamageTimeMS: number = 0;
 
         public timeElapsedMS : number = 0;
+        public ticks : number = 0;
+
+
+        public playerHealthSum : number = 0;
 
 
         public constructor() {
@@ -51,7 +55,7 @@ namespace PCGGame {
         }
 
         public playerDamagedBy(sprite: Sprite, damage: number) {
-            console.log('MM !!! Player damaged by ', sprite);
+            //console.log('MM !!! Player damaged by ', sprite);
 
             let mobType: number = this._getMobType(sprite);
 
@@ -63,7 +67,7 @@ namespace PCGGame {
         }
 
         public mobDamagedReceieved(sprite: Sprite, damage: number) {
-            console.log('MM !!! Mob damaged by Player ', sprite);
+            //console.log('MM !!! Mob damaged by Player ', sprite);
 
             let mobType: number = this._getMobType(sprite);
 
@@ -72,7 +76,7 @@ namespace PCGGame {
         }
 
         public playerKilledBy(sprite: Sprite) {
-            console.log('!!! Player killed by ', sprite);
+            //console.log('!!! Player killed by ', sprite);
 
             let mobType: number = this._getMobType(sprite);
 
@@ -141,10 +145,16 @@ namespace PCGGame {
         }
 
 
-        public tick(timeElapsedMS : number) {
+        public tick(timeElapsedMS : number, playerHealth: number) {
             this.lastPlayerDeathTimeMS += timeElapsedMS;
             this.lastPlayerDamageTimeMS += timeElapsedMS;
             this.timeElapsedMS += timeElapsedMS;
+            this.playerHealthSum += playerHealth;
+            this.ticks++;
+        }
+
+        public averagePlayerHealth() : number {
+            return this.ticks > 0 ? Math.round(this.playerHealthSum / this.ticks) : 0;
         }
 
         public getMostDangerousMobs() : any[] {
@@ -197,6 +207,7 @@ namespace PCGGame {
             this.mobDeathCount = 0;
 
             this.numberOfPlatformCollisions = 0;
+            this.ticks = 0;
 
             this.timeElapsedMS = 0;
             this.lastPlayerDeathTimeMS = 0;

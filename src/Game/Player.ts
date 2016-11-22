@@ -18,9 +18,11 @@ namespace PCGGame {
         };
 
         public static MAX_WEAPON_STATS : any = {
-            fireRate: 40,
+            fireRate: 100,
+            //fireRate: 40,
             variance: 10,
-            bulletAngleVariance: 8
+            //bulletAngleVariance: 8
+            bulletAngleVariance: 4
         };
 
 
