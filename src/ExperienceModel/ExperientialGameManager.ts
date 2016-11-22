@@ -6,6 +6,7 @@ namespace PCGGame {
         public static INTERVAL_MS : number = 1000 * 30;
         public static MIN_SURVEY_TIME_INTERVAL_MS : number = 1000 * 30;
         public static IS_EXPERIENCE_MODEL_ENABLED : boolean = true;
+        public static MAX_MOB_DIFFICULTY_LEVEL : number = 5;
 
         public static gameMetricSnapShots : any = {
             overall: null,
@@ -417,6 +418,19 @@ namespace PCGGame {
         public mobKilled(mob: Sprite) {
             this._currentSnapShot.mobKilled(mob);
             this._overallSnapShot.mobKilled(mob);
+        }
+
+
+        private _increaseMobDifficultyStrategyFn() : Function {
+            return () => {
+                return this._mobDifficultyLevel = Math.min(ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL,  this._mobDifficultyLevel + 1);
+            }
+        }
+
+        private _decreaseMobDifficultyStrategyFn() : Function {
+            return () => {
+                return this._mobDifficultyLevel = Math.max(0,  this._mobDifficultyLevel - 1);
+            }
         }
 
     }
