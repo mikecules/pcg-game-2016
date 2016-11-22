@@ -1496,7 +1496,7 @@ var PCGGame;
         Player.BULLET_ID = 'Player.Bullet';
         Player.VELOCITY_INC = 5;
         Player.NUM_BULLETS = 150;
-        Player.PLAYER_LIVES = 2;
+        Player.PLAYER_LIVES = 4;
         Player.NUM_BULLET_FRAMES = 80;
         Player.WEAPON_STATS = {
             fireRate: 200,

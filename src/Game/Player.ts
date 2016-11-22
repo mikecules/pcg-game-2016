@@ -8,7 +8,7 @@ namespace PCGGame {
         public static BULLET_ID : string = 'Player.Bullet';
         public static VELOCITY_INC : number = 5;
         public static NUM_BULLETS : number = 150;
-        public static PLAYER_LIVES : number = 2;//4;
+        public static PLAYER_LIVES : number = 4;
         public static NUM_BULLET_FRAMES : number = 80;
 
         public static WEAPON_STATS : any = {
