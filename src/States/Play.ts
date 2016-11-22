@@ -182,9 +182,6 @@ namespace PCGGame {
             let barWidth : number = this.game.width / 2;
             let barHeight = 10;
 
-            if (this._gameState.end) {
-                health = 0;
-            }
 
             if ( this._healthBarSprite === null) {
                 // create a plain black rectangle to use as the background of a health meter
@@ -357,7 +354,9 @@ namespace PCGGame {
 
                         console.log(e.payload);
 
-                        switch(loot.type) {
+                        let type = loot.subType || loot.type;
+
+                        switch(type) {
                             case lootTypeEnum.SHIELD:
                                 this._updateShieldBar(this._player.health);
                                 this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#B22222');

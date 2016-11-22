@@ -167,9 +167,9 @@ namespace PCGGame {
             });
 
 
-            this.addAdaptationToQueue(15000, () => {
+           /* this.addAdaptationToQueue(15000, () => {
                 this._mobDifficultyLevel += 5;
-            });
+            });*/
 
 
 
@@ -296,6 +296,24 @@ namespace PCGGame {
         public calculateGridSpace() {
             this.generatorParameters.GRID.X_TOTAL = this._game.width / Generator.Parameters.GRID.CELL.SIZE;
             this.generatorParameters.GRID.Y_TOTAL = this._game.height / Generator.Parameters.GRID.CELL.SIZE;
+        }
+
+        public evaluateLootAndInterveneIfDanger(loot: Loot) : number {
+
+            if (! this._player.isInDanger()) {
+
+                if (loot.type === lootTypeEnum.MYSTERY_LOOT && loot.subType) {
+                    loot.subType = this.lootDistributionFn.call(this);
+                }
+
+                return loot.type;
+            }
+
+            loot.type = lootTypeEnum.MYSTERY_LOOT;
+            loot.subType = this._randomGenerator.integerInRange(0, 100) >= 40 ? lootTypeEnum.NEW_LIFE : lootTypeEnum.SHIELD;
+
+
+            return loot.type;
         }
 
 

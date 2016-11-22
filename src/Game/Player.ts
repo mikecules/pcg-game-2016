@@ -8,7 +8,7 @@ namespace PCGGame {
         public static BULLET_ID : string = 'Player.Bullet';
         public static VELOCITY_INC : number = 5;
         public static NUM_BULLETS : number = 150;
-        public static PLAYER_LIVES : number = 4;
+        public static PLAYER_LIVES : number = 2;//4;
         public static NUM_BULLET_FRAMES : number = 80;
 
         public static WEAPON_STATS : any = {
@@ -136,7 +136,11 @@ namespace PCGGame {
         public takeLoot(loot: Loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
 
-            switch(loot.type) {
+            ExperientialGameManager.instance().evaluateLootAndInterveneIfDanger(loot);
+
+            let type = loot.subType || loot.type;
+
+            switch(type) {
                 case lootTypeEnum.SHIELD:
                     this.health = Math.min(100, this.health + (loot.value * 2));
                     break;
@@ -178,20 +182,20 @@ namespace PCGGame {
             }
 
             this._isDead = true;
+            this.playerLives--;
 
             this.loadTexture(Animation.EXPLODE_ID);
             this.animations.add(Animation.EXPLODE_ID, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
 
             this.play(Animation.EXPLODE_ID, 30, false);
 
-            this.playerLives--;
 
             this.animations.currentAnim.onComplete.add(() => {
 
                 this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_KILLED, this));
 
                 if (this.playerLives > 0) {
-                    this.reset();
+                    this.resetPlayerAfterDeath();
                     this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_RESPAWNED, this));
                 }
                 else {
@@ -205,17 +209,21 @@ namespace PCGGame {
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
         }
 
-        public reset() : Player {
-            super.reset();
 
+        public resetPlayerAfterDeath() {
+            super.reset();
             this.x = Generator.Parameters.GRID.CELL.SIZE;
             this.y = this.game.height / 2;
-            let playerBody = this.body;
-            this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
             this.body.immovable = true;
+            this.body.velocity.x = Generator.Parameters.VELOCITY.X;
+        }
 
-            playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
+        public reset() : Player {
+
+            this.resetPlayerAfterDeath();
+            this.playerLives = Player.PLAYER_LIVES;
+
             return this;
         }
 
@@ -279,6 +287,18 @@ namespace PCGGame {
             }
 
             this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
+
+        }
+
+        public isInDanger() : boolean {
+            let playerInDanger = false;
+
+            if (/*this.health <= 50 && */this.playerLives === 1) {
+                playerInDanger = true;
+            }
+
+
+            return playerInDanger;
 
         }
 

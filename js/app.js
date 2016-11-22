@@ -124,9 +124,6 @@ var PCGGame;
                 _this._maxMobAllowed++;
                 _this._updateMobDistribution([15, 25, 20, 20, 20]);
             });
-            this.addAdaptationToQueue(15000, function () {
-                _this._mobDifficultyLevel += 5;
-            });
         }
         ExperientialGameManager.prototype.showSurvey = function () {
             if (this.isEligibleForSurvey) {
@@ -226,6 +223,17 @@ var PCGGame;
         ExperientialGameManager.prototype.calculateGridSpace = function () {
             this.generatorParameters.GRID.X_TOTAL = this._game.width / Generator.Parameters.GRID.CELL.SIZE;
             this.generatorParameters.GRID.Y_TOTAL = this._game.height / Generator.Parameters.GRID.CELL.SIZE;
+        };
+        ExperientialGameManager.prototype.evaluateLootAndInterveneIfDanger = function (loot) {
+            if (!this._player.isInDanger()) {
+                if (loot.type === 3 && loot.subType) {
+                    loot.subType = this.lootDistributionFn.call(this);
+                }
+                return loot.type;
+            }
+            loot.type = 3;
+            loot.subType = this._randomGenerator.integerInRange(0, 100) >= 40 ? 4 : 2;
+            return loot.type;
         };
         ExperientialGameManager.prototype.addAdaptationToQueue = function (msInFuture, adaptationFunction) {
             this.mobTransitionTimelineAdaptationQueue.push({
@@ -812,11 +820,23 @@ var PCGGame;
     var Loot = (function () {
         function Loot() {
             this._type = 0;
+            this._subType = null;
             this._tint = 0x9400D3;
             this.value = 5;
-            this._type = this._calcType();
+            this._experientialGameManager = PCGGame.ExperientialGameManager.instance();
+            this._calcType();
             this._calcLootTint();
         }
+        Object.defineProperty(Loot.prototype, "subType", {
+            get: function () {
+                return this._subType;
+            },
+            set: function (type) {
+                this._subType = type;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(Loot.prototype, "type", {
             get: function () {
                 return this._type;
@@ -836,8 +856,8 @@ var PCGGame;
             configurable: true
         });
         Loot.prototype._calcType = function () {
-            var type = PCGGame.ExperientialGameManager.instance().lootDistributionFn.call(this);
-            return type;
+            this._type = this._experientialGameManager.lootDistributionFn.call(this);
+            return this._experientialGameManager.evaluateLootAndInterveneIfDanger(this);
         };
         Loot.prototype._calcLootTint = function () {
             var tint = 0x9400D3;
@@ -1350,7 +1370,9 @@ var PCGGame;
         };
         Player.prototype.takeLoot = function (loot) {
             console.log('Got loot! ', loot, loot.spriteTint);
-            switch (loot.type) {
+            PCGGame.ExperientialGameManager.instance().evaluateLootAndInterveneIfDanger(loot);
+            var type = loot.subType || loot.type;
+            switch (type) {
                 case 2:
                     this.health = Math.min(100, this.health + (loot.value * 2));
                     break;
@@ -1378,14 +1400,14 @@ var PCGGame;
                 return;
             }
             this._isDead = true;
+            this.playerLives--;
             this.loadTexture(PCGGame.Animation.EXPLODE_ID);
             this.animations.add(PCGGame.Animation.EXPLODE_ID, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16], 20, false);
             this.play(PCGGame.Animation.EXPLODE_ID, 30, false);
-            this.playerLives--;
             this.animations.currentAnim.onComplete.add(function () {
                 _this.playerEvents.dispatch(new PCGGame.GameEvent(1, _this));
                 if (_this.playerLives > 0) {
-                    _this.reset();
+                    _this.resetPlayerAfterDeath();
                     _this.playerEvents.dispatch(new PCGGame.GameEvent(3, _this));
                 }
                 else {
@@ -1396,15 +1418,17 @@ var PCGGame;
             }, this);
             this._updateBulletSpeed(Generator.Parameters.VELOCITY.X);
         };
-        Player.prototype.reset = function () {
+        Player.prototype.resetPlayerAfterDeath = function () {
             _super.prototype.reset.call(this);
             this.x = Generator.Parameters.GRID.CELL.SIZE;
             this.y = this.game.height / 2;
-            var playerBody = this.body;
-            this.playerLives = Player.PLAYER_LIVES;
             this.visible = true;
             this.body.immovable = true;
-            playerBody.velocity.x = Generator.Parameters.VELOCITY.X;
+            this.body.velocity.x = Generator.Parameters.VELOCITY.X;
+        };
+        Player.prototype.reset = function () {
+            this.resetPlayerAfterDeath();
+            this.playerLives = Player.PLAYER_LIVES;
             return this;
         };
         Object.defineProperty(Player.prototype, "bullets", {
@@ -1461,11 +1485,18 @@ var PCGGame;
             }
             this.tweenSpriteTint(this, 0xff00ff, 0xffffff, 1000);
         };
+        Player.prototype.isInDanger = function () {
+            var playerInDanger = false;
+            if (this.playerLives === 1) {
+                playerInDanger = true;
+            }
+            return playerInDanger;
+        };
         Player.ID = 'Player';
         Player.BULLET_ID = 'Player.Bullet';
         Player.VELOCITY_INC = 5;
         Player.NUM_BULLETS = 150;
-        Player.PLAYER_LIVES = 4;
+        Player.PLAYER_LIVES = 2;
         Player.NUM_BULLET_FRAMES = 80;
         Player.WEAPON_STATS = {
             fireRate: 200,
@@ -2093,9 +2124,6 @@ var PCGGame;
         Play.prototype._updateShieldBar = function (health) {
             var barWidth = this.game.width / 2;
             var barHeight = 10;
-            if (this._gameState.end) {
-                health = 0;
-            }
             if (this._healthBarSprite === null) {
                 var meterBackgroundBitmap = this.game.add.bitmapData(barWidth, barHeight);
                 meterBackgroundBitmap.ctx.beginPath();
@@ -2208,7 +2236,8 @@ var PCGGame;
                     case 4:
                         var loot = e.payload;
                         console.log(e.payload);
-                        switch (loot.type) {
+                        var type = loot.subType || loot.type;
+                        switch (type) {
                             case 2:
                                 _this._updateShieldBar(_this._player.health);
                                 _this._updatePowerUpText(Play.POWER_UP_MESSAGE.SHIELD, '#B22222');

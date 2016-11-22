@@ -3,17 +3,28 @@ namespace PCGGame {
 
     export class Loot {
         private _type : number = lootTypeEnum.DEFAULT;
+        private _subType : any = null;
         private _tint : number = 0x9400D3;
+        private _experientialGameManager : ExperientialGameManager;
+
         public value : number = 5;
 
         public constructor() {
 
-            this._type = this._calcType();
+            this._experientialGameManager = ExperientialGameManager.instance();
+            this._calcType();
             this._calcLootTint();
 
         }
 
 
+        public set subType(type: number) {
+            this._subType = type;
+        }
+
+        public get subType() {
+            return this._subType;
+        }
 
         public set type(type: number) {
             this._type = type;
@@ -30,10 +41,10 @@ namespace PCGGame {
         }
 
         private _calcType() : number {
-            let type = ExperientialGameManager.instance().lootDistributionFn.call(this);
+            this._type = this._experientialGameManager.lootDistributionFn.call(this);
 
             //console.log('TYPE CHOSEN:', type);
-            return type;
+            return this._experientialGameManager.evaluateLootAndInterveneIfDanger(this);
         }
 
         private _calcLootTint() {
