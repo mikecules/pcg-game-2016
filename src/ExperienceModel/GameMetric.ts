@@ -13,6 +13,9 @@ namespace PCGGame {
             'PushPlatform'
         ];
 
+
+        //private _highestDa
+
         public playerDeathCount: number = 0;
 
         public playerDeathCountForMobType: any = {};
@@ -124,6 +127,11 @@ namespace PCGGame {
             this.numberOfPlatformCollisions += gameMetric.numberOfPlatformCollisions;
 
             return this;
+        }
+
+        public getMostDangerousMobs() {
+
+            //this.playerDamageForMobType
         }
 
         public reset() {

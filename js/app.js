@@ -395,6 +395,8 @@ var PCGGame;
             this.numberOfPlatformCollisions += gameMetric.numberOfPlatformCollisions;
             return this;
         };
+        GameMetric.prototype.getMostDangerousMobs = function () {
+        };
         GameMetric.prototype.reset = function () {
             for (var i = 0; i < GameMetric.MOB_TYPES.length; i++) {
                 var mob = GameMetric.MOB_TYPES[i];
