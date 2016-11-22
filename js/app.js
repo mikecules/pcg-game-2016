@@ -311,10 +311,23 @@ var PCGGame;
             this._currentSnapShot.mobKilled(mob);
             this._overallSnapShot.mobKilled(mob);
         };
+        ExperientialGameManager.prototype._increaseMobDifficultyStrategyFn = function () {
+            var _this = this;
+            return function () {
+                return _this._mobDifficultyLevel = Math.min(ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL, _this._mobDifficultyLevel + 1);
+            };
+        };
+        ExperientialGameManager.prototype._decreaseMobDifficultyStrategyFn = function () {
+            var _this = this;
+            return function () {
+                return _this._mobDifficultyLevel = Math.max(0, _this._mobDifficultyLevel - 1);
+            };
+        };
         ExperientialGameManager._instance = null;
         ExperientialGameManager.INTERVAL_MS = 1000 * 30;
         ExperientialGameManager.MIN_SURVEY_TIME_INTERVAL_MS = 1000 * 30;
         ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED = true;
+        ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL = 5;
         ExperientialGameManager.gameMetricSnapShots = {
             overall: null,
             previous: null,
