@@ -1,6 +1,11 @@
 namespace PCGGame {
     import blockTypeEnum = Generator.blockTypeEnum;
 
+    interface Strategy {
+        isViable: boolean;
+        strategyFunction : Function;
+    }
+
     export class ExperientialGameManager {
         public static _instance : ExperientialGameManager = null;
         public static INTERVAL_MS : number = 1000 * 15; //30;
@@ -362,64 +367,63 @@ namespace PCGGame {
             return this._platformGenerationEnabled;
         }
 
-        public evaluateDifficultyAndCreateStrategy (){
+        private _shouldIncreaseDifficulty() : boolean {
+
             let previousGameMetricSnapshot = ExperientialGameManager.gameMetricSnapShots.previous;
+            let shouldIncreaseDifficulty : boolean = false;
 
             if (! previousGameMetricSnapshot) {
-                return;
+                return shouldIncreaseDifficulty;
             }
 
             let currentGameMetricSnapshot = this._currentSnapShot;
             let overallGameMetricSnapshot = this._overallSnapShot;
 
-            let shouldIncreaseDifficulty : boolean = false;
 
 
             shouldIncreaseDifficulty = shouldIncreaseDifficulty || overallGameMetricSnapshot.lastPlayerDeathTimeMS > ExperientialGameManager.INCREASE_PLAYER_DIFFICULTY_MAX_NON_DEATH_DURATION;
             shouldIncreaseDifficulty = shouldIncreaseDifficulty || (currentGameMetricSnapshot.averagePlayerHealth() > ExperientialGameManager.PLAYER_AVERAGE_HEALTH_THRESHOLD &&
-                    previousGameMetricSnapshot.averagePlayerHealth() > ExperientialGameManager.PLAYER_AVERAGE_HEALTH_THRESHOLD);
+                previousGameMetricSnapshot.averagePlayerHealth() > ExperientialGameManager.PLAYER_AVERAGE_HEALTH_THRESHOLD);
 
             shouldIncreaseDifficulty = shouldIncreaseDifficulty || (currentGameMetricSnapshot.playerDamageReceivedCount < previousGameMetricSnapshot.playerDamageReceivedCount);
 
 
+            return shouldIncreaseDifficulty;
+        }
 
-            if (shouldIncreaseDifficulty) {
+        public evaluateDifficultyAndCreateStrategy () {
 
-                let strategies : any[] = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformDifficultyStrategyFn(), this._increaseMobEnemyConcentrationStrategy()];
+            if (this._shouldIncreaseDifficulty()) {
 
-
-                //
-
-                if (this._mobDifficultyLevel >= ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL) {
-                    strategies[0] = null;
-                }
+                let strategies : Strategy[] = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformConcentrationStrategyFn(), this._increaseMobEnemyConcentrationStrategy()];
 
 
-                if (this._probabilityDistributions['PLATFORM'][this._getMobNullIndexForType('PLATFORM')] <= 0) {
-                    strategies[1] = null
-                }
 
-                if (this._probabilityDistributions['MOB'][this._getMobNullIndexForType('MOB')] <= 0) {
-                    strategies[2] = null;
-                }
-
-                let leftOverStrategies : any[] = strategies.filter((fn : Function) => fn !== null);
+                let leftOverStrategies : any[] = strategies.filter((fn : Strategy) => fn.isViable);
 
                 if (leftOverStrategies.length) {
 
                     let execIndex = this._randomGenerator.integerInRange(0, leftOverStrategies.length - 1);
-                    leftOverStrategies[execIndex].call(this);
+                    leftOverStrategies[execIndex].strategyFunction.call(this);
                     console.warn('!!!!!!!!!!!!!!!!!!! DIFFICULTY INCREASED!!!');
                 }
 
 
             }
 
-
-
         }
 
         public evaluateDifficultyWithPlayerModelAndCreateStrategy() {
+
+            if (this._shouldIncreaseDifficulty()) {
+
+                let mobDifficultyStrategy : Strategy = this._increaseMobDifficultyStrategyFn();
+
+                if (mobDifficultyStrategy.isViable) {
+                    mobDifficultyStrategy.strategyFunction.call(this);
+                    console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL DIFFICULTY INCREASED!!!');
+                }
+            }
 
         }
 
@@ -551,7 +555,7 @@ namespace PCGGame {
 
 
             }
-            else if (overFlowAmount !== 0) {
+            else if (nullOverflow && overFlowAmount !== 0) {
                 console.error(`Cannot adjust probability distribution for type ${mobType} by the increments ${deltaProbDistribution} no overflow specified.`);
             }
 
@@ -576,7 +580,7 @@ namespace PCGGame {
             }
 
 
-            console.warn(`Probabability Distribution recalc = ${this._probabilityDistributions[mobType]}`);
+            console.warn(`Probability Distribution recalc = ${this._probabilityDistributions[mobType]}`);
 
             this._cachedProbabilityFunctions[mobType] = null;
             this._updateProbabilityBoundaries(mobType);
@@ -601,29 +605,57 @@ namespace PCGGame {
         }
 
 
-        private _increaseMobDifficultyStrategyFn() : Function {
+        private _increaseMobDifficultyStrategyFn() : Strategy {
 
-            return () => {
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            if ((this._mobDifficultyLevel + 1) > ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL) {
+                strategy.isViable = false;
+                return strategy;
+            }
+
+            strategy.strategyFunction = () => {
                 console.warn('_increaseMobDifficultyStrategyFn');
-                return this._mobDifficultyLevel = Math.min(ExperientialGameManager.MAX_MOB_DIFFICULTY_LEVEL,  this._mobDifficultyLevel + 1);
-            }
+                return ++this._mobDifficultyLevel;
+            };
+
+            return strategy;
         }
 
 
 
-        private _decreaseMobDifficultyStrategyFn() : Function {
-            return () => {
-                return this._mobDifficultyLevel = Math.max(0,  this._mobDifficultyLevel - 1);
+        private _decreaseMobDifficultyStrategyFn() : Strategy {
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            if ((this._mobDifficultyLevel - 1) < 0) {
+                strategy.isViable = false;
+                return strategy;
             }
+
+            strategy.strategyFunction = () => {
+                console.warn('_decreaseMobDifficultyStrategyFn');
+                return --this._mobDifficultyLevel;
+            };
+
+            return strategy;
         }
 
+        /*
+          [
+         PLATFORM_TYPE
+         PUSH_PLATFORM_TYPE
+         MOB_NULL
+         ]
+         */
 
-        private _increasePlatformDifficultyStrategyFn() : Function {
+        private _increasePlatformConcentrationStrategyFn() : Strategy {
             let type : string = 'PLATFORM';
             let nullSpacePercentage : number = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
 
             if (nullSpacePercentage <= 0) {
-                return () => {};
+                strategy.isViable = false;
+                return strategy;
             }
 
 
@@ -632,10 +664,40 @@ namespace PCGGame {
             let pushPlatformProb  = this._randomGenerator.integerInRange(0, maxPercent);
             let platformProb = maxPercent - pushPlatformProb;
 
-            return () => {
-                console.warn('_increasePlatformDifficultyStrategyFn');
+            strategy.strategyFunction = () => {
+                console.warn('_increasePlatformConcentrationStrategyFn');
                 return this._reallocateProbFromNullSpace(type, [platformProb, pushPlatformProb]);
+            };
+
+            return strategy;
+        }
+
+
+        private _decreasePlatformConcentrationStrategy() : Strategy {
+
+
+            let type : string = 'PLATFORM';
+            let halfDec : number = ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2;
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            let platformPercentage : number = this._probabilityDistributions[type][0];
+            let pushPlatformPercentage : number = this._probabilityDistributions[type][1];
+
+            if ((pushPlatformPercentage - halfDec) < 0 || (platformPercentage - halfDec) < 0) {
+                console.warn('Cannot reduce likelihood of platform spawn more than 0!');
+                strategy.isViable = false;
+
+                return strategy;
             }
+
+
+            strategy.strategyFunction = () => {
+                console.warn('_decreasePlatformConcentrationStrategy');
+                return this._reallocateProbFromNullSpace(type, [-halfDec, -halfDec, (halfDec + halfDec)], false);
+            };
+
+            return strategy;
+
         }
 
         /*
@@ -646,14 +708,16 @@ namespace PCGGame {
          MEGAHEAD
         * */
 
-        private _increaseMobEnemyConcentrationStrategy() : Function {
+        private _increaseMobEnemyConcentrationStrategy() : Strategy {
 
 
             let type : string = 'MOB';
             let nullSpacePercentage : number = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
 
             if (nullSpacePercentage <= 0) {
-                return () => {};
+                strategy.isViable = false;
+                return strategy;
             }
 
             let maxPercent = Math.min(nullSpacePercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
@@ -661,10 +725,38 @@ namespace PCGGame {
             let megaHeadProb  = this._randomGenerator.integerInRange(Math.round(maxPercent / 2), maxPercent);
             let invaderProb = maxPercent - megaHeadProb;
 
-            return () => {
+            strategy.strategyFunction = () => {
                 console.warn('_increaseMobEnemyConcentrationStrategy');
                 return this._reallocateProbFromNullSpace(type, [0, 0, 0, invaderProb, megaHeadProb]);
+            };
+
+            return strategy;
+        }
+
+        private _decreaseMobEnemyConcentrationStrategy() : Strategy {
+
+
+            let type : string = 'MOB';
+            let halfDec : number = ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2;
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            let invaderAvailPercentage : number = this._probabilityDistributions[type][3];
+            let megaHeadAvailPercentage : number = this._probabilityDistributions[type][4];
+
+            if ((invaderAvailPercentage - halfDec) < 0 || (megaHeadAvailPercentage - halfDec) < 0) {
+                console.warn('Cannot reduce likelihood of mob spawn more than 0!');
+                strategy.isViable = false;
+
+                return strategy;
             }
+
+
+            strategy.strategyFunction = () => {
+                console.warn('_decreaseMobEnemyConcentrationStrategy');
+                return this._reallocateProbFromNullSpace(type, [(halfDec + halfDec), 0, 0, -halfDec, -halfDec], false);
+            };
+
+            return strategy;
 
         }
 
