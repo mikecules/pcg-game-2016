@@ -57,7 +57,7 @@ namespace PCGGame {
             let body : Phaser.Physics.Arcade.Body = <Phaser.Physics.Arcade.Body>this.body;
             body.setCircle(20, -5 , -5);
             body.immovable = true;
-            this.health = this.weaponDamageCost;
+            this.health = this.weaponDamageCost + this.difficultyLevel * 10;
             this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
         }
     }

@@ -53,7 +53,7 @@ namespace PCGGame {
             body.allowGravity = false;
             body.immovable = false;
             body.moves = true;
-            this.health = this.weaponDamageCost * 3;
+            this.health = 3 * (this.weaponDamageCost + this.difficultyLevel);
             this.dangerLevel = spriteDangerLevelEnum.LOW_DANGER;
 
 
