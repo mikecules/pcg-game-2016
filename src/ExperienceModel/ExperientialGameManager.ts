@@ -2,8 +2,44 @@ namespace PCGGame {
     import blockTypeEnum = Generator.blockTypeEnum;
 
     interface Strategy {
-        isViable: boolean;
+        isViable : boolean;
         strategyFunction : Function;
+    }
+
+    class PreferenceCondition {
+        public moreStrategy : Strategy = null;
+        public lessStrategy : Strategy = null;
+        public count : number = 0;
+        private _questions : string[];
+
+        public affectWord : string = '';
+        public moreConditionPhrase : string = '';
+        public lessConditionPhrase : string = '';
+
+        public constructor(moreCondition: string, lessCondition : string, affectWord : string) {
+            this.affectWord = affectWord;
+            this.moreConditionPhrase = moreCondition;
+            this.lessConditionPhrase = lessCondition;
+        }
+
+        public get questions() : string[] {
+            this._questions = [
+                    `${this.moreConditionPhrase} is more ${this.affectWord} than ${this.lessConditionPhrase}`,
+                    `${this.lessConditionPhrase} is more ${this.affectWord} than ${this.moreConditionPhrase}`,
+                    `Both feel equally ${this.affectWord}`,
+                    `Neither of the two feels ${this.affectWord}.`
+            ];
+
+            return this._questions;
+        }
+
+        public set questions(questions : string[]) {
+            this._questions = questions;
+        }
+
+        public get isViable() {
+            return this.moreStrategy.isViable && this.lessStrategy.isViable;
+        }
     }
 
     export class ExperientialGameManager {
@@ -395,7 +431,7 @@ namespace PCGGame {
 
             if (this._shouldIncreaseDifficulty()) {
 
-                let strategies : Strategy[] = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformConcentrationStrategyFn(), this._increaseMobEnemyConcentrationStrategy()];
+                let strategies : Strategy[] = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformConcentrationStrategy(), this._increaseMobEnemyConcentrationStrategy()];
 
 
 
@@ -416,6 +452,23 @@ namespace PCGGame {
         public evaluateDifficultyWithPlayerModelAndCreateStrategy() {
 
             if (this._shouldIncreaseDifficulty()) {
+
+
+
+                let moreLessPairs : PreferenceCondition[] = [
+                    new PreferenceCondition('More space blocks', 'less space blocks', 'Fun'),
+                    new PreferenceCondition('More aggressive creatures', 'less aggressive creatures', 'Fun')
+                ];
+
+
+                moreLessPairs[0].moreStrategy = this._increasePlatformConcentrationStrategy();
+                moreLessPairs[0].lessStrategy = this._decreasePlatformConcentrationStrategy();
+
+
+
+                moreLessPairs[1].moreStrategy = this._increaseMobEnemyConcentrationStrategy();
+                moreLessPairs[1].lessStrategy = this._decreaseMobEnemyConcentrationStrategy();
+
 
                 let mobDifficultyStrategy : Strategy = this._increaseMobDifficultyStrategyFn();
 
@@ -648,7 +701,7 @@ namespace PCGGame {
          ]
          */
 
-        private _increasePlatformConcentrationStrategyFn() : Strategy {
+        private _increasePlatformConcentrationStrategy() : Strategy {
             let type : string = 'PLATFORM';
             let nullSpacePercentage : number = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
             let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
@@ -665,7 +718,7 @@ namespace PCGGame {
             let platformProb = maxPercent - pushPlatformProb;
 
             strategy.strategyFunction = () => {
-                console.warn('_increasePlatformConcentrationStrategyFn');
+                console.warn('_increasePlatformConcentrationStrategy');
                 return this._reallocateProbFromNullSpace(type, [platformProb, pushPlatformProb]);
             };
 

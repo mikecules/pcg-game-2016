@@ -19,6 +19,43 @@ $(document).ready(function () {
 });
 var PCGGame;
 (function (PCGGame) {
+    var PreferenceCondition = (function () {
+        function PreferenceCondition(moreCondition, lessCondition, affectWord) {
+            this.moreStrategy = null;
+            this.lessStrategy = null;
+            this.count = 0;
+            this.affectWord = '';
+            this.moreConditionPhrase = '';
+            this.lessConditionPhrase = '';
+            this.affectWord = affectWord;
+            this.moreConditionPhrase = moreCondition;
+            this.lessConditionPhrase = lessCondition;
+        }
+        Object.defineProperty(PreferenceCondition.prototype, "questions", {
+            get: function () {
+                this._questions = [
+                    (this.moreConditionPhrase + " is more " + this.affectWord + " than " + this.lessConditionPhrase),
+                    (this.lessConditionPhrase + " is more " + this.affectWord + " than " + this.moreConditionPhrase),
+                    ("Both feel equally " + this.affectWord),
+                    ("Neither of the two feels " + this.affectWord + ".")
+                ];
+                return this._questions;
+            },
+            set: function (questions) {
+                this._questions = questions;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PreferenceCondition.prototype, "isViable", {
+            get: function () {
+                return this.moreStrategy.isViable && this.lessStrategy.isViable;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return PreferenceCondition;
+    }());
     var ExperientialGameManager = (function () {
         function ExperientialGameManager(game, player) {
             var _this = this;
@@ -284,7 +321,7 @@ var PCGGame;
         };
         ExperientialGameManager.prototype.evaluateDifficultyAndCreateStrategy = function () {
             if (this._shouldIncreaseDifficulty()) {
-                var strategies = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformConcentrationStrategyFn(), this._increaseMobEnemyConcentrationStrategy()];
+                var strategies = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformConcentrationStrategy(), this._increaseMobEnemyConcentrationStrategy()];
                 var leftOverStrategies = strategies.filter(function (fn) { return fn.isViable; });
                 if (leftOverStrategies.length) {
                     var execIndex = this._randomGenerator.integerInRange(0, leftOverStrategies.length - 1);
@@ -295,6 +332,14 @@ var PCGGame;
         };
         ExperientialGameManager.prototype.evaluateDifficultyWithPlayerModelAndCreateStrategy = function () {
             if (this._shouldIncreaseDifficulty()) {
+                var moreLessPairs = [
+                    new PreferenceCondition('More space blocks', 'less space blocks', 'Fun'),
+                    new PreferenceCondition('More aggressive creatures', 'less aggressive creatures', 'Fun')
+                ];
+                moreLessPairs[0].moreStrategy = this._increasePlatformConcentrationStrategy();
+                moreLessPairs[0].lessStrategy = this._decreasePlatformConcentrationStrategy();
+                moreLessPairs[1].moreStrategy = this._increaseMobEnemyConcentrationStrategy();
+                moreLessPairs[1].lessStrategy = this._decreaseMobEnemyConcentrationStrategy();
                 var mobDifficultyStrategy = this._increaseMobDifficultyStrategyFn();
                 if (mobDifficultyStrategy.isViable) {
                     mobDifficultyStrategy.strategyFunction.call(this);
@@ -437,7 +482,7 @@ var PCGGame;
             };
             return strategy;
         };
-        ExperientialGameManager.prototype._increasePlatformConcentrationStrategyFn = function () {
+        ExperientialGameManager.prototype._increasePlatformConcentrationStrategy = function () {
             var _this = this;
             var type = 'PLATFORM';
             var nullSpacePercentage = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
@@ -450,7 +495,7 @@ var PCGGame;
             var pushPlatformProb = this._randomGenerator.integerInRange(0, maxPercent);
             var platformProb = maxPercent - pushPlatformProb;
             strategy.strategyFunction = function () {
-                console.warn('_increasePlatformConcentrationStrategyFn');
+                console.warn('_increasePlatformConcentrationStrategy');
                 return _this._reallocateProbFromNullSpace(type, [platformProb, pushPlatformProb]);
             };
             return strategy;
@@ -918,12 +963,6 @@ var PCGGame;
             this.dangerLevel = 0;
             this.canCollide = true;
             this.aggressionProbability = 0;
-            if (typeof this.body !== 'undefined' && this.body) {
-                this.body.checkCollision.up = true;
-                this.body.checkCollision.down = true;
-                this.body.checkCollision.left = true;
-                this.body.checkCollision.right = true;
-            }
             this.loadTexture(this._id);
         };
         Sprite.prototype.getKillScore = function () {
