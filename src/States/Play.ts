@@ -885,7 +885,7 @@ namespace PCGGame {
             }, this);
 
 
-            if (isNotchFound && this.experientialGameManager.isEligibleForSurvey) {
+            if (isNotchFound && this.experientialGameManager.isSurveyPrepared) {
                 this._shouldShowExperientialPrompt = true;
             }
 

@@ -1,45 +1,9 @@
 namespace PCGGame {
     import blockTypeEnum = Generator.blockTypeEnum;
 
-    interface Strategy {
+    export interface Strategy {
         isViable : boolean;
         strategyFunction : Function;
-    }
-
-    class PreferenceCondition {
-        public moreStrategy : Strategy = null;
-        public lessStrategy : Strategy = null;
-        public count : number = 0;
-        private _questions : string[];
-
-        public affectWord : string = '';
-        public moreConditionPhrase : string = '';
-        public lessConditionPhrase : string = '';
-
-        public constructor(moreCondition: string, lessCondition : string, affectWord : string) {
-            this.affectWord = affectWord;
-            this.moreConditionPhrase = moreCondition;
-            this.lessConditionPhrase = lessCondition;
-        }
-
-        public get questions() : string[] {
-            this._questions = [
-                    `${this.moreConditionPhrase} is more ${this.affectWord} than ${this.lessConditionPhrase}`,
-                    `${this.lessConditionPhrase} is more ${this.affectWord} than ${this.moreConditionPhrase}`,
-                    `Both feel equally ${this.affectWord}`,
-                    `Neither of the two feels ${this.affectWord}.`
-            ];
-
-            return this._questions;
-        }
-
-        public set questions(questions : string[]) {
-            this._questions = questions;
-        }
-
-        public get isViable() {
-            return this.moreStrategy.isViable && this.lessStrategy.isViable;
-        }
     }
 
     export class ExperientialGameManager {
@@ -65,6 +29,7 @@ namespace PCGGame {
         public lastSurveyShownTimeMS : number = 0;
         public surveyManager : SurveyManager = null;
         public isEligibleForSurvey : boolean = false;
+        public isSurveyPrepared : boolean = false;
 
         private _game : Phaser.Game = null;
         private _currentSnapShotTime : number = 0;
@@ -172,6 +137,7 @@ namespace PCGGame {
 
                 // start counting the delta time for the next survey interval after closing
                 if (! event.isOpen) {
+                    this.isSurveyPrepared = false;
                     this.isEligibleForSurvey = false;
                 }
 
@@ -220,7 +186,7 @@ namespace PCGGame {
 
         //
         public showSurvey() {
-            if (this.isEligibleForSurvey) {
+            if (this.isSurveyPrepared) {
                 this.surveyManager.showSurvey();
             }
         }
@@ -431,7 +397,11 @@ namespace PCGGame {
 
             if (this._shouldIncreaseDifficulty()) {
 
-                let strategies : Strategy[] = [this._increaseMobDifficultyStrategyFn(), this._increasePlatformConcentrationStrategy(), this._increaseMobEnemyConcentrationStrategy()];
+                let strategies : Strategy[] = [
+                    this._increaseMobDifficultyStrategyFn(),
+                    this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
+                    this._increaseMobEnemyConcentrationFromNullSpaceStrategy()
+                ];
 
 
 
@@ -453,21 +423,28 @@ namespace PCGGame {
 
             if (this._shouldIncreaseDifficulty()) {
 
-
-
                 let moreLessPairs : PreferenceCondition[] = [
-                    new PreferenceCondition('More space blocks', 'less space blocks', 'Fun'),
-                    new PreferenceCondition('More aggressive creatures', 'less aggressive creatures', 'Fun')
+                    new PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
+                        this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
+
+                    new PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
+                        this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
+
+                    new PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseMobEnemyConcentrationStrategy(),
+                        this._decreaseMobEnemyConcentrationStrategy())
                 ];
 
 
-                moreLessPairs[0].moreStrategy = this._increasePlatformConcentrationStrategy();
-                moreLessPairs[0].lessStrategy = this._decreasePlatformConcentrationStrategy();
+
+                let viablePreferences : PreferenceCondition[] = moreLessPairs.filter((pref) => pref.isViable );
 
 
+                if (viablePreferences.length) {
+                    let currentPreferenceIndex = this._randomGenerator.integerInRange(0, viablePreferences.length - 1);
 
-                moreLessPairs[1].moreStrategy = this._increaseMobEnemyConcentrationStrategy();
-                moreLessPairs[1].lessStrategy = this._decreaseMobEnemyConcentrationStrategy();
+                   this.surveyManager.currentPreferenceCondition = viablePreferences[currentPreferenceIndex];
+                   this.isSurveyPrepared = true;
+                }
 
 
                 let mobDifficultyStrategy : Strategy = this._increaseMobDifficultyStrategyFn();
@@ -701,7 +678,7 @@ namespace PCGGame {
          ]
          */
 
-        private _increasePlatformConcentrationStrategy() : Strategy {
+        private _increasePlatformConcentrationAmountFromNullSpaceStrategy() : Strategy {
             let type : string = 'PLATFORM';
             let nullSpacePercentage : number = this._probabilityDistributions[type][this._getMobNullIndexForType(type)];
             let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
@@ -726,11 +703,11 @@ namespace PCGGame {
         }
 
 
-        private _decreasePlatformConcentrationStrategy() : Strategy {
+        private _decreasePlatformConcentrationAmountToNullSpaceStrategy() : Strategy {
 
 
             let type : string = 'PLATFORM';
-            let halfDec : number = ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2;
+            let halfDec : number = Math.round(ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2);
             let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
 
             let platformPercentage : number = this._probabilityDistributions[type][0];
@@ -745,7 +722,7 @@ namespace PCGGame {
 
 
             strategy.strategyFunction = () => {
-                console.warn('_decreasePlatformConcentrationStrategy');
+                console.warn('_decreasePlatformConcentrationAmountToNullSpaceStrategy');
                 return this._reallocateProbFromNullSpace(type, [-halfDec, -halfDec, (halfDec + halfDec)], false);
             };
 
@@ -761,7 +738,7 @@ namespace PCGGame {
          MEGAHEAD
         * */
 
-        private _increaseMobEnemyConcentrationStrategy() : Strategy {
+        private _increaseMobEnemyConcentrationFromNullSpaceStrategy() : Strategy {
 
 
             let type : string = 'MOB';
@@ -779,8 +756,62 @@ namespace PCGGame {
             let invaderProb = maxPercent - megaHeadProb;
 
             strategy.strategyFunction = () => {
-                console.warn('_increaseMobEnemyConcentrationStrategy');
+                console.warn('_increaseMobEnemyConcentrationFromNullSpaceStrategy');
                 return this._reallocateProbFromNullSpace(type, [0, 0, 0, invaderProb, megaHeadProb]);
+            };
+
+            return strategy;
+        }
+
+        private _decreaseMobEnemyConcentrationAmountToNullSpaceStrategy() : Strategy {
+
+
+            let type : string = 'MOB';
+            let halfDec : number = Math.round(ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2);
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            let invaderAvailPercentage : number = this._probabilityDistributions[type][3];
+            let megaHeadAvailPercentage : number = this._probabilityDistributions[type][4];
+
+            if ((invaderAvailPercentage - halfDec) < 0 || (megaHeadAvailPercentage - halfDec) < 0) {
+                console.warn('Cannot reduce likelihood of mob spawn more than 0!');
+                strategy.isViable = false;
+
+                return strategy;
+            }
+
+
+            strategy.strategyFunction = () => {
+                console.warn('_decreaseMobEnemyConcentrationAmountToNullSpaceStrategy');
+                return this._reallocateProbFromNullSpace(type, [(halfDec + halfDec), 0, 0, -halfDec, -halfDec], false);
+            };
+
+            return strategy;
+
+        }
+
+
+        ///////
+        private _increaseMobEnemyConcentrationStrategy() : Strategy {
+
+
+            let type : string = 'MOB';
+            let meteorPercentage : number = this._probabilityDistributions[type][2];
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            if (meteorPercentage <= 0) {
+                strategy.isViable = false;
+                return strategy;
+            }
+
+            let maxPercent = Math.min(meteorPercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+
+            let megaHeadProb  = this._randomGenerator.integerInRange(Math.round(maxPercent / 2), maxPercent);
+            let invaderProb = maxPercent - megaHeadProb;
+
+            strategy.strategyFunction = () => {
+                console.warn('_increaseMobEnemyConcentrationStrategy');
+                return this._reallocateProbFromNullSpace(type, [0, 0, -maxPercent, invaderProb, megaHeadProb]);
             };
 
             return strategy;
@@ -790,7 +821,7 @@ namespace PCGGame {
 
 
             let type : string = 'MOB';
-            let halfDec : number = ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2;
+            let halfDec : number = Math.round(ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2);
             let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
 
             let invaderAvailPercentage : number = this._probabilityDistributions[type][3];
@@ -806,7 +837,7 @@ namespace PCGGame {
 
             strategy.strategyFunction = () => {
                 console.warn('_decreaseMobEnemyConcentrationStrategy');
-                return this._reallocateProbFromNullSpace(type, [(halfDec + halfDec), 0, 0, -halfDec, -halfDec], false);
+                return this._reallocateProbFromNullSpace(type, [0, 0, (halfDec + halfDec), -halfDec, -halfDec], false);
             };
 
             return strategy;

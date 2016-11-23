@@ -69,3 +69,15 @@ canvas {
     margin-left: 10px;
     color: #c2abeb;
 }
+
+.question-container strong {
+    color: #242838;
+}
+
+.question-container label {
+    transition: all 0.4s ease-in-out;
+}
+
+.question-container label:hover {
+    transform: scale(1.1, 1.1);
+}
