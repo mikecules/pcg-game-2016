@@ -507,7 +507,7 @@ namespace PCGGame {
             this._currentSnapShot.tick(lastTimeMS, this._player.health);
             this._overallSnapShot.tick(lastTimeMS, this._player.health);
 
-            console.warn(this._currentSnapShot.averagePlayerHealth());
+            //console.warn(this._currentSnapShot.averagePlayerHealth());
 
 
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
