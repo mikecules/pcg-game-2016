@@ -26,6 +26,7 @@ var PCGGame;
             this.surveyManager = null;
             this.isEligibleForSurvey = false;
             this.isSurveyPrepared = false;
+            this._currentPreferenceConditionInPlay = null;
             this._game = null;
             this._currentSnapShotTime = 0;
             this._adaptTimeElapsedMS = 0;
@@ -300,24 +301,34 @@ var PCGGame;
             }
         };
         ExperientialGameManager.prototype.evaluateDifficultyWithPlayerModelAndCreateStrategy = function () {
-            if (this._shouldIncreaseDifficulty()) {
-                var moreLessPairs = [
-                    new PCGGame.PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(), this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
-                    new PCGGame.PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(), this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
-                    new PCGGame.PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseMobEnemyConcentrationStrategy(), this._decreaseMobEnemyConcentrationStrategy())
-                ];
-                var viablePreferences = moreLessPairs.filter(function (pref) { return pref.isViable; });
-                if (viablePreferences.length) {
-                    var currentPreferenceIndex = this._randomGenerator.integerInRange(0, viablePreferences.length - 1);
-                    this.surveyManager.currentPreferenceCondition = viablePreferences[currentPreferenceIndex];
-                    this.isSurveyPrepared = true;
-                }
+            var moreLessPairs = [
+                new PCGGame.PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(), this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
+                new PCGGame.PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(), this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
+                new PCGGame.PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseAttackingMobEnemyConcentrationStrategy(), this._decreaseAttackingMobEnemyConcentrationStrategy()),
+                new PCGGame.PreferenceCondition('a higher ratio of multicolor destructible blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(), this._increasePushPlatformConcentrationStrategy())
+            ];
+            if (this._currentPreferenceConditionInPlay && this._currentPreferenceConditionInPlay.count === 0) {
+                this.evaluateDifficultyAndCreateStrategy();
+                this.surveyManager.currentPreferenceCondition = null;
+            }
+            var viablePreferences = moreLessPairs.filter(function (pref) { return pref.isViable; });
+            var currentPreferenceIndex = this._randomGenerator.integerInRange(0, viablePreferences.length);
+            if (viablePreferences.length && currentPreferenceIndex < viablePreferences.length) {
+                this.surveyManager.currentPreferenceCondition = viablePreferences[currentPreferenceIndex];
+                this._currentPreferenceConditionInPlay = viablePreferences[currentPreferenceIndex];
+                this.isSurveyPrepared = true;
+            }
+            else {
                 var mobDifficultyStrategy = this._increaseMobDifficultyStrategyFn();
                 if (mobDifficultyStrategy.isViable) {
                     mobDifficultyStrategy.strategyFunction.call(this);
-                    console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL DIFFICULTY INCREASED!!!');
+                    console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL MOB DIFFICULTY INCREASED!!!');
                 }
+                this.isSurveyPrepared = false;
+                this.isEligibleForSurvey = false;
+                this.surveyManager.currentPreferenceCondition = null;
             }
+            console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL DIFFICULTY INCREASED!!!');
         };
         ExperientialGameManager.prototype.takeMetricSnapShot = function () {
             if (!ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED) {
@@ -467,7 +478,7 @@ var PCGGame;
             var pushPlatformProb = this._randomGenerator.integerInRange(0, maxPercent);
             var platformProb = maxPercent - pushPlatformProb;
             strategy.strategyFunction = function () {
-                console.warn('_increasePlatformConcentrationStrategy');
+                console.warn('_increasePlatformConcentrationAmountFromNullSpaceStrategy');
                 return _this._reallocateProbFromNullSpace(type, [platformProb, pushPlatformProb]);
             };
             return strategy;
@@ -526,7 +537,7 @@ var PCGGame;
             };
             return strategy;
         };
-        ExperientialGameManager.prototype._increaseMobEnemyConcentrationStrategy = function () {
+        ExperientialGameManager.prototype._increaseAttackingMobEnemyConcentrationStrategy = function () {
             var _this = this;
             var type = 'MOB';
             var meteorPercentage = this._probabilityDistributions[type][2];
@@ -539,12 +550,12 @@ var PCGGame;
             var megaHeadProb = this._randomGenerator.integerInRange(Math.round(maxPercent / 2), maxPercent);
             var invaderProb = maxPercent - megaHeadProb;
             strategy.strategyFunction = function () {
-                console.warn('_increaseMobEnemyConcentrationStrategy');
+                console.warn('_increaseAttackingMobEnemyConcentrationStrategy');
                 return _this._reallocateProbFromNullSpace(type, [0, 0, -maxPercent, invaderProb, megaHeadProb]);
             };
             return strategy;
         };
-        ExperientialGameManager.prototype._decreaseMobEnemyConcentrationStrategy = function () {
+        ExperientialGameManager.prototype._decreaseAttackingMobEnemyConcentrationStrategy = function () {
             var _this = this;
             var type = 'MOB';
             var halfDec = Math.round(ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT / 2);
@@ -557,8 +568,40 @@ var PCGGame;
                 return strategy;
             }
             strategy.strategyFunction = function () {
-                console.warn('_decreaseMobEnemyConcentrationStrategy');
+                console.warn('_decreaseAttackingMobEnemyConcentrationStrategy');
                 return _this._reallocateProbFromNullSpace(type, [0, 0, (halfDec + halfDec), -halfDec, -halfDec], false);
+            };
+            return strategy;
+        };
+        ExperientialGameManager.prototype._increasePlatformConcentrationStrategy = function () {
+            var _this = this;
+            var type = 'PLATFORM';
+            var pushPlatformPercentage = this._probabilityDistributions[type][1];
+            var strategy = { isViable: true, strategyFunction: function () { } };
+            if (pushPlatformPercentage <= 0) {
+                strategy.isViable = false;
+                return strategy;
+            }
+            var maxPercent = Math.min(pushPlatformPercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+            strategy.strategyFunction = function () {
+                console.warn('_increasePlatformConcentrationStrategy');
+                return _this._reallocateProbFromNullSpace(type, [maxPercent, -maxPercent, 0]);
+            };
+            return strategy;
+        };
+        ExperientialGameManager.prototype._increasePushPlatformConcentrationStrategy = function () {
+            var _this = this;
+            var type = 'PLATFORM';
+            var platformPercentage = this._probabilityDistributions[type][0];
+            var strategy = { isViable: true, strategyFunction: function () { } };
+            if (platformPercentage <= 0) {
+                strategy.isViable = false;
+                return strategy;
+            }
+            var maxPercent = Math.min(platformPercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+            strategy.strategyFunction = function () {
+                console.warn('_increasePushPlatformConcentrationStrategy');
+                return _this._reallocateProbFromNullSpace(type, [-maxPercent, maxPercent, 0]);
             };
             return strategy;
         };
@@ -721,6 +764,77 @@ var PCGGame;
         return GameMetric;
     }());
     PCGGame.GameMetric = GameMetric;
+})(PCGGame || (PCGGame = {}));
+var PCGGame;
+(function (PCGGame) {
+    var PreferenceCondition = (function () {
+        function PreferenceCondition(moreCondition, lessCondition, affectWord, moreStrategy, lessStrategy) {
+            this.moreStrategy = null;
+            this.lessStrategy = null;
+            this.count = 0;
+            this._questions = null;
+            this._selectedPref = 0;
+            this.affectWord = '';
+            this.moreConditionPhrase = '';
+            this.lessConditionPhrase = '';
+            this.affectWord = affectWord;
+            this.moreConditionPhrase = moreCondition;
+            this.lessConditionPhrase = lessCondition;
+            this.moreStrategy = moreStrategy;
+            this.lessStrategy = lessStrategy;
+        }
+        PreferenceCondition.capitalizeFirstLetter = function (str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        };
+        Object.defineProperty(PreferenceCondition.prototype, "questions", {
+            get: function () {
+                if (this._questions === null) {
+                    this._questions = [
+                        PreferenceCondition.capitalizeFirstLetter(this.moreConditionPhrase) + (" are more <strong>" + this.affectWord + "</strong> than " + this.lessConditionPhrase + "."),
+                        PreferenceCondition.capitalizeFirstLetter(this.lessConditionPhrase) + (" are more <strong>" + this.affectWord + "</strong> than " + this.moreConditionPhrase + "."),
+                        ("Both of them feels equally <strong>" + this.affectWord + "</strong>."),
+                        ("Neither of the two feels <strong>" + this.affectWord + "</strong>.")
+                    ];
+                }
+                return this._questions;
+            },
+            set: function (questions) {
+                this._questions = questions;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PreferenceCondition.prototype, "isViable", {
+            get: function () {
+                return (this.moreStrategy && this.lessStrategy) ? (this.moreStrategy.isViable && this.lessStrategy.isViable) : false;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PreferenceCondition.prototype, "preference", {
+            get: function () {
+                return this._selectedPref;
+            },
+            set: function (pref) {
+                if (pref >= 0 && pref < this.questions.length) {
+                    this._selectedPref = pref;
+                    this.count++;
+                    switch (pref) {
+                        case 1:
+                            this.lessStrategy.strategyFunction();
+                            break;
+                        default:
+                            this.moreStrategy.strategyFunction();
+                            break;
+                    }
+                }
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return PreferenceCondition;
+    }());
+    PCGGame.PreferenceCondition = PreferenceCondition;
 })(PCGGame || (PCGGame = {}));
 var PCGGame;
 (function (PCGGame) {
@@ -2957,76 +3071,5 @@ var PCGGame;
         return Preload;
     }(Phaser.State));
     PCGGame.Preload = Preload;
-})(PCGGame || (PCGGame = {}));
-var PCGGame;
-(function (PCGGame) {
-    var PreferenceCondition = (function () {
-        function PreferenceCondition(moreCondition, lessCondition, affectWord, moreStrategy, lessStrategy) {
-            this.moreStrategy = null;
-            this.lessStrategy = null;
-            this.count = 0;
-            this._questions = null;
-            this._selectedPref = 0;
-            this.affectWord = '';
-            this.moreConditionPhrase = '';
-            this.lessConditionPhrase = '';
-            this.affectWord = affectWord;
-            this.moreConditionPhrase = moreCondition;
-            this.lessConditionPhrase = lessCondition;
-            this.moreStrategy = moreStrategy;
-            this.lessStrategy = lessStrategy;
-        }
-        PreferenceCondition.capitalizeFirstLetter = function (str) {
-            return str.charAt(0).toUpperCase() + str.slice(1);
-        };
-        Object.defineProperty(PreferenceCondition.prototype, "questions", {
-            get: function () {
-                if (this._questions === null) {
-                    this._questions = [
-                        PreferenceCondition.capitalizeFirstLetter(this.moreConditionPhrase) + (" are more <strong>" + this.affectWord + "</strong> than " + this.lessConditionPhrase + "."),
-                        PreferenceCondition.capitalizeFirstLetter(this.lessConditionPhrase) + (" are more <strong>" + this.affectWord + "</strong> than " + this.moreConditionPhrase + "."),
-                        ("Both of them feels equally <strong>" + this.affectWord + "</strong>."),
-                        ("Neither of the two feels <strong>" + this.affectWord + "</strong>.")
-                    ];
-                }
-                return this._questions;
-            },
-            set: function (questions) {
-                this._questions = questions;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PreferenceCondition.prototype, "isViable", {
-            get: function () {
-                return (this.moreStrategy && this.lessStrategy) ? (this.moreStrategy.isViable && this.lessStrategy.isViable) : false;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PreferenceCondition.prototype, "preference", {
-            get: function () {
-                return this._selectedPref;
-            },
-            set: function (pref) {
-                if (pref >= 0 && pref < this.questions.length) {
-                    this._selectedPref = pref;
-                    this.count++;
-                    switch (pref) {
-                        case 1:
-                            this.lessStrategy.strategyFunction();
-                            break;
-                        default:
-                            this.moreStrategy.strategyFunction();
-                            break;
-                    }
-                }
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return PreferenceCondition;
-    }());
-    PCGGame.PreferenceCondition = PreferenceCondition;
 })(PCGGame || (PCGGame = {}));
 //# sourceMappingURL=app.js.map

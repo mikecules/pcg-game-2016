@@ -31,6 +31,8 @@ namespace PCGGame {
         public isEligibleForSurvey : boolean = false;
         public isSurveyPrepared : boolean = false;
 
+        private _currentPreferenceConditionInPlay : PreferenceCondition = null;
+
         private _game : Phaser.Game = null;
         private _currentSnapShotTime : number = 0;
         private _adaptTimeElapsedMS : number = 0;
@@ -421,39 +423,53 @@ namespace PCGGame {
 
         public evaluateDifficultyWithPlayerModelAndCreateStrategy() {
 
-            if (this._shouldIncreaseDifficulty()) {
+            let moreLessPairs : PreferenceCondition[] = [
+                new PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
+                    this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
 
-                let moreLessPairs : PreferenceCondition[] = [
-                    new PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
-                        this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
+                new PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
+                    this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
 
-                    new PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
-                        this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
+                new PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseAttackingMobEnemyConcentrationStrategy(),
+                    this._decreaseAttackingMobEnemyConcentrationStrategy()),
 
-                    new PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseMobEnemyConcentrationStrategy(),
-                        this._decreaseMobEnemyConcentrationStrategy())
-                ];
+                new PreferenceCondition('a higher ratio of multicolor destructible blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(),
+                    this._increasePushPlatformConcentrationStrategy())
+            ];
 
-
-
-                let viablePreferences : PreferenceCondition[] = moreLessPairs.filter((pref) => pref.isViable );
-
-
-                if (viablePreferences.length) {
-                    let currentPreferenceIndex = this._randomGenerator.integerInRange(0, viablePreferences.length - 1);
-
-                   this.surveyManager.currentPreferenceCondition = viablePreferences[currentPreferenceIndex];
-                   this.isSurveyPrepared = true;
-                }
+            if (this._currentPreferenceConditionInPlay && this._currentPreferenceConditionInPlay.count === 0) {
+                this.evaluateDifficultyAndCreateStrategy();
+                this.surveyManager.currentPreferenceCondition = null;
+            }
 
 
+
+            let viablePreferences : PreferenceCondition[] = moreLessPairs.filter((pref) => pref.isViable );
+
+
+            // If we pick an option out of the array bounds default to mob level increase
+            let currentPreferenceIndex = this._randomGenerator.integerInRange(0, viablePreferences.length);
+
+            if (viablePreferences.length && currentPreferenceIndex < viablePreferences.length) {
+                this.surveyManager.currentPreferenceCondition = viablePreferences[currentPreferenceIndex];
+                this._currentPreferenceConditionInPlay = viablePreferences[currentPreferenceIndex];
+                this.isSurveyPrepared = true;
+            }
+            else {
                 let mobDifficultyStrategy : Strategy = this._increaseMobDifficultyStrategyFn();
 
                 if (mobDifficultyStrategy.isViable) {
                     mobDifficultyStrategy.strategyFunction.call(this);
-                    console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL DIFFICULTY INCREASED!!!');
+                    console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL MOB DIFFICULTY INCREASED!!!');
                 }
+
+                this.isSurveyPrepared = false;
+                this.isEligibleForSurvey = false;
+                this.surveyManager.currentPreferenceCondition = null;
             }
+
+
+            console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL DIFFICULTY INCREASED!!!');
 
         }
 
@@ -695,7 +711,7 @@ namespace PCGGame {
             let platformProb = maxPercent - pushPlatformProb;
 
             strategy.strategyFunction = () => {
-                console.warn('_increasePlatformConcentrationStrategy');
+                console.warn('_increasePlatformConcentrationAmountFromNullSpaceStrategy');
                 return this._reallocateProbFromNullSpace(type, [platformProb, pushPlatformProb]);
             };
 
@@ -792,7 +808,7 @@ namespace PCGGame {
 
 
         ///////
-        private _increaseMobEnemyConcentrationStrategy() : Strategy {
+        private _increaseAttackingMobEnemyConcentrationStrategy() : Strategy {
 
 
             let type : string = 'MOB';
@@ -810,14 +826,14 @@ namespace PCGGame {
             let invaderProb = maxPercent - megaHeadProb;
 
             strategy.strategyFunction = () => {
-                console.warn('_increaseMobEnemyConcentrationStrategy');
+                console.warn('_increaseAttackingMobEnemyConcentrationStrategy');
                 return this._reallocateProbFromNullSpace(type, [0, 0, -maxPercent, invaderProb, megaHeadProb]);
             };
 
             return strategy;
         }
 
-        private _decreaseMobEnemyConcentrationStrategy() : Strategy {
+        private _decreaseAttackingMobEnemyConcentrationStrategy() : Strategy {
 
 
             let type : string = 'MOB';
@@ -836,13 +852,62 @@ namespace PCGGame {
 
 
             strategy.strategyFunction = () => {
-                console.warn('_decreaseMobEnemyConcentrationStrategy');
+                console.warn('_decreaseAttackingMobEnemyConcentrationStrategy');
                 return this._reallocateProbFromNullSpace(type, [0, 0, (halfDec + halfDec), -halfDec, -halfDec], false);
             };
 
             return strategy;
 
         }
+
+        ////
+        private _increasePlatformConcentrationStrategy() : Strategy {
+
+
+            let type : string = 'PLATFORM';
+            let pushPlatformPercentage : number = this._probabilityDistributions[type][1];
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            if (pushPlatformPercentage <= 0) {
+                strategy.isViable = false;
+                return strategy;
+            }
+
+            let maxPercent = Math.min(pushPlatformPercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+
+
+            strategy.strategyFunction = () => {
+                console.warn('_increasePlatformConcentrationStrategy');
+                return this._reallocateProbFromNullSpace(type, [maxPercent, -maxPercent, 0]);
+            };
+
+            return strategy;
+        }
+
+        private _increasePushPlatformConcentrationStrategy() : Strategy {
+
+
+            let type : string = 'PLATFORM';
+            let platformPercentage : number = this._probabilityDistributions[type][0];
+            let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
+
+            if (platformPercentage <= 0) {
+                strategy.isViable = false;
+                return strategy;
+            }
+
+            let maxPercent = Math.min(platformPercentage, ExperientialGameManager.DIFFICULTY_DENSITY_PERCENT_INCREMENT);
+
+
+            strategy.strategyFunction = () => {
+                console.warn('_increasePushPlatformConcentrationStrategy');
+                return this._reallocateProbFromNullSpace(type, [-maxPercent, maxPercent, 0]);
+            };
+
+            return strategy;
+        }
+
+
 
     }
 }
