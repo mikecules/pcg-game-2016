@@ -277,7 +277,7 @@ namespace PCGGame {
                 return;
             }
 
-            console.log(this.health, damage);
+            //console.log(this.health, damage);
             this.health -= damage;
 
             this.playerEvents.dispatch(new GameEvent(gameEventTypeEnum.MOB_TOOK_DAMAGE, damage));

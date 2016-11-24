@@ -19,6 +19,6 @@ $(document).ready(() => {
     PCGGame.Global.game = new PCGGame.Game();
 
     if (PCGGame.ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED) {
-        $('#player-survey-instruction').removeClass('hidden');
+        $('.player-survey-instruction').removeClass('hidden');
     }
 });

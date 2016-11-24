@@ -14,7 +14,7 @@ var PCGGame;
 $(document).ready(function () {
     PCGGame.Global.game = new PCGGame.Game();
     if (PCGGame.ExperientialGameManager.IS_EXPERIENCE_MODEL_ENABLED) {
-        $('#player-survey-instruction').removeClass('hidden');
+        $('.player-survey-instruction').removeClass('hidden');
     }
 });
 var PCGGame;
@@ -140,7 +140,7 @@ var PCGGame;
                     this._probabilityDistributionBoundaries[probabilityType][i] = prevProb + this._probabilityDistributions[probabilityType][i];
                 }
                 else {
-                    this._probabilityDistributionBoundaries[probabilityType][i] = Number.NEGATIVE_INFINITY;
+                    this._probabilityDistributionBoundaries[probabilityType][i] = 0;
                 }
                 if (this._probabilityDistributions[probabilityType][i] >= 0) {
                     prevProb = this._probabilityDistributionBoundaries[probabilityType][i];
@@ -154,7 +154,7 @@ var PCGGame;
             var type = minType;
             console.warn("Probability Chosen: " + p + ", Type Boundary " + typeProbabilitiesUpperBoundary + " for type " + type + " and " + maxType);
             for (var i = minType; i <= maxType; i++) {
-                if (typeProbabilitiesUpperBoundary[i] === Number.NEGATIVE_INFINITY) {
+                if (typeProbabilitiesUpperBoundary[i] === 0) {
                     continue;
                 }
                 if (p <= typeProbabilitiesUpperBoundary[i]) {
@@ -306,6 +306,8 @@ var PCGGame;
                 this.surveyManager.currentPreferenceCondition = null;
             }
             if (!this._shouldIncreaseDifficulty()) {
+                this.isSurveyPrepared = false;
+                this.isEligibleForSurvey = false;
                 return;
             }
             var mobDifficultyStrategy = this._increaseMobDifficultyStrategy();
@@ -392,13 +394,13 @@ var PCGGame;
         };
         ExperientialGameManager.prototype._reallocateProbFromNullSpace = function (mobType, deltaProbDistribution, nullOverflow) {
             if (nullOverflow === void 0) { nullOverflow = true; }
-            var sumFn = function (total, num) { return total + ((Number.NEGATIVE_INFINITY === num) ? 0 : num); };
+            var sumFn = function (total, num) { return total + num; };
             var overflowIndex = -1;
             var overFlowAmount = deltaProbDistribution.reduce(sumFn, 0);
             if (overFlowAmount !== 0 && nullOverflow) {
                 overflowIndex = this._getMobNullIndexForType(mobType);
                 var previousOverflowVal = this._probabilityDistributions[mobType][overflowIndex];
-                this._probabilityDistributions[mobType][overflowIndex] = (this._probabilityDistributions[mobType][overflowIndex] === Number.NEGATIVE_INFINITY) ? 0 : this._probabilityDistributions[mobType][overflowIndex];
+                this._probabilityDistributions[mobType][overflowIndex] = this._probabilityDistributions[mobType][overflowIndex];
                 this._probabilityDistributions[mobType][overflowIndex] -= overFlowAmount;
                 if (this._probabilityDistributions[mobType][overflowIndex] < 0) {
                     console.error("Cannot adjust probability distribution for type " + mobType + " by the increments " + deltaProbDistribution + " it would be " + this._probabilityDistributions[mobType] + ".");
@@ -855,8 +857,11 @@ var PCGGame;
         function SurveyManager(id) {
             var _this = this;
             this._modal = null;
+            this._surveyCountEl = null;
+            this._surveyOpenedCount = 0;
             this.currentPreferenceCondition = null;
             this._modal = new Modal(id);
+            this._surveyCountEl = $('#player-survey-count');
             this._modal.modalCompleteSignal.add(function (e) {
                 if (e.isOpen) {
                     return;
@@ -864,6 +869,7 @@ var PCGGame;
                 if (_this.currentPreferenceCondition) {
                     var prefValIndex = parseInt($('input:radio[name=prefOption]:checked').val(), 10);
                     _this.currentPreferenceCondition.preference = prefValIndex;
+                    _this._surveyCountEl.text(++_this._surveyOpenedCount);
                 }
             });
         }
@@ -1929,7 +1935,6 @@ var PCGGame;
             if (this._isInvincible) {
                 return;
             }
-            console.log(this.health, damage);
             this.health -= damage;
             this.playerEvents.dispatch(new PCGGame.GameEvent(2, damage));
             if (this.health <= 0) {

@@ -208,7 +208,7 @@ namespace PCGGame {
                     this._probabilityDistributionBoundaries[probabilityType][i] = prevProb + this._probabilityDistributions[probabilityType][i];
                 }
                 else {
-                    this._probabilityDistributionBoundaries[probabilityType][i] = Number.NEGATIVE_INFINITY;
+                    this._probabilityDistributionBoundaries[probabilityType][i] = 0;
                 }
 
 
@@ -232,7 +232,7 @@ namespace PCGGame {
             for (let i = minType; i <= maxType; i++) {
                 //console.log(typeProbabilitiesUpperBoundary[i]);
 
-                if (typeProbabilitiesUpperBoundary[i] === Number.NEGATIVE_INFINITY) {
+                if (typeProbabilitiesUpperBoundary[i] === 0) {
                     continue;
                 }
 
@@ -429,6 +429,8 @@ namespace PCGGame {
             }
 
             if (! this._shouldIncreaseDifficulty()) {
+                this.isSurveyPrepared = false;
+                this.isEligibleForSurvey = false;
                 return;
             }
 
@@ -583,7 +585,7 @@ namespace PCGGame {
          */
         private _reallocateProbFromNullSpace(mobType : string, deltaProbDistribution : number[], nullOverflow : boolean = true) {
 
-            let sumFn : Function = (total: number, num: number) : number => total + ((Number.NEGATIVE_INFINITY === num) ? 0 : num);
+            let sumFn : Function = (total: number, num: number) : number => total + num);
             let overflowIndex = -1;
 
             let overFlowAmount = deltaProbDistribution.reduce(sumFn, 0);
@@ -593,7 +595,7 @@ namespace PCGGame {
 
                 let previousOverflowVal = this._probabilityDistributions[mobType][overflowIndex];
 
-                this._probabilityDistributions[mobType][overflowIndex] = (this._probabilityDistributions[mobType][overflowIndex] === Number.NEGATIVE_INFINITY) ? 0 : this._probabilityDistributions[mobType][overflowIndex];
+                this._probabilityDistributions[mobType][overflowIndex] = this._probabilityDistributions[mobType][overflowIndex];
                 this._probabilityDistributions[mobType][overflowIndex] -= overFlowAmount;
 
 

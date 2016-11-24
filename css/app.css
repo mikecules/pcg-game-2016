@@ -25,18 +25,18 @@ canvas {
 }
 
 .game-instructions {
-    color: #2bb7df;
+    color: #a1ceeb;
     padding-left: 10px;
     font-size: 12px;
     margin-top: 10px;
 }
 
-.game-instructions > strong {
+.game-instructions > div > strong {
     color: #ffc8c8;
 
 }
 
-.game-instructions > strong > span  {
+.game-instructions > div > strong > span  {
     color: #ff6388;
     margin-right: 5px;
 }
