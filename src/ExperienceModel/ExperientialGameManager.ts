@@ -400,7 +400,7 @@ namespace PCGGame {
             if (this._shouldIncreaseDifficulty()) {
 
                 let strategies : Strategy[] = [
-                    this._increaseMobDifficultyStrategyFn(),
+                    this._increaseMobDifficultyStrategy(),
                     this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
                     this._increaseMobEnemyConcentrationFromNullSpaceStrategy()
                 ];
@@ -423,25 +423,30 @@ namespace PCGGame {
 
         public evaluateDifficultyWithPlayerModelAndCreateStrategy() {
 
-            let moreLessPairs : PreferenceCondition[] = [
-                new PreferenceCondition('more space blocks on screen', 'less space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
-                    this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
-
-                new PreferenceCondition('more creatures on screen', 'less creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
-                    this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
-
-                new PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseAttackingMobEnemyConcentrationStrategy(),
-                    this._decreaseAttackingMobEnemyConcentrationStrategy()),
-
-                new PreferenceCondition('a higher ratio of multicolor blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(),
-                    this._increasePushPlatformConcentrationStrategy())
-            ];
-
             if (this._currentPreferenceConditionInPlay && this._currentPreferenceConditionInPlay.count === 0) {
                 this.evaluateDifficultyAndCreateStrategy();
                 this.surveyManager.currentPreferenceCondition = null;
             }
 
+            if (! this._shouldIncreaseDifficulty()) {
+                return;
+            }
+
+            let mobDifficultyStrategy : Strategy = this._increaseMobDifficultyStrategy();
+
+            let moreLessPairs : PreferenceCondition[] = [
+                new PreferenceCondition('more space blocks on screen', 'less space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
+                    this._decreasePlatformConcentrationAmountToNullSpaceStrategy(), mobDifficultyStrategy),
+
+                new PreferenceCondition('more aliens on screen', 'less aliens on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
+                    this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy(), mobDifficultyStrategy),
+
+                new PreferenceCondition('a higher ratio of aggressive aliens', 'a lower ratio of aggressive aliens', 'fun', this._increaseAttackingMobEnemyConcentrationStrategy(),
+                    this._decreaseAttackingMobEnemyConcentrationStrategy(), mobDifficultyStrategy),
+
+                new PreferenceCondition('a higher ratio of multicolor blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(),
+                    this._increasePushPlatformConcentrationStrategy(), mobDifficultyStrategy)
+            ];
 
 
             let viablePreferences : PreferenceCondition[] = moreLessPairs.filter((pref) => pref.isViable );
@@ -456,7 +461,6 @@ namespace PCGGame {
                 this.isSurveyPrepared = true;
             }
             else {
-                let mobDifficultyStrategy : Strategy = this._increaseMobDifficultyStrategyFn();
 
                 if (mobDifficultyStrategy.isViable) {
                     mobDifficultyStrategy.strategyFunction.call(this);
@@ -651,7 +655,7 @@ namespace PCGGame {
         }
 
 
-        private _increaseMobDifficultyStrategyFn() : Strategy {
+        private _increaseMobDifficultyStrategy() : Strategy {
 
             let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
 
@@ -661,7 +665,7 @@ namespace PCGGame {
             }
 
             strategy.strategyFunction = () => {
-                console.warn('_increaseMobDifficultyStrategyFn');
+                console.warn('_increaseMobDifficultyStrategy');
                 return ++this._mobDifficultyLevel;
             };
 
@@ -670,7 +674,7 @@ namespace PCGGame {
 
 
 
-        private _decreaseMobDifficultyStrategyFn() : Strategy {
+        private _decreaseMobDifficultyStrategy() : Strategy {
             let strategy : Strategy = {isViable: true, strategyFunction: () => {}};
 
             if ((this._mobDifficultyLevel - 1) < 0) {
@@ -679,7 +683,7 @@ namespace PCGGame {
             }
 
             strategy.strategyFunction = () => {
-                console.warn('_decreaseMobDifficultyStrategyFn');
+                console.warn('_decreaseMobDifficultyStrategy');
                 return --this._mobDifficultyLevel;
             };
 
