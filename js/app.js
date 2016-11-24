@@ -351,7 +351,6 @@ var PCGGame;
             this._adaptTimeElapsedMS += lastTimeMS;
             this._currentSnapShot.tick(lastTimeMS, this._player.health);
             this._overallSnapShot.tick(lastTimeMS, this._player.health);
-            console.warn(this._currentSnapShot.averagePlayerHealth());
             if (this.hasAdapatationsInQueue() && this._adaptTimeElapsedMS >= this.mobTransitionTimelineAdaptationQueue[0].deltaMS) {
                 var adaptationToMake = this.getNextAdaptationInQueue();
                 adaptationToMake.f.call(this);
@@ -493,14 +492,16 @@ var PCGGame;
             var strategy = { isViable: true, strategyFunction: function () { } };
             var platformPercentage = this._probabilityDistributions[type][0];
             var pushPlatformPercentage = this._probabilityDistributions[type][1];
-            if ((pushPlatformPercentage - halfDec) < 0 || (platformPercentage - halfDec) < 0) {
+            if ((pushPlatformPercentage - halfDec) < 0 && (platformPercentage - halfDec) < 0) {
                 console.warn('Cannot reduce likelihood of platform spawn more than 0!');
                 strategy.isViable = false;
                 return strategy;
             }
+            platformPercentage = Math.min(platformPercentage, halfDec);
+            pushPlatformPercentage = Math.min(pushPlatformPercentage, halfDec);
             strategy.strategyFunction = function () {
                 console.warn('_decreasePlatformConcentrationAmountToNullSpaceStrategy');
-                return _this._reallocateProbFromNullSpace(type, [-halfDec, -halfDec, (halfDec + halfDec)], false);
+                return _this._reallocateProbFromNullSpace(type, [-platformPercentage, -pushPlatformPercentage, (platformPercentage + pushPlatformPercentage)]);
             };
             return strategy;
         };
@@ -529,14 +530,16 @@ var PCGGame;
             var strategy = { isViable: true, strategyFunction: function () { } };
             var invaderAvailPercentage = this._probabilityDistributions[type][3];
             var megaHeadAvailPercentage = this._probabilityDistributions[type][4];
-            if ((invaderAvailPercentage - halfDec) < 0 || (megaHeadAvailPercentage - halfDec) < 0) {
+            if ((invaderAvailPercentage - halfDec) < 0 && (megaHeadAvailPercentage - halfDec) < 0) {
                 console.warn('Cannot reduce likelihood of mob spawn more than 0!');
                 strategy.isViable = false;
                 return strategy;
             }
+            invaderAvailPercentage = Math.min(invaderAvailPercentage, halfDec);
+            megaHeadAvailPercentage = Math.min(megaHeadAvailPercentage, halfDec);
             strategy.strategyFunction = function () {
                 console.warn('_decreaseMobEnemyConcentrationAmountToNullSpaceStrategy');
-                return _this._reallocateProbFromNullSpace(type, [(halfDec + halfDec), 0, 0, -halfDec, -halfDec], false);
+                return _this._reallocateProbFromNullSpace(type, [(invaderAvailPercentage + megaHeadAvailPercentage), 0, 0, -invaderAvailPercentage, -megaHeadAvailPercentage], false);
             };
             return strategy;
         };
@@ -565,14 +568,16 @@ var PCGGame;
             var strategy = { isViable: true, strategyFunction: function () { } };
             var invaderAvailPercentage = this._probabilityDistributions[type][3];
             var megaHeadAvailPercentage = this._probabilityDistributions[type][4];
-            if ((invaderAvailPercentage - halfDec) < 0 || (megaHeadAvailPercentage - halfDec) < 0) {
+            if ((invaderAvailPercentage - halfDec) < 0 && (megaHeadAvailPercentage - halfDec) < 0) {
                 console.warn('Cannot reduce likelihood of mob spawn more than 0!');
                 strategy.isViable = false;
                 return strategy;
             }
+            invaderAvailPercentage = Math.min(invaderAvailPercentage, halfDec);
+            megaHeadAvailPercentage = Math.min(megaHeadAvailPercentage, halfDec);
             strategy.strategyFunction = function () {
                 console.warn('_decreaseAttackingMobEnemyConcentrationStrategy');
-                return _this._reallocateProbFromNullSpace(type, [0, 0, (halfDec + halfDec), -halfDec, -halfDec], false);
+                return _this._reallocateProbFromNullSpace(type, [0, 0, (invaderAvailPercentage + megaHeadAvailPercentage), -invaderAvailPercentage, -megaHeadAvailPercentage]);
             };
             return strategy;
         };

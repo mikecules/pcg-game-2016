@@ -733,17 +733,19 @@ namespace PCGGame {
             let platformPercentage : number = this._probabilityDistributions[type][0];
             let pushPlatformPercentage : number = this._probabilityDistributions[type][1];
 
-            if ((pushPlatformPercentage - halfDec) < 0 || (platformPercentage - halfDec) < 0) {
+            if ((pushPlatformPercentage - halfDec) < 0 && (platformPercentage - halfDec) < 0) {
                 console.warn('Cannot reduce likelihood of platform spawn more than 0!');
                 strategy.isViable = false;
 
                 return strategy;
             }
 
+            platformPercentage = Math.min(platformPercentage, halfDec);
+            pushPlatformPercentage = Math.min(pushPlatformPercentage, halfDec);
 
             strategy.strategyFunction = () => {
                 console.warn('_decreasePlatformConcentrationAmountToNullSpaceStrategy');
-                return this._reallocateProbFromNullSpace(type, [-halfDec, -halfDec, (halfDec + halfDec)], false);
+                return this._reallocateProbFromNullSpace(type, [-platformPercentage, -pushPlatformPercentage, (platformPercentage + pushPlatformPercentage)]);
             };
 
             return strategy;
@@ -793,17 +795,20 @@ namespace PCGGame {
             let invaderAvailPercentage : number = this._probabilityDistributions[type][3];
             let megaHeadAvailPercentage : number = this._probabilityDistributions[type][4];
 
-            if ((invaderAvailPercentage - halfDec) < 0 || (megaHeadAvailPercentage - halfDec) < 0) {
+            if ((invaderAvailPercentage - halfDec) < 0 && (megaHeadAvailPercentage - halfDec) < 0) {
                 console.warn('Cannot reduce likelihood of mob spawn more than 0!');
                 strategy.isViable = false;
 
                 return strategy;
             }
 
+            invaderAvailPercentage = Math.min(invaderAvailPercentage, halfDec);
+            megaHeadAvailPercentage = Math.min(megaHeadAvailPercentage, halfDec);
+
 
             strategy.strategyFunction = () => {
                 console.warn('_decreaseMobEnemyConcentrationAmountToNullSpaceStrategy');
-                return this._reallocateProbFromNullSpace(type, [(halfDec + halfDec), 0, 0, -halfDec, -halfDec], false);
+                return this._reallocateProbFromNullSpace(type, [(invaderAvailPercentage + megaHeadAvailPercentage), 0, 0, -invaderAvailPercentage, -megaHeadAvailPercentage], false);
             };
 
             return strategy;
@@ -847,17 +852,20 @@ namespace PCGGame {
             let invaderAvailPercentage : number = this._probabilityDistributions[type][3];
             let megaHeadAvailPercentage : number = this._probabilityDistributions[type][4];
 
-            if ((invaderAvailPercentage - halfDec) < 0 || (megaHeadAvailPercentage - halfDec) < 0) {
+            if ((invaderAvailPercentage - halfDec) < 0 && (megaHeadAvailPercentage - halfDec) < 0) {
                 console.warn('Cannot reduce likelihood of mob spawn more than 0!');
                 strategy.isViable = false;
 
                 return strategy;
             }
 
+            invaderAvailPercentage = Math.min(invaderAvailPercentage, halfDec);
+            megaHeadAvailPercentage = Math.min(megaHeadAvailPercentage, halfDec);
+
 
             strategy.strategyFunction = () => {
                 console.warn('_decreaseAttackingMobEnemyConcentrationStrategy');
-                return this._reallocateProbFromNullSpace(type, [0, 0, (halfDec + halfDec), -halfDec, -halfDec], false);
+                return this._reallocateProbFromNullSpace(type, [0, 0, (invaderAvailPercentage + megaHeadAvailPercentage), -invaderAvailPercentage, -megaHeadAvailPercentage]);
             };
 
             return strategy;
