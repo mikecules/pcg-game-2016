@@ -108,7 +108,7 @@ namespace PCGGame {
 
 
         private _invokeExperientialSurvey() {
-            if (this._shouldShowExperientialPrompt && ! this.experientialGameManager.surveyManager.isShowing) {
+            if (this._shouldShowExperientialPrompt && ! this.experientialGameManager.surveyManager.isShowing && ! this._gameState.paused) {
                 this.togglePause();
                 this.experientialGameManager.showSurvey();
             }
@@ -432,7 +432,9 @@ namespace PCGGame {
 
             this._pauseKey.onUp.add(() => {
                 //console.log('Pause Key pressed!');
-                this.togglePause();
+                if (! this.experientialGameManager.surveyManager.isShowing) {
+                    this.togglePause();
+                }
             }, this);
 
             this._fireKey.onDown.add(() => {

@@ -1,11 +1,15 @@
+/// <
 namespace PCGGame {
     export class SurveyManager {
         private _modal : Modal = null;
+        private _surveyCountEl : JQuery = null;
+        private _surveyOpenedCount : number = 0;
         public currentPreferenceCondition : PreferenceCondition = null;
 
 
         public constructor(id: string) {
             this._modal = new Modal(id);
+            this._surveyCountEl = $('#player-survey-count');
 
             this._modal.modalCompleteSignal.add((e : any) => {
 
@@ -13,10 +17,13 @@ namespace PCGGame {
                     return;
                 }
 
-                if (this.currentPreferenceCondition) {
-                   let prefValIndex : number = parseInt($('input:radio[name=prefOption]:checked').val(), 10);
 
-                   this.currentPreferenceCondition.preference = prefValIndex;
+                if (this.currentPreferenceCondition) {
+
+                    let prefValIndex : number = parseInt($('input:radio[name=prefOption]:checked').val(), 10);
+                    this.currentPreferenceCondition.preference = prefValIndex;
+
+                    this._surveyCountEl.text(++this._surveyOpenedCount);
                }
             });
         }
@@ -41,7 +48,7 @@ namespace PCGGame {
                 this.setQuestion();
             }
 
-            this._modal.open();
+            this._modal.open(true);
         }
 
         public get modalEvent() : Phaser.Signal {
@@ -73,8 +80,8 @@ namespace PCGGame {
                 this._dispatchEvent();
             } );
 
+
             this._modalEl.on('hidden.bs.modal', () => {
-                this._isOpen = false;
                 this._dispatchEvent();
             } );
 
@@ -85,8 +92,13 @@ namespace PCGGame {
             this.modalCompleteSignal = new Phaser.Signal();
         }
 
-        public open(shouldOpen : boolean = true) {
-            this._isOpen = shouldOpen || ! this._isOpen;
+        public open(shouldOpen?: boolean) {
+
+            if (shouldOpen === this._isOpen) {
+                return;
+            }
+
+            this._isOpen = typeof shouldOpen !== 'undefined' ? shouldOpen : (! this._isOpen);
             this._modalEl.modal((this._isOpen ? 'show' : 'hide'));
         }
 

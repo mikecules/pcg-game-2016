@@ -887,7 +887,7 @@ var PCGGame;
             if (!this._modal.isOpen && this.currentPreferenceCondition) {
                 this.setQuestion();
             }
-            this._modal.open();
+            this._modal.open(true);
         };
         Object.defineProperty(SurveyManager.prototype, "modalEvent", {
             get: function () {
@@ -921,7 +921,6 @@ var PCGGame;
                 _this._dispatchEvent();
             });
             this._modalEl.on('hidden.bs.modal', function () {
-                _this._isOpen = false;
                 _this._dispatchEvent();
             });
             this._modalEl.find('.btn-done').click(function () {
@@ -930,8 +929,10 @@ var PCGGame;
             this.modalCompleteSignal = new Phaser.Signal();
         }
         Modal.prototype.open = function (shouldOpen) {
-            if (shouldOpen === void 0) { shouldOpen = true; }
-            this._isOpen = shouldOpen || !this._isOpen;
+            if (shouldOpen === this._isOpen) {
+                return;
+            }
+            this._isOpen = typeof shouldOpen !== 'undefined' ? shouldOpen : (!this._isOpen);
             this._modalEl.modal((this._isOpen ? 'show' : 'hide'));
         };
         Object.defineProperty(Modal.prototype, "isOpen", {
@@ -2514,7 +2515,7 @@ var PCGGame;
             this._updateShieldBar(0);
         };
         Play.prototype._invokeExperientialSurvey = function () {
-            if (this._shouldShowExperientialPrompt && !this.experientialGameManager.surveyManager.isShowing) {
+            if (this._shouldShowExperientialPrompt && !this.experientialGameManager.surveyManager.isShowing && !this._gameState.paused) {
                 this.togglePause();
                 this.experientialGameManager.showSurvey();
             }
@@ -2738,7 +2739,9 @@ var PCGGame;
                 _this._invokeExperientialSurvey();
             }, this);
             this._pauseKey.onUp.add(function () {
-                _this.togglePause();
+                if (!_this.experientialGameManager.surveyManager.isShowing) {
+                    _this.togglePause();
+                }
             }, this);
             this._fireKey.onDown.add(function () {
                 _this.startPlayerAttack(true);
