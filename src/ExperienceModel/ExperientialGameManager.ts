@@ -424,16 +424,16 @@ namespace PCGGame {
         public evaluateDifficultyWithPlayerModelAndCreateStrategy() {
 
             let moreLessPairs : PreferenceCondition[] = [
-                new PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
+                new PreferenceCondition('more space blocks on screen', 'less space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(),
                     this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
 
-                new PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
+                new PreferenceCondition('more creatures on screen', 'less creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(),
                     this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
 
                 new PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseAttackingMobEnemyConcentrationStrategy(),
                     this._decreaseAttackingMobEnemyConcentrationStrategy()),
 
-                new PreferenceCondition('a higher ratio of multicolor destructible blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(),
+                new PreferenceCondition('a higher ratio of multicolor blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(),
                     this._increasePushPlatformConcentrationStrategy())
             ];
 

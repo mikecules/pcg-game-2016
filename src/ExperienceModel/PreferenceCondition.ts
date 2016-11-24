@@ -29,8 +29,8 @@ namespace PCGGame {
                 this._questions = [
                     PreferenceCondition.capitalizeFirstLetter(this.moreConditionPhrase) + ` are more <strong>${this.affectWord}</strong> than ${this.lessConditionPhrase}.`,
                     PreferenceCondition.capitalizeFirstLetter(this.lessConditionPhrase) + ` are more <strong>${this.affectWord}</strong> than ${this.moreConditionPhrase}.`,
-                    `Both of them feels equally <strong>${this.affectWord}</strong>.`,
-                    `Neither of the two feels <strong>${this.affectWord}</strong>.`
+                    `Both options sounds equally <strong>${this.affectWord}</strong>.`,
+                    `Neither of the two options sounds <strong>${this.affectWord}</strong>.`
                 ];
             }
 

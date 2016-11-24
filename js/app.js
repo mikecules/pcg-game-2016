@@ -302,10 +302,10 @@ var PCGGame;
         };
         ExperientialGameManager.prototype.evaluateDifficultyWithPlayerModelAndCreateStrategy = function () {
             var moreLessPairs = [
-                new PCGGame.PreferenceCondition('more total space blocks on screen', 'less total space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(), this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
-                new PCGGame.PreferenceCondition('more total creatures on screen', 'less total creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(), this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
+                new PCGGame.PreferenceCondition('more space blocks on screen', 'less space blocks on screen', 'fun', this._increasePlatformConcentrationAmountFromNullSpaceStrategy(), this._decreasePlatformConcentrationAmountToNullSpaceStrategy()),
+                new PCGGame.PreferenceCondition('more creatures on screen', 'less creatures on screen', 'fun', this._increaseMobEnemyConcentrationFromNullSpaceStrategy(), this._decreaseMobEnemyConcentrationAmountToNullSpaceStrategy()),
                 new PCGGame.PreferenceCondition('a higher ratio of aggressive creatures', 'a lower ratio of aggressive creatures', 'fun', this._increaseAttackingMobEnemyConcentrationStrategy(), this._decreaseAttackingMobEnemyConcentrationStrategy()),
-                new PCGGame.PreferenceCondition('a higher ratio of multicolor destructible blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(), this._increasePushPlatformConcentrationStrategy())
+                new PCGGame.PreferenceCondition('a higher ratio of multicolor blocks', 'a higher ratio of blue push blocks', 'fun', this._increasePlatformConcentrationStrategy(), this._increasePushPlatformConcentrationStrategy())
             ];
             if (this._currentPreferenceConditionInPlay && this._currentPreferenceConditionInPlay.count === 0) {
                 this.evaluateDifficultyAndCreateStrategy();
@@ -792,8 +792,8 @@ var PCGGame;
                     this._questions = [
                         PreferenceCondition.capitalizeFirstLetter(this.moreConditionPhrase) + (" are more <strong>" + this.affectWord + "</strong> than " + this.lessConditionPhrase + "."),
                         PreferenceCondition.capitalizeFirstLetter(this.lessConditionPhrase) + (" are more <strong>" + this.affectWord + "</strong> than " + this.moreConditionPhrase + "."),
-                        ("Both of them feels equally <strong>" + this.affectWord + "</strong>."),
-                        ("Neither of the two feels <strong>" + this.affectWord + "</strong>.")
+                        ("Both options sounds equally <strong>" + this.affectWord + "</strong>."),
+                        ("Neither of the two options sounds <strong>" + this.affectWord + "</strong>.")
                     ];
                 }
                 return this._questions;
