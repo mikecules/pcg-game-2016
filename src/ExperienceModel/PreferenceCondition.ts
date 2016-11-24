@@ -3,6 +3,7 @@ namespace PCGGame {
     export class PreferenceCondition {
         public moreStrategy : Strategy = null;
         public lessStrategy : Strategy = null;
+        public altStrategy : Strategy = null;
         public count : number = 0;
         private _questions : string[] = null;
         private _selectedPref : number = 0;
@@ -11,13 +12,15 @@ namespace PCGGame {
         public moreConditionPhrase : string = '';
         public lessConditionPhrase : string = '';
 
-        public constructor(moreCondition: string, lessCondition : string, affectWord : string, moreStrategy : Strategy, lessStrategy : Strategy) {
+        public constructor(moreCondition: string, lessCondition : string, affectWord : string, moreStrategy : Strategy, lessStrategy : Strategy, altStrategy : Strategy) {
             this.affectWord = affectWord;
             this.moreConditionPhrase = moreCondition;
             this.lessConditionPhrase = lessCondition;
 
             this.moreStrategy = moreStrategy;
             this.lessStrategy = lessStrategy;
+
+            this.altStrategy = altStrategy;
         }
 
         public static capitalizeFirstLetter(str : string) : string {
@@ -53,6 +56,9 @@ namespace PCGGame {
                 switch (pref) {
                     case 1:
                         this.lessStrategy.strategyFunction();
+                        break;
+                    case 3:
+                        this.altStrategy.strategyFunction();
                         break;
                     default:
                         this.moreStrategy.strategyFunction();
