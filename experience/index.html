@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>InfiniFighter - A Procedurally Generated Content Game</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="css/app.css" type="text/css" />
+    <script src="js/jquery-2.2.4.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/phaser.min.js"></script>
+    <script src="js/app.js"></script>
+
+</head>
+<body>
+    <main>
+        <div id="pcg-content"></div>
+        <!-- Modal -->
+        <div class="modal fade" id="experience-survey" tabindex="-1" role="dialog" aria-labelledby="experiential-survey-modal">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" id="experiential-survey-modal">Game Survey</h4>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary btn-done">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#experience-survey">
+            Launch Survey
+        </button -->
+        <div class="game-instructions row">
+            <div class="col-sm-9">
+                <strong><span class="glyphicon glyphicon-bookmark"></span> Play Instructions</strong>
+                <ul>
+                    <li><span class="glyphicon glyphicon-move"></span> To move the ship use the arrow keys:
+                        <span class="glyphicon glyphicon-arrow-up"></span>
+                        <span class="glyphicon glyphicon-arrow-down"></span>
+                        <span class="glyphicon glyphicon-arrow-left"></span>
+                        <span class="glyphicon glyphicon-arrow-right"></span>
+                        or mouse.</li>
+                    <li><span class="glyphicon glyphicon-fire"></span> Press &quot;<strong>Spacebar</strong>&quot; Key or Mouse Button to fire.</li>
+                    <li><span class="glyphicon glyphicon-time"></span> Press &quot;<strong>Shift</strong>&quot; Key to toggle the Game's Pause state.</li>
+                    <li><span class="glyphicon glyphicon-music"></span> Press &quot;<strong>S/s</strong>&quot; Key to toggle the music track.</li>
+                    <li class="player-survey-instruction hidden"><span class="glyphicon glyphicon-pencil"></span> Press &quot;<strong>C/c</strong>&quot; Key to toggle the survey if prompted.</li>
+                </ul>
+            </div>
+            <div class="col-sm-3">
+                <div class="player-survey-instruction hidden" style="text-align: right; margin-right: 20px;">Survey Used:
+                    <span style="color: #fff;"><strong id="player-survey-count">0</strong> time(s)</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

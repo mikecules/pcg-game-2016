@@ -1,0 +1,18 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "module": "none",
+    "target": "es5",
+    "removeComments": true,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outFile": "js/app.js"
+  },
+  "include": [
+    "src/**/*",
+    "src/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
