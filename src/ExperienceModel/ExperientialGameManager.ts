@@ -18,6 +18,7 @@ namespace PCGGame {
         public static DIFFICULTY_DENSITY_PERCENT_INCREMENT = 5;//10; // 5
         public static PLAYER_AVERAGE_HEALTH_THRESHOLD = 70; // if player is above this increment the difficulty
 
+        public managerEvents : Phaser.Signal;
 
 
         public static gameMetricSnapShots : any = {
@@ -135,6 +136,7 @@ namespace PCGGame {
 
             this.surveyManager = new SurveyManager('experience-survey');
 
+            this.managerEvents = new Phaser.Signal();
             this.surveyManager.modalEvent.add((event : any) => {
 
                 // start counting the delta time for the next survey interval after closing
@@ -431,6 +433,7 @@ namespace PCGGame {
             if (! this._shouldIncreaseDifficulty()) {
                 this.isSurveyPrepared = false;
                 this.isEligibleForSurvey = false;
+                this.managerEvents.dispatch({isSurveyCancelled:true});
                 return;
             }
 
@@ -472,6 +475,7 @@ namespace PCGGame {
                 this.isSurveyPrepared = false;
                 this.isEligibleForSurvey = false;
                 this.surveyManager.currentPreferenceCondition = null;
+                this.managerEvents.dispatch({isSurveyCancelled:true});
             }
 
 

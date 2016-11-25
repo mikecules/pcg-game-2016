@@ -327,6 +327,14 @@ namespace PCGGame {
 
             this.experientialGameManager = ExperientialGameManager.instance(this.game, this._player);
 
+            this.experientialGameManager.managerEvents.add((event : any) => {
+                let cancelledSurvey = event.isSurveyCancelled === true;
+
+                if (cancelledSurvey) {
+                    this._shouldShowExperientialPrompt = false;
+                }
+
+            });
             this.experientialGameManager.surveyManager.modalEvent.add((event : any) => {
                 this._shouldShowExperientialPrompt = event.isOpen;
 
