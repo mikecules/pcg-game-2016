@@ -96,6 +96,7 @@ var PCGGame;
             this._player = player;
             this._randomGenerator = game.rnd;
             this.surveyManager = new PCGGame.SurveyManager('experience-survey');
+            this.managerEvents = new Phaser.Signal();
             this.surveyManager.modalEvent.add(function (event) {
                 if (!event.isOpen) {
                     _this.isSurveyPrepared = false;
@@ -308,6 +309,7 @@ var PCGGame;
             if (!this._shouldIncreaseDifficulty()) {
                 this.isSurveyPrepared = false;
                 this.isEligibleForSurvey = false;
+                this.managerEvents.dispatch({ isSurveyCancelled: true });
                 return;
             }
             var mobDifficultyStrategy = this._increaseMobDifficultyStrategy();
@@ -332,6 +334,7 @@ var PCGGame;
                 this.isSurveyPrepared = false;
                 this.isEligibleForSurvey = false;
                 this.surveyManager.currentPreferenceCondition = null;
+                this.managerEvents.dispatch({ isSurveyCancelled: true });
             }
             console.warn('!!!!!!!!!!!!!!!!!!! EXPERIENTIAL MODEL DIFFICULTY INCREASED!!!');
         };
@@ -2662,6 +2665,12 @@ var PCGGame;
             this._musicTrack = this.game.add.audio(Play.MUSIC_ID);
             this._musicTrack.loop = true;
             this.experientialGameManager = PCGGame.ExperientialGameManager.instance(this.game, this._player);
+            this.experientialGameManager.managerEvents.add(function (event) {
+                var cancelledSurvey = event.isSurveyCancelled === true;
+                if (cancelledSurvey) {
+                    _this._shouldShowExperientialPrompt = false;
+                }
+            });
             this.experientialGameManager.surveyManager.modalEvent.add(function (event) {
                 _this._shouldShowExperientialPrompt = event.isOpen;
                 if (!_this._shouldShowExperientialPrompt) {
