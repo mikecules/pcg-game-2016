@@ -5,4 +5,4 @@ A simple procedurally generated space fight-based infinite scroll platform Game 
 Start a web server (like apache or node [http-server] (https://www.npmjs.com/package/http-server) in the directory that contains index.html and go to localhost from your browser.
 
 ## Current State of the Game
-The game is currently not complete but does run. Completion of the game is expected by November 24th 2016.
+The game is currently not complete but does run.
