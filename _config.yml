@@ -1,0 +1,8 @@
+title: InfiniFighter
+description: A Simple Retro Adaptive Procedurally Generated Game
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-cayman
+
+gems:
+  - jekyll-mentions
